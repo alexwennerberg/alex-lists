@@ -7,7 +7,6 @@ from srht.flask import loginrequired
 from srht.validation import Validation
 from sqlalchemy import or_
 from listssrht.types import List, User, Email, Subscription
-import requests
 import re
 
 user = Blueprint("user", __name__)
@@ -18,7 +17,6 @@ meta_uri = cfg("meta.sr.ht", "origin")
 def index():
     if not current_user:
         return render_template("index.html")
-    # TODO: This query is probably gonna get pretty expensive
     recent = (Email.query
             .join(List)
             .join(Subscription)
@@ -40,15 +38,6 @@ def user_profile(username):
     recent = (Email.query
             .filter(Email.sender_id == user.id)
             .order_by(Email.created.desc())).limit(10).all()
-    r = requests.get(meta_uri + "/api/user/profile", headers={
-        "Authorization": "token " + user.oauth_token
-    }) # TODO: cache
-
-    if r.status_code == 200:
-        profile = r.json()
-    else:
-        profile = None
-
     lists = List.query.filter(List.owner_id == user.id)
 
     if current_user:
@@ -63,8 +52,7 @@ def user_profile(username):
     lists = lists.order_by(List.updated.desc()).limit(10).all()
 
     return render_template("user.html",
-            user=user, recent=recent, lists=lists,
-            profile=profile, parseaddr=parseaddr)
+            user=user, recent=recent, lists=lists, parseaddr=parseaddr)
 
 @user.route("/lists/create")
 @loginrequired

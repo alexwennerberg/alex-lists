@@ -6,20 +6,18 @@
       <h2>
         ~{{ user.username }}
       </h2>
-      {% if profile %}
-      {% if profile.get("location") %}
-      <p>{{profile["location"]}}</p>
+      {% if user.location %}
+      <p>{{user.location}}</p>
       {% endif %}
-      {% if profile.get("url") %}
+      {% if user.url %}
       <p>
-        <a href="{{profile["url"]}}" target="_blank" rel="me noopener noreferrer nofollow">
-          {{profile["url"]}}
+        <a href="{{user.url}}" target="_blank" rel="me noopener noreferrer nofollow">
+          {{user.url}}
         </a>
       </p>
       {% endif %}
-      {% if profile.get("bio") %}
-      <p>{{profile["bio"] | md}}</p>
-      {% endif %}
+      {% if user.bio %}
+      <p>{{user.bio | md}}</p>
       {% endif %}
       {% if any(lists) %}
       {% for list in lists %}
