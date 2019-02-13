@@ -51,7 +51,7 @@ def apply_search(query):
         return (q.filter(cast(Email.headers[header], String).ilike(
                 "%" + current_user.email + "%"))
             if current_user and v == "me" else
-            q.filter(Email.headers[header].ilike("%" + value + "%")))
+            q.filter(Email.headers[header].ilike("%" + v + "%")))
     return search(query, terms, [Email.body, Email.subject], {
         "is": lambda q, v: q.filter({
             "patch": Email.is_patch,
