@@ -64,15 +64,12 @@ class MailHandler:
             if not "/" in address:
                 return None, None
             owner, list_name = address.split("/")
-            owner_id = await self.fetch_user.fetchval(owner[1:])
-            if not owner_id:
-                return None
-            result = await self.fetch_list.fetchrow(
-                    owner_id, list_name)
-            return result, command
-        else:
-            # TODO: Attempt fallback method (e.g. users.x.y@)
+        owner_id = await self.fetch_user.fetchval(owner[1:])
+        if not owner_id:
             return None, None
+        result = await self.fetch_list.fetchrow(
+                owner_id, list_name)
+        return result, command
 
     def validate(self, mail):
         required_headers = ["To", "From", "Subject", "Message-Id"]
