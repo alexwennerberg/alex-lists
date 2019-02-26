@@ -67,9 +67,7 @@
             {% set from_hdr = msg.parsed()['From'] %}
             {% set from = parseaddr(from_hdr) %}
             {% if msg.sender != None %}
-            <a href="/{{ msg.sender.canonical_name }}">
-              {{from[0]}}
-            </a>
+            <a href="/{{ msg.sender.canonical_name }}">{{from[0]}}</a>
             {% else %}
             {{from[0]}}
             {% endif %}
