@@ -98,10 +98,12 @@ def _archive(dest, envelope):
     if parent is not None:
         mail.parent_id = parent.id
         thread = parent
-        tenvelope = email.message_from_string(thread.envelope)
+        tenvelope = email.message_from_string(thread.envelope,
+                policy=email.policy.SMTP)
         participants = set([envelope["From"], tenvelope["From"]])
         while thread.parent_id != None:
-            tenvelope = email.message_from_string(thread.envelope)
+            tenvelope = email.message_from_string(thread.envelope,
+                    policy=email.policy.SMTP)
             participants.update([tenvelope["From"]])
             thread = thread.parent
         mail.thread_id = thread.id
@@ -245,7 +247,7 @@ def dispatch_message(address, list_id, mail):
         command = address[address.rfind("+") + 1:].lower()
         address = address[:address.rfind("+")]
     dest = List.query.filter(List.id == list_id).one_or_none()
-    mail = email.message_from_string(mail, policy=policy.default)
+    mail = email.message_from_string(mail, policy=email.policy.SMTP)
 
     if command == "post":
         msgid = mail.get("Message-ID")

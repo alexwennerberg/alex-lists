@@ -126,7 +126,8 @@ class MailHandler:
         sub_perms = ListAccess(sub_perms)
         external_perms = ListAccess(external_perms)
 
-        mail = email.message_from_bytes(envelope.content)
+        mail = email.message_from_bytes(envelope.content,
+                policy=email.policy.SMTP)
 
         in_reply_to = mail.get("In-Reply-To")
         in_reply_to = await self.fetch_email.fetchval(in_reply_to)

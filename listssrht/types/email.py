@@ -51,7 +51,7 @@ class Email(Base):
         if hasattr(self, "_parsed"):
             return self._parsed
         self._parsed = email.message_from_string(
-                self.envelope, policy=policy.default)
+                self.envelope, policy=email.policy.SMTP)
         return self._parsed
 
     def patch(self):
