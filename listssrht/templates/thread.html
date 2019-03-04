@@ -140,7 +140,12 @@
               <span class="text-danger">-{{stats.removed}}</span>
             </span>
             {% endif %}
-            {% if dkim_status != None and dkim_status != "pass" %}
+            {#
+              permerror issues are inaccurate for as-of-yet unknown reasons.
+              See thread on opendkim-users 2019-03-04
+            #}
+            {% if dkim_status != None and dkim_status != "pass"
+              and dkim_status != "permerror" %}
             <span class="info" title="{{ dkim_explain }}">
               DKIM signature:
               <span class="text-danger">
