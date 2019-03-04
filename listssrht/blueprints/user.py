@@ -35,9 +35,7 @@ def user_profile(username):
     user = User.query.filter(User.username == username).first()
     if not user:
         abort(404)
-    recent = (Email.query
-            .filter(Email.sender_id == user.id)
-            .order_by(Email.created.desc())).limit(10).all()
+    recent = Email.query.filter(Email.sender_id == user.id)
     lists = List.query.filter(List.owner_id == user.id)
 
     if current_user:
@@ -46,9 +44,15 @@ def user_profile(username):
                     List.account_permissions > 0,
                     List.nonsubscriber_permissions > 0
                 ))
+            recent = recent.join(List).filter(or_(
+                List.account_permissions > 0,
+                List.nonsubscriber_permissions > 0))
     else:
         lists = lists.filter(List.nonsubscriber_permissions > 0)
+        recent = (recent.join(List)
+                .filter(List.nonsubscriber_permissions > 0))
 
+    recent = recent.order_by(Email.created.desc()).limit(10).all()
     lists = lists.order_by(List.updated.desc()).limit(10).all()
 
     return render_template("user.html",

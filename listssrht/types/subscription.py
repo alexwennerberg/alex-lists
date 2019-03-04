@@ -20,3 +20,10 @@ class Subscription(Base):
     def __repr__(self):
         return '<Subscription {} {} -> list {}>'.format(
                 self.id, self.email or self.user_id, self.list_id)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "created": self.created,
+            "list": self.list.to_dict(short=True),
+        }

@@ -41,6 +41,7 @@ setup(
       'listssrht',
       'listssrht.types',
       'listssrht.blueprints',
+      'listssrht.blueprints.api',
       'listssrht.alembic',
       'listssrht.alembic.versions'
   ],

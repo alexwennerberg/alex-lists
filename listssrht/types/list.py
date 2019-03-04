@@ -34,3 +34,22 @@ class List(Base):
 
     def __repr__(self):
         return '<List {} {}>'.format(self.id, self.name)
+
+    def to_dict(self, short=False):
+        def permissions(perm):
+            return ",".join(p.name for p in ListAccess
+                    if p in perm and p not in [ListAccess.none, ListAccess.all])
+        return {
+            "name": self.name,
+            "owner": self.owner.to_dict(short=True),
+            **({
+                "created": self.created,
+                "updated": self.updated,
+                "description": self.description,
+                "permissions": {
+                    "nonsubscriber": permissions(self.nonsubscriber_permissions),
+                    "subscriber": permissions(self.subscriber_permissions),
+                    "account": permissions(self.account_permissions),
+                },
+            } if not short else {})
+        }

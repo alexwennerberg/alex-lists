@@ -14,7 +14,7 @@ import email.utils
 
 archives = Blueprint("archives", __name__)
 
-def get_list(owner_name, list_name):
+def get_list(owner_name, list_name, current_user=current_user):
     if owner_name and owner_name.startswith('~'):
         owner_name = owner_name[1:]
         owner = User.query.filter(User.username == owner_name).one_or_none()
@@ -70,7 +70,7 @@ def archive(owner_name, list_name):
     if not ml:
         abort(404)
     if ListAccess.browse not in access:
-        abort(401)
+        abort(403)
     threads = (Email.query
             .filter(Email.list_id == ml.id)
         ).order_by(Email.updated.desc())
@@ -94,7 +94,7 @@ def thread(owner_name, list_name, message_id):
     if not ml:
         abort(404)
     if ListAccess.browse not in access:
-        abort(401)
+        abort(403)
     thread = (Email.query
             .filter(Email.message_id == message_id)
             .filter(Email.list_id == ml.id)
@@ -131,7 +131,7 @@ def raw(owner_name, list_name, message_id):
     if not ml:
         abort(404)
     if ListAccess.browse not in access:
-        abort(401)
+        abort(403)
     message = (Email.query
             .filter(Email.message_id == message_id)
             .filter(Email.list_id == ml.id)
@@ -153,7 +153,7 @@ def mbox(owner_name, list_name, message_id):
     if not ml:
         abort(404)
     if ListAccess.browse not in access:
-        abort(401)
+        abort(403)
     thread = (Email.query
             .filter(Email.message_id == message_id)
             .filter(Email.list_id == ml.id)
@@ -170,7 +170,7 @@ def subscribe(owner_name, list_name):
     if not ml:
         abort(404)
     if ListAccess.browse not in access:
-        abort(401)
+        abort(403)
     sub = (Subscription.query
         .filter(Subscription.list_id == ml.id)
         .filter(Subscription.user_id == current_user.id)).one_or_none()
@@ -216,7 +216,7 @@ def settings_GET(owner_name, list_name):
     if not ml:
         abort(404)
     if ml.owner_id != current_user.id:
-        abort(401)
+        abort(403)
     return render_template("list-settings.html", view="settings",
             ml=ml, owner=owner, access_type_list=ListAccess,
             access_help_map=access_help_map)
@@ -228,7 +228,7 @@ def settings_POST(owner_name, list_name):
     if not ml:
         abort(404)
     if ml.owner_id != current_user.id:
-        abort(401)
+        abort(403)
 
     valid = Validation(request)
     list_desc = valid.optional("list_desc")
