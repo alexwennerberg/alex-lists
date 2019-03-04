@@ -42,6 +42,17 @@ def user_lists_by_name_GET(username, list_name):
         abort(404)
     return ml.to_dict()
 
+@lists.route("/api/lists/<list_name>", methods=["PUT"])
+@oauth("lists:write")
+def user_lists_by_name_PUT(list_name):
+    user, ml, access = get_list(None, list_name)
+    if ml.owner_id != user.id:
+        abort(403)
+    valid = Validation(request)
+    ml.update(valid)
+    db.session.commit()
+    return ml.to_dict()
+
 @lists.route("/api/user/<username>/lists/<list_name>/emails")
 @lists.route("/api/lists/<list_name>/emails", defaults={"username": None})
 @oauth("lists:read")

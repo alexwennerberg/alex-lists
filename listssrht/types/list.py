@@ -52,6 +52,11 @@ class List(Base):
                 "Description must be between fewer than 2048 characters.",
                 field="description")
 
+    def update(self, valid):
+        self.description = valid.optional("description",
+                default=self.description)
+        # TODO: Update permissions
+
     def __repr__(self):
         return '<List {} {}>'.format(self.id, self.name)
 
