@@ -234,7 +234,7 @@ def settings_POST(owner_name, list_name):
     list_desc = valid.optional("list_desc")
     if list_desc == "":
         list_desc = None
-    valid.expect(not list_desc or 16 < len(list_desc) < 2048,
+    valid.expect(not list_desc or len(list_desc) < 2048,
             "Description must be between 16 and 2048 characters.",
             field="list_desc")
 

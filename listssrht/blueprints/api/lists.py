@@ -1,9 +1,11 @@
-from flask import Blueprint, abort
+from flask import Blueprint, abort, request
 from listssrht.blueprints.api import get_user, get_list
 from listssrht.types import User, List, Email, ListAccess
 from sqlalchemy import or_
 from srht.api import paginated_response
+from srht.database import db
 from srht.oauth import oauth, current_token, OAuthScope
+from srht.validation import Validation
 
 lists = Blueprint("api.lists", __name__)
 
@@ -18,6 +20,18 @@ def user_lists_GET(username):
             List.account_permissions > 0,
             List.nonsubscriber_permissions > 0))
     return paginated_response(List.id, lists)
+
+@lists.route("/api/lists", methods=["POST"])
+@oauth("lists:write")
+def user_lists_POST():
+    user = current_token.user
+    valid = Validation(request)
+    ml = List(user, valid)
+    if not valid.ok:
+        return valid.response
+    db.session.add(ml)
+    db.session.commit()
+    return ml.to_dict(), 201
 
 @lists.route("/api/user/<username>/lists/<list_name>")
 @lists.route("/api/lists/<list_name>", defaults={"username": None})

@@ -66,31 +66,11 @@ def create_list_GET():
 @user.route("/lists/create", methods=["POST"])
 def create_list_POST():
     valid = Validation(request)
-    list_name = valid.require("list_name", friendly_name="Name")
-    list_desc = valid.optional("list_desc")
+    ml = List(current_user, valid)
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)
-
-    valid.expect(re.match(r'^[a-z._-][a-z0-9._-]*$', list_name),
-            "Name must match [a-z._-][a-z0-9._-]*", field="list_name")
-    existing = (List.query
-            .filter(List.owner_id == current_user.id)
-            .filter(List.name.ilike(list_name))
-            .first())
-    valid.expect(not existing,
-            "This name is already in use.", field="list_name")
-    valid.expect(not list_desc or 16 < len(list_desc) < 2048,
-            "Description must be between 16 and 2048 characters.",
-            field="list_desc")
-    if not valid.ok:
-        return render_template("create.html", **valid.kwargs)
-
-    ml = List()
-    ml.owner_id = current_user.id
-    ml.name = list_name
-    ml.description = list_desc
     db.session.add(ml)
-    db.session.commit()
+    db.session.flush()
 
     # Auto-subscribe the owner
     sub = Subscription()

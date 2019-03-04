@@ -10,25 +10,26 @@
           <label for="name">Name</label>
           <input
             type="text"
-            name="list_name"
-            id="list_name"
-            class="form-control {{valid.cls("list_name")}}"
-            value="{{ list_name or "" }}" />
-          {{valid.summary("list_name")}}
+            name="name"
+            id="name"
+            class="form-control {{valid.cls("name")}}"
+            value="{{ name or "" }}" />
+          {{valid.summary("name")}}
         </div>
         <div class="form-group">
           <label for="description">Description</label>
           <textarea
-            name="list_desc"
-            id="list_desc"
-            class="form-control {{valid.cls("list_desc")}}"
-            value="{{ list_desc or "" }}"
+            name="description"
+            id="description"
+            class="form-control {{valid.cls("description")}}"
+            value="{{ description or "" }}"
             rows="5"
-            aria-describedby="list_desc-help">{{list_desc or ""}}</textarea>
-          <p id="list_desc-help" class="form-text text-muted">
+            aria-describedby="description-help"
+          >{{description or ""}}</textarea>
+          <p id="description-help" class="form-text text-muted">
             Markdown supported
           </p>
-          {{valid.summary("list_desc")}}
+          {{valid.summary("description")}}
         </div>
         <button type="submit" class="btn btn-primary">
           Create {{icon("caret-right")}}

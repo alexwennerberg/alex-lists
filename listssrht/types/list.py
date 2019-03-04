@@ -1,7 +1,8 @@
+import re
+import sqlalchemy as sa
 from srht.flagtype import FlagType
 from srht.database import Base
 from listssrht.types.listaccess import ListAccess
-import sqlalchemy as sa
 
 class List(Base):
     __tablename__ = 'list'
@@ -31,6 +32,25 @@ class List(Base):
 
     owner_id = sa.Column(sa.Integer, sa.ForeignKey('user.id'), nullable=False)
     owner = sa.orm.relationship('User', backref=sa.orm.backref('lists'))
+
+    def __init__(self, owner, valid):
+        self.owner = owner
+        self.owner_id = owner.id
+        self.name = valid.require("name", friendly_name="Name")
+        self.description = valid.optional("description")
+        if not valid.ok:
+            return
+        valid.expect(re.match(r'^[a-z._-][a-z0-9._-]*$', self.name),
+                "Name must match [a-z._-][a-z0-9._-]*", field="name")
+        existing = (List.query
+                .filter(List.owner_id == owner.id)
+                .filter(List.name.ilike(self.name))
+                .first())
+        valid.expect(not existing,
+                "This name is already in use.", field="name")
+        valid.expect(not self.description or len(self.description) < 2048,
+                "Description must be between fewer than 2048 characters.",
+                field="description")
 
     def __repr__(self):
         return '<List {} {}>'.format(self.id, self.name)
