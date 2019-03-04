@@ -9,7 +9,7 @@ from srht.flask import paginate_query, loginrequired
 from srht.validation import Validation
 from listssrht.filters import post_address
 from listssrht.types import List, User, Email, Subscription, ListAccess
-from listssrht.webhooks import ListWebhook
+from listssrht.webhooks import ListWebhook, UserWebhook
 from urllib.parse import quote, urlencode
 import email
 import email.utils
