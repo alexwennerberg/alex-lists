@@ -68,10 +68,28 @@ def apply_search(query):
             Email.headers[canonicalize(p)], String).ilike("%" + v + "%")),
     }), terms
 
+def _dkim_explain(status, domain):
+    return {
+        "pass": f"Valid DKIM signature for {domain}",
+        "fail": f"Invalid DKIM signature for {domain}. The message may have" +
+            f" been tampered with, or the mail server at {domain} is" +
+            " misconfigured.",
+        "policy": "This email has a DKIM signature, but is for some reason" +
+            " unsuitable for the policy of the recipient.",
+        "neutral": "This email has a DKIM signature, but it has syntax errors" +
+            " or other problems rendering it meaningless. This is generally" +
+            f" a configuration error with the mail server at {domain}.",
+        "temperror": "A temporary error occured while validating this DKIM" +
+            " signature.",
+        "permerror": "A permanent error occured while validating this DKIM" +
+            " signature, such as a missing or invalid header. This is" +
+            f" generally a configuration error with the mail server at {domain}."
+    }.get(status)
+
 def parse_auth_result(mail, method):
-    domain = mail["From"].split('@', 2)[1].lower()
+    domain = email.utils.parseaddr(mail["From"])[1].split("@", 2)[1].lower()
     if msgauth_server is None:
-        return None
+        return None, None
     fields = mail.get_all("Authentication-Results", failobj=[])
     for field in fields:
         parts = field.lower().replace(';', ' ').split()
@@ -87,8 +105,8 @@ def parse_auth_result(mail, method):
             continue
         if not "header.d=" + domain in parts:
             continue
-        return result
-    return "none"
+        return result, _dkim_explain(result, domain)
+    return None, _dkim_explain("none", domain)
 
 @archives.route("/<owner_name>/<list_name>")
 def archive(owner_name, list_name):

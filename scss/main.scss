@@ -20,7 +20,7 @@
   grid-template-areas:
     "from details-collapsed date"
     "details details details"
-    "patch patch patch";
+    "info info info";
 
   .from {
     grid-area: from;
@@ -30,8 +30,12 @@
     grid-area: date;
   }
   
-  .patch-info {
-    grid-area: patch;
+  .msg-info {
+    grid-area: info;
+
+    .info:not(:first-child) {
+      padding-left: 1rem;
+    }
   }
 
   details {
