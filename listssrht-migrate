@@ -3,4 +3,4 @@ import listssrht.alembic
 import srht.alembic
 from srht.database import alembic
 alembic("lists.sr.ht", listssrht.alembic)
-alembic("lists.sr.ht", srht.alembic)
+#alembic("lists.sr.ht", srht.alembic)

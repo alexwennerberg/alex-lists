@@ -90,6 +90,11 @@
                   <a href="#{{msg.parent.message_id}}">(view parent)</a>
                 </dd>
                 {% endif %}
+                {% set dkim_status = parse_auth_result(msg.parsed(), "dkim") %}
+                {% if dkim_status != None %}
+                <dt>DKIM signature</dt>
+                <dd>{{ dkim_status }}</dd>
+                {% endif %}
               </dl>
               <a href="{{ url_for(".raw",
                   owner_name=ml.owner.canonical_name,

@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, abort, request, redirect, url_for
 from flask import Response
 from flask_login import current_user
 from sqlalchemy import String, cast
+from srht.config import cfg
 from srht.database import db
 from srht.search import search
 from srht.flask import paginate_query, loginrequired
@@ -14,6 +15,8 @@ import email
 import email.utils
 
 archives = Blueprint("archives", __name__)
+
+msgauth_server = cfg("lists.sr.ht", "msgauth-server", default=None)
 
 def get_list(owner_name, list_name, current_user=current_user):
     if owner_name and owner_name.startswith('~'):
@@ -64,6 +67,28 @@ def apply_search(query):
         None: lambda q, p, v: query.filter(cast(
             Email.headers[canonicalize(p)], String).ilike("%" + v + "%")),
     }), terms
+
+def parse_auth_result(mail, method):
+    domain = mail["From"].split('@', 2)[1].lower()
+    if msgauth_server is None:
+        return None
+    fields = mail.get_all("Authentication-Results", failobj=[])
+    for field in fields:
+        parts = field.lower().replace(';', ' ').split()
+        host = parts.pop(0)
+        if host != msgauth_server:
+            continue
+        if parts[0].isalnum():
+            version = parts.pop(0)
+            if version != "1":
+                continue
+        [meth, result] = parts.pop(0).split('=', 2)
+        if meth != method.lower():
+            continue
+        if not "header.d=" + domain in parts:
+            continue
+        return result
+    return "none"
 
 @archives.route("/<owner_name>/<list_name>")
 def archive(owner_name, list_name):
@@ -124,7 +149,8 @@ def thread(owner_name, list_name, message_id):
 
     return render_template("thread.html", view="archives", owner=owner,
             ml=ml, thread=thread, patches=patches,
-            parseaddr=email.utils.parseaddr, reply_to=reply_to)
+            parseaddr=email.utils.parseaddr,
+            parse_auth_result=parse_auth_result, reply_to=reply_to)
 
 @archives.route("/<owner_name>/<list_name>/<message_id>/raw")
 def raw(owner_name, list_name, message_id):
