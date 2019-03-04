@@ -53,10 +53,10 @@ def user_lists_by_name_PUT(list_name):
     db.session.commit()
     return ml.to_dict()
 
-@lists.route("/api/user/<username>/lists/<list_name>/emails")
-@lists.route("/api/lists/<list_name>/emails", defaults={"username": None})
+@lists.route("/api/user/<username>/lists/<list_name>/posts")
+@lists.route("/api/lists/<list_name>/posts", defaults={"username": None})
 @oauth("lists:read")
-def user_lists_by_name_emails_GET(username, list_name):
+def user_lists_by_name_posts_GET(username, list_name):
     user, ml, access = get_list(username, list_name)
     if not ListAccess.browse in access:
         abort(404)
