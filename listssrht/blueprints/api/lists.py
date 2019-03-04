@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, request
 from listssrht.blueprints.api import get_user, get_list
 from listssrht.types import User, List, Email, ListAccess
+from listssrht.webhooks import ListWebhook
 from sqlalchemy import or_
 from srht.api import paginated_response
 from srht.database import db
@@ -41,6 +42,23 @@ def user_lists_by_name_GET(username, list_name):
     if not ListAccess.browse in access:
         abort(404)
     return ml.to_dict()
+
+def _webhook_filters(query, username, list_name):
+    owner, ml, access = get_list(username, list_name)
+    return query.filter(ListWebhook.Subscription.list_id == ml.id)
+
+def _webhook_create(sub, valid, username, list_name):
+    owner, ml, access = get_list(username, list_name)
+    if not ml:
+        abort(404)
+    valid.expect(ListAccess.browse in access,
+            "You are not authorized to subscribe to this list.",
+            field="list", status=403)
+    sub.list_id = ml.id
+    return sub
+
+ListWebhook.api_routes(lists, "/api/user/<username>/lists/<list_name>",
+        filters=_webhook_filters, create=_webhook_create)
 
 @lists.route("/api/lists/<list_name>", methods=["PUT"])
 @oauth("lists:write")
