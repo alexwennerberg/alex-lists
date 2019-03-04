@@ -118,9 +118,12 @@ def _archive(dest, envelope):
     db.session.add(mail)
     db.session.commit()
     print("Archived {} with ID {}".format(mail.subject, mail.id))
-    from listssrht.webhooks import ListWebhook
+    from listssrht.webhooks import UserWebhook, ListWebhook
     ListWebhook.deliver(ListWebhook.Events.post_received, mail.to_dict(),
             ListWebhook.Subscription.list_id == dest.id)
+    if sender:
+        UserWebhook.deliver(UserWebhook.Events.email_received,
+                mail.to_dict(), UserWebhook.Subscription.user_id == sender.id)
 
 def _subscribe(dest, mail):
     sender = parseaddr(mail["From"])

@@ -7,6 +7,7 @@ from srht.flask import loginrequired
 from srht.validation import Validation
 from sqlalchemy import or_
 from listssrht.types import List, User, Email, Subscription
+from listssrht.webhooks import UserWebhook
 import re
 
 user = Blueprint("user", __name__)
@@ -71,6 +72,8 @@ def create_list_POST():
         return render_template("create.html", **valid.kwargs)
     db.session.add(ml)
     db.session.flush()
+    UserWebhook.deliver(UserWebhook.Events.list_create,
+            ml.to_dict(), UserWebhook.Subscription.user_id == ml.owner_id)
 
     # Auto-subscribe the owner
     sub = Subscription()

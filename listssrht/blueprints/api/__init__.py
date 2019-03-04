@@ -2,6 +2,7 @@ import pkg_resources
 from flask import Blueprint, abort
 from listssrht.blueprints.archives import get_list as _get_list
 from listssrht.types import Email, User, Subscription, ListAccess
+from listssrht.webhooks import UserWebhook
 from srht.flask import csrf_bypass
 from srht.oauth import current_token, oauth
 
@@ -79,3 +80,5 @@ def register_api(app):
         if username == None:
             return current_token.user.to_dict()
         return get_user(username).to_dict()
+
+    UserWebhook.api_routes(app, "/api/user")

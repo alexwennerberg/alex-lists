@@ -12,6 +12,7 @@ from srht.webhook.celery import CeleryWebhook, worker
 class ListWebhook(CeleryWebhook):
     events = [
         Event("post:received", "lists:read"),
+        Event("list:update", "lists:read"),
     ]
 
     list_id = sa.Column(sa.Integer, sa.ForeignKey("list.id"), nullable=False)
@@ -20,8 +21,7 @@ class ListWebhook(CeleryWebhook):
 class UserWebhook(CeleryWebhook):
     events = [
         Event("email:received", "emails:read"),
-        Event("list:created", "lists:read"),
-        Event("list:updated", "lists:read"),
-        Event("subscription:created", "subs:read"),
-        Event("subscription:removed", "subs:read"),
+        Event("list:create", "lists:read"),
+        Event("subscription:create", "subs:read"),
+        Event("subscription:remove", "subs:read"),
     ]

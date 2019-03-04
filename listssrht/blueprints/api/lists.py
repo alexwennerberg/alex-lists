@@ -1,7 +1,7 @@
 from flask import Blueprint, abort, request
 from listssrht.blueprints.api import get_user, get_list
 from listssrht.types import User, List, Email, ListAccess
-from listssrht.webhooks import ListWebhook
+from listssrht.webhooks import ListWebhook, UserWebhook
 from sqlalchemy import or_
 from srht.api import paginated_response
 from srht.database import db
@@ -31,6 +31,9 @@ def user_lists_POST():
     if not valid.ok:
         return valid.response
     db.session.add(ml)
+    db.session.flush()
+    UserWebhook.deliver(UserWebhook.Events.list_create,
+            ml.to_dict(), UserWebhook.Subscription.user_id == ml.owner_id)
     db.session.commit()
     return ml.to_dict(), 201
 
@@ -68,6 +71,8 @@ def user_lists_by_name_PUT(list_name):
         abort(403)
     valid = Validation(request)
     ml.update(valid)
+    ListWebhook.deliver(ListWebhook.Events.list_update,
+            ml.to_dict(), ListWebhook.Subscription.list_id == ml.id)
     db.session.commit()
     return ml.to_dict()
 

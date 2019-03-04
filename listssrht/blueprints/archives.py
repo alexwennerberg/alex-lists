@@ -8,6 +8,7 @@ from srht.flask import paginate_query, loginrequired
 from srht.validation import Validation
 from listssrht.filters import post_address
 from listssrht.types import List, User, Email, Subscription, ListAccess
+from listssrht.webhooks import ListWebhook
 from urllib.parse import quote, urlencode
 import email
 import email.utils
@@ -181,6 +182,8 @@ def subscribe(owner_name, list_name):
     sub.user_id = current_user.id
     sub.list_id = ml.id
     db.session.add(sub)
+    UserWebhook.deliver(UserWebhook.Events.subscription_create,
+            sub.to_dict(), UserWebhook.Subscription.user_id == sub.user_id)
     db.session.commit()
     return redirect(url_for("archives.archive",
         owner_name=owner_name, list_name=list_name))
@@ -196,6 +199,9 @@ def unsubscribe(owner_name, list_name):
         .filter(Subscription.user_id == current_user.id)).one_or_none()
     if sub:
         db.session.delete(sub)
+        UserWebhook.deliver(UserWebhook.Events.subscription_remove,
+                { "id": sub.id },
+                UserWebhook.Subscription.user_id == sub.user_id)
         db.session.commit()
     return redirect(url_for("archives.archive",
         owner_name=owner_name, list_name=list_name))
@@ -257,6 +263,9 @@ def settings_POST(owner_name, list_name):
     ml.nonsubscriber_permissions = process("nonsub")
     ml.subscriber_permissions = process("sub")
     ml.account_permissions = process("account")
+
+    ListWebhook.deliver(ListWebhook.Events.list_update,
+            ml.to_dict(), ListWebhook.Subscription.list_id == ml.id)
 
     db.session.commit()
 
