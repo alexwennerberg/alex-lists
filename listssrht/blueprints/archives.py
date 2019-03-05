@@ -224,7 +224,9 @@ def subscribe(owner_name, list_name):
             owner_name=owner_name, list_name=list_name))
     sub = Subscription()
     sub.user_id = current_user.id
+    sub.user = current_user
     sub.list_id = ml.id
+    sub.list = ml
     db.session.add(sub)
     UserWebhook.deliver(UserWebhook.Events.subscription_create,
             sub.to_dict(), UserWebhook.Subscription.user_id == sub.user_id)
