@@ -9,6 +9,6 @@ class ListsOAuthService(AbstractOAuthService):
     def __init__(self):
         super().__init__(client_id, client_secret, delegated_scopes=[
             DelegatedScope("lists", "mailing lists", True),
-            DelegatedScope("email", "emails", True),
+            DelegatedScope("email", "emails", False),
             DelegatedScope("subs", "subscriptions", True),
         ], user_class=User, token_class=OAuthToken)

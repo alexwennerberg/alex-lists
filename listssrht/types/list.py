@@ -62,8 +62,8 @@ class List(Base):
 
     def to_dict(self, short=False):
         def permissions(perm):
-            return ",".join(p.name for p in ListAccess
-                    if p in perm and p not in [ListAccess.none, ListAccess.all])
+            return [p.name for p in ListAccess
+                    if p in perm and p not in [ListAccess.none, ListAccess.all]]
         return {
             "name": self.name,
             "owner": self.owner.to_dict(short=True),
