@@ -255,15 +255,20 @@ def dispatch_message(address, list_id, mail):
     dest = List.query.filter(List.id == list_id).one_or_none()
     mail = email.message_from_string(mail, policy=email.policy.SMTP)
 
-    if command == "post":
-        msgid = mail.get("Message-ID")
-        if not msgid or Email.query.filter(Email.message_id == msgid).count():
-            print("Dropping email due to duplicate message ID")
-            return
-        dest.updated = datetime.utcnow()
-        _archive(dest, mail)
-        _forward(dest, mail)
-    elif command == "subscribe":
-        _subscribe(dest, mail)
-    elif command == "unsubscribe":
-        _unsubscribe(dest, mail)
+    try:
+        if command == "post":
+            msgid = mail.get("Message-ID")
+            if not msgid or Email.query.filter(
+                    Email.message_id == msgid).count():
+                print("Dropping email due to duplicate message ID")
+                return
+            dest.updated = datetime.utcnow()
+            _archive(dest, mail)
+            _forward(dest, mail)
+        elif command == "subscribe":
+            _subscribe(dest, mail)
+        elif command == "unsubscribe":
+            _unsubscribe(dest, mail)
+    except:
+        db.session.rollback()
+        raise
