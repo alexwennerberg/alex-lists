@@ -74,12 +74,14 @@
 
 .message-body {
   .text-success {
-    color: darken($success, 5) !important;
+    color: darken($success, 10) !important;
   }
+
   .text-danger {
-    color: darken($danger, 5) !important;
+    color: darken($danger, 10) !important;
   }
+
   .text-info {
-    color: darken($info, 5) !important;
+    color: darken($info, 10) !important;
   }
 }
