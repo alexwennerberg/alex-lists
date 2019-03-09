@@ -208,8 +208,8 @@ def mbox(owner_name, list_name, message_id):
     mbox = format_mbox(thread)
     return Response(mbox, mimetype='application/mbox')
 
-@loginrequired
 @archives.route("/<owner_name>/<list_name>/subscribe", methods=["POST"])
+@loginrequired
 def subscribe(owner_name, list_name):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
@@ -234,8 +234,8 @@ def subscribe(owner_name, list_name):
     return redirect(url_for("archives.archive",
         owner_name=owner_name, list_name=list_name))
 
-@loginrequired
 @archives.route("/<owner_name>/<list_name>/unsubscribe", methods=["POST"])
+@loginrequired
 def unsubscribe(owner_name, list_name):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
@@ -261,8 +261,8 @@ access_help_map = {
         "Permission to submit new threads."
 }
 
-@loginrequired
 @archives.route("/<owner_name>/<list_name>/settings")
+@loginrequired
 def settings_GET(owner_name, list_name):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
@@ -273,8 +273,8 @@ def settings_GET(owner_name, list_name):
             ml=ml, owner=owner, access_type_list=ListAccess,
             access_help_map=access_help_map)
 
-@loginrequired
 @archives.route("/<owner_name>/<list_name>/settings", methods=["POST"])
+@loginrequired
 def settings_POST(owner_name, list_name):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
