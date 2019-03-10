@@ -77,7 +77,7 @@
           <blockquote>
             <pre
               style="background: transparent"
-            >{{ format_body(email, limit=15) }}</pre>
+            >{{ format_body(email, limit=15) | urlize }}</pre>
           </blockquote>
         </div>
         {% endfor %}
