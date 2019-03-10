@@ -29,9 +29,7 @@
       <div class="event-list">
         {% for patch in patches %}
         <div class="event">
-          <a href="#{{ patch.message_id }}">
-            {{ patch.subject }}
-          </a>
+          <a href="#{{ patch.message_id }}">{{ patch.subject }}</a>
           {% set stats = diffstat(patch) %}
           <br />
           <span class="text-success">+{{stats.added}}</span>
