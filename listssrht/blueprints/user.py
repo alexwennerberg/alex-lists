@@ -119,7 +119,7 @@ def mirror_subscribe(ml, mirror):
     mail["From"] = f"{posting_domain} mirror <{list_name}@{posting_domain}>"
     mail["Date"] = formatdate()
     mail["Message-ID"] = make_msgid()
-    smtp.sendmail(smtp_user, [address], mail.as_string(
+    smtp.sendmail(smtp_user, [mirror.list_subscribe], mail.as_string(
         unixfrom=True, maxheaderlen=998))
     smtp.quit()
 
