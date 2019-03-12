@@ -248,8 +248,11 @@ Feel free to reply to this email if you have any questions.""".format(
     db.session.commit()
 
 def _configure_mirror(ml, mirror, mail):
+    print("Message from mirror upstream mail server: ",
+            mail.as_string(unixfrom=True))
+
     sender = parseaddr(mail["From"])
-    mirror.mailer_sender = sender
+    mirror.mailer_sender = sender[1]
     reply_to = mail["Reply-To"]
     if not reply_to:
         mirror.configured = True
@@ -289,7 +292,8 @@ def _mirror(ml, mail):
     # TODO: disallow mail from any mail server other than the one being mirrored
     # TODO TODO: deal with the mirror's mail server changing addresses
     mirror = ml.mirror
-    if not mirror.configured:
+    sender = parseaddr(mail["From"])
+    if not mirror.configured or sender[1] == mirror.mailer_sender:
         return _configure_mirror(ml, mirror, mail)
 
     list_subscribe = mail["List-Subscribe"]
