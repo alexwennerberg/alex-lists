@@ -7,7 +7,7 @@
       {{ml.description | md}}
       {% endif %}
       <p>
-        {% if current_user %}
+        {% if current_user and not ml.mirror_id %}
 
         {% if subscription %}
         <form method="POST" action="{{url_for("archives.unsubscribe",
@@ -40,13 +40,26 @@
         {% endif %}
 
         {% else %}
+        {% set subscribe_address = post_address(ml, suffix="+subscribe") %}
+        {% set posting_address = post_address(ml) %}
+
+        {% if subscribe_address %}
         <a
-          href="mailto:{{ post_address(ml, suffix="+subscribe") }}"
+          {% if subscribe_address.startswith("mailto:") %}
+          href="{{subscribe_address}}"
+          {% else %}
+          href="mailto:{{subscribe_address}}"
+          {% endif %}
           class="btn btn-primary btn-block"
         >Subscribe {{icon("caret-right")}}</a>
-        {% if ListAccess.post in access %}
+        {% endif %}
+        {% if ListAccess.post in access and posting_address %}
         <a
-          href="mailto:{{ post_address(ml) }}"
+          {% if posting_address.startswith("mailto:") %}
+          href="{{posting_address}}"
+          {% else %}
+          href="mailto:{{posting_address}}"
+          {% endif %}
           class="btn btn-default btn-block"
         >New post {{icon("caret-right")}}</a>
         {% endif %}
@@ -108,6 +121,19 @@
         {% endfor %}
       </div>
       {{ pagination() }}
+      {% elif ml.mirror_id and not ml.mirror.configured %}
+      {% if ml.mirror.configure_attempts >= 2 %}
+      <div class="alert alert-danger">
+        There was a problem configuring this mirror. Please
+        <a href="mailto:{{cfg('sr.ht', 'owner-email')}}">contact support</a>.
+      </div>
+      {% else %}
+      <div class="alert alert-danger">
+        This mirror is still being configured with the remote mail server. If
+        this process doesn't complete within a few hours, please
+        <a href="mailto:{{cfg('sr.ht', 'owner-email')}}">contact support</a>.
+      </div>
+      {% endif %}
       {% else %}
       <p>
         {% if search %}

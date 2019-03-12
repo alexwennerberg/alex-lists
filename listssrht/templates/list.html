@@ -12,6 +12,9 @@
         <a href="{{
           url_for('user.user_profile', username=owner.username)
         }}">{{ owner.canonical_name }}</a>/{{ ml.name }}
+        {% if ml.mirror_id %}
+        <small class="text-muted">(mirror)</small>
+        {% endif %}
       </h2>
       {% block tabs %}
       {% macro link(path, title) %}
@@ -25,12 +28,21 @@
             owner_name=owner.canonical_name,
             list_name=ml.name), "archives")}}
         </li>
+        {% if not ml.mirror_id or ml.mirror.configured %}
+        {% set posting_address = post_address(ml) %}
+        {% if posting_address %}
         <li class="nav-item">
           <a
             class="nav-link {% if view == "post" %}active{% endif %}"
-            href="mailto:{{ post_address(ml) }}"
+            {% if posting_address.startswith("mailto:") %}
+            href="{{posting_address}}"
+            {% else %}
+            href="mailto:{{posting_address}}"
+            {% endif %}
           >new post</a>
         </li>
+        {% endif %}
+        {% endif %}
         {% if current_user.id == ml.owner_id %}
         <li class="nav-item">
           {{link(url_for("archives.settings_GET",

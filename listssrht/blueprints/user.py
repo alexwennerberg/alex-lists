@@ -1,18 +1,25 @@
-from email.utils import parseaddr
+from email.mime.text import MIMEText
+from email.utils import parseaddr, formatdate, make_msgid
 from flask import Blueprint, render_template, request, redirect, url_for, abort
 from flask_login import current_user
-from srht.config import cfg
+from srht.config import cfg, cfgi
 from srht.database import db
 from srht.flask import loginrequired
 from srht.validation import Validation
 from sqlalchemy import or_
-from listssrht.types import List, User, Email, Subscription
+from listssrht.types import List, User, Email, Subscription, Mirror
 from listssrht.webhooks import UserWebhook
 import re
+import smtplib
 
 user = Blueprint("user", __name__)
 
 meta_uri = cfg("meta.sr.ht", "origin")
+
+smtp_host = cfg("mail", "smtp-host", default=None)
+smtp_port = cfgi("mail", "smtp-port", default=None)
+smtp_user = cfg("mail", "smtp-user", default=None)
+smtp_password = cfg("mail", "smtp-password", default=None)
 
 @user.route("/")
 def index():
@@ -83,6 +90,71 @@ def create_list_POST():
     db.session.add(sub)
     db.session.commit()
 
+    return redirect(url_for("archives.archive",
+            owner_name=current_user.canonical_name,
+            list_name=ml.name))
+
+@user.route("/lists/create-mirror")
+@loginrequired
+def create_mirror_GET():
+    return render_template("create-mirror.html")
+
+@user.route("/lists/create-mirror", methods=["POST"])
+@loginrequired
+def create_mirror_POST():
+    valid = Validation(request)
+    ml = List(current_user, valid)
+    address = valid.require("address", friendly_name="Subscription address")
+    valid.expect(not address or "@" in address,
+            "A valid email address is required", field="address")
+    weird_ok = valid.optional("weird-email-okay")
+    valid.expect(not address or weird_ok == "yes" or "subscribe" in address,
+            "This address does not look like a subscription address. Double "
+            "check it and click 'Create' if you're certain.", field="address")
+    if not valid.ok:
+        return render_template("create-mirror.html", **valid.kwargs)
+
+    posting_domain = cfg("lists.sr.ht", "posting-domain")
+
+    user, domain = address.split("@")
+    valid.expect(domain != posting_domain,
+            "You can't mirror a list from {{cfg('sr.ht', 'site-name')}}!",
+            field="address")
+    if not valid.ok:
+        return render_template("create-mirror.html", **valid.kwargs)
+
+    mirror = Mirror()
+    mirror.list_subscribe = address
+    db.session.add(mirror)
+    db.session.flush()
+    ml.mirror_id = mirror.id
+
+    smtp = smtplib.SMTP(smtp_host, smtp_port)
+    smtp.ehlo()
+    smtp.starttls()
+    smtp.login(smtp_user, smtp_password)
+
+    list_name = "{}/{}".format(current_user.canonical_name, ml.name)
+
+    mail = MIMEText(f"Subscription request for {posting_domain} on behalf of "
+        f"{current_user.canonical_name}\n\n"
+        "If this email is unexpected, feel free to ignore it, or send "
+        "questions to:\n\n"
+        f"{cfg('sr.ht', 'owner-name')} <{cfg('sr.ht', 'owner-email')}>")
+    mail["X-Mirroring-To"] = posting_domain
+    mail["Subject"] = "subscribe"
+    mail["To"] = address
+    mail["From"] = f"{posting_domain} mirror <{list_name}@{posting_domain}>"
+    mail["Date"] = formatdate()
+    mail["Message-ID"] = make_msgid()
+    smtp.sendmail(smtp_user, [address], mail.as_string(
+        unixfrom=True, maxheaderlen=998))
+    smtp.quit()
+
+    UserWebhook.deliver(UserWebhook.Events.list_create,
+            ml.to_dict(), UserWebhook.Subscription.user_id == ml.owner_id)
+
+    db.session.commit()
     return redirect(url_for("archives.archive",
             owner_name=current_user.canonical_name,
             list_name=ml.name))

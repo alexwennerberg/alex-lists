@@ -68,6 +68,7 @@
           >Markdown supported</p>
           {{ valid.summary("list_desc") }}
         </div>
+        {% if not ml.mirror_id %}
         <div class="form-group {{valid.cls("list_any_access")}}">
           <h3>Permissions</h3>
           <p>
@@ -109,6 +110,7 @@
           </div>
         </div>
         <p>The list owner (you) is always granted all permissions.</p>
+        {% endif %}
         {{ valid.summary() }}
         <span class="pull-right">
           <a

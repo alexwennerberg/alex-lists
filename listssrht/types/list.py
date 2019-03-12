@@ -33,6 +33,9 @@ class List(Base):
     owner_id = sa.Column(sa.Integer, sa.ForeignKey('user.id'), nullable=False)
     owner = sa.orm.relationship('User', backref=sa.orm.backref('lists'))
 
+    mirror_id = sa.Column(sa.Integer, sa.ForeignKey('mirror.id'))
+    mirror = sa.orm.relationship("Mirror", uselist=False, back_populates="list")
+
     def __init__(self, owner, valid):
         self.owner = owner
         self.owner_id = owner.id

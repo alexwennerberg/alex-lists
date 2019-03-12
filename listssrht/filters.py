@@ -2,6 +2,16 @@ from jinja2 import Markup, escape
 from srht.config import cfg
 
 def post_address(ml, suffix=""):
+    if ml.mirror_id:
+        if suffix == "+subscribe":
+            return ml.mirror.list_subscribe
+        elif suffix == "+unsubscribe":
+            return ml.mirror.list_unsubscribe
+        elif suffix == "":
+            return ml.mirror.list_post
+        else:
+            return None
+
     domain = cfg("lists.sr.ht", "posting-domain")
     return "{}/{}{}@{}".format(
             ml.owner.canonical_name, ml.name, suffix, domain)

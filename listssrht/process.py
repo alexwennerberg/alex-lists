@@ -15,7 +15,7 @@ from celery import Celery
 from datetime import datetime
 from email import policy
 from email.mime.text import MIMEText
-from email.utils import parseaddr, getaddresses
+from email.utils import parseaddr, getaddresses, formatdate, make_msgid
 from unidiff import PatchSet
 
 dispatch = Celery("lists.sr.ht", broker=cfg("lists.sr.ht", "redis"))
@@ -236,6 +236,8 @@ Feel free to reply to this email if you have any questions.""".format(
             mail.get("Subject") or "Your subscription request")
     reply["Reply-To"] = "{} <{}>".format(
             cfg("sr.ht", "owner-name"), cfg("sr.ht", "owner-email"))
+    reply["Date"] = formatdate()
+    reply["Message-ID"] = make_msgid()
     print(reply.as_string(unixfrom=True))
     smtp = smtplib.SMTP(smtp_host, smtp_port)
     smtp.ehlo()
@@ -244,6 +246,71 @@ Feel free to reply to this email if you have any questions.""".format(
     smtp.sendmail(smtp_user, [sender[1]], reply.as_string(unixfrom=True))
     smtp.quit()
     db.session.commit()
+
+def _configure_mirror(ml, mirror, mail):
+    sender = parseaddr(mail["From"])
+    mirror.mailer_sender = sender
+    reply_to = mail["Reply-To"]
+    if not reply_to:
+        mirror.configured = True
+        db.session.commit()
+        return
+
+    if mirror.configure_attempts > 2:
+        # Contact support
+        return
+    mirror.configure_attempts += 1
+
+    list_name = "{}/{}".format(ml.owner.canonical_name, ml.name)
+
+    posting_domain = cfg("lists.sr.ht", "posting-domain")
+    reply = MIMEText(f"Confirming subscription request for {posting_domain}"
+        f"on behalf of {ml.owner.canonical_name}\n\n"
+        "If this email is unexpected, feel free to ignore it, or send "
+        "questions to:\n\n"
+        f"{cfg('sr.ht', 'owner-name')} <{cfg('sr.ht', 'owner-email')}>")
+    reply["To"] = reply_to
+    reply["From"] = f"{posting_domain} mirror <{list_name}@{posting_domain}>"
+    reply["In-Reply-To"] = mail["Message-ID"]
+    reply["Subject"] = "Re: " + (mail.get("Subject") or "subscribe")
+    reply["Date"] = formatdate()
+    reply["Message-ID"] = make_msgid()
+    reply["X-Mirroring-To"] = posting_domain
+
+    smtp = smtplib.SMTP(smtp_host, smtp_port)
+    smtp.ehlo()
+    smtp.starttls()
+    smtp.login(smtp_user, smtp_password)
+    smtp.sendmail(smtp_user, [sender[1]], reply.as_string(unixfrom=True))
+    smtp.quit()
+    db.session.commit()
+
+def _mirror(ml, mail):
+    # TODO: disallow mail from any mail server other than the one being mirrored
+    # TODO TODO: deal with the mirror's mail server changing addresses
+    mirror = ml.mirror
+    if not mirror.configured:
+        return _configure_mirror(ml, mirror, mail)
+
+    list_subscribe = mail["List-Subscribe"]
+    list_unsubscribe = mail["List-Unsubscribe"]
+    list_post = mail["List-Post"]
+
+    updated = False
+    if list_subscribe:
+        if list_subscribe.startswith("<") and list_subscribe.endswith(">"):
+            list_subscribe = list_subscribe[1:-1]
+        mirror.list_subscribe = list_subscribe
+    if list_unsubscribe:
+        if list_unsubscribe.startswith("<") and list_unsubscribe.endswith(">"):
+            list_unsubscribe = list_unsubscribe[1:-1]
+        mirror.list_unsubscribe = list_unsubscribe
+    if list_post:
+        if list_post.startswith("<") and list_post.endswith(">"):
+            list_post = list_post[1:-1]
+        mirror.list_post = list_post
+
+    _archive(ml, mail)
 
 @dispatch.task
 def dispatch_message(address, list_id, mail):
@@ -263,8 +330,12 @@ def dispatch_message(address, list_id, mail):
                 print("Dropping email due to duplicate message ID")
                 return
             dest.updated = datetime.utcnow()
-            _archive(dest, mail)
-            _forward(dest, mail)
+
+            if dest.mirror_id:
+                _mirror(dest, mail)
+            else:
+                _archive(dest, mail)
+                _forward(dest, mail)
         elif command == "subscribe":
             _subscribe(dest, mail)
         elif command == "unsubscribe":
