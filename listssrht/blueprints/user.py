@@ -99,6 +99,30 @@ def create_list_POST():
 def create_mirror_GET():
     return render_template("create-mirror.html")
 
+def mirror_subscribe(ml, mirror):
+    posting_domain = cfg("lists.sr.ht", "posting-domain")
+    list_name = "{}/{}".format(ml.owner.canonical_name, ml.name)
+
+    smtp = smtplib.SMTP(smtp_host, smtp_port)
+    smtp.ehlo()
+    smtp.starttls()
+    smtp.login(smtp_user, smtp_password)
+
+    mail = MIMEText(f"Subscription request for {posting_domain} on behalf of "
+        f"{ml.owner.canonical_name}\n\n"
+        "If this email is unexpected, feel free to ignore it, or send "
+        "questions to:\n\n"
+        f"{cfg('sr.ht', 'owner-name')} <{cfg('sr.ht', 'owner-email')}>")
+    mail["X-Mirroring-To"] = posting_domain
+    mail["Subject"] = "subscribe"
+    mail["To"] = mirror.list_subscribe
+    mail["From"] = f"{posting_domain} mirror <{list_name}@{posting_domain}>"
+    mail["Date"] = formatdate()
+    mail["Message-ID"] = make_msgid()
+    smtp.sendmail(smtp_user, [address], mail.as_string(
+        unixfrom=True, maxheaderlen=998))
+    smtp.quit()
+
 @user.route("/lists/create-mirror", methods=["POST"])
 @loginrequired
 def create_mirror_POST():
@@ -129,27 +153,7 @@ def create_mirror_POST():
     db.session.flush()
     ml.mirror_id = mirror.id
 
-    smtp = smtplib.SMTP(smtp_host, smtp_port)
-    smtp.ehlo()
-    smtp.starttls()
-    smtp.login(smtp_user, smtp_password)
-
-    list_name = "{}/{}".format(current_user.canonical_name, ml.name)
-
-    mail = MIMEText(f"Subscription request for {posting_domain} on behalf of "
-        f"{current_user.canonical_name}\n\n"
-        "If this email is unexpected, feel free to ignore it, or send "
-        "questions to:\n\n"
-        f"{cfg('sr.ht', 'owner-name')} <{cfg('sr.ht', 'owner-email')}>")
-    mail["X-Mirroring-To"] = posting_domain
-    mail["Subject"] = "subscribe"
-    mail["To"] = address
-    mail["From"] = f"{posting_domain} mirror <{list_name}@{posting_domain}>"
-    mail["Date"] = formatdate()
-    mail["Message-ID"] = make_msgid()
-    smtp.sendmail(smtp_user, [address], mail.as_string(
-        unixfrom=True, maxheaderlen=998))
-    smtp.quit()
+    mirror_subscribe(ml, mirror)
 
     UserWebhook.deliver(UserWebhook.Events.list_create,
             ml.to_dict(), UserWebhook.Subscription.user_id == ml.owner_id)
