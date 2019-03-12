@@ -113,6 +113,10 @@
                     {{icon('times')}}
                     {% endif %}
                     {{dkim_status}}
+                    {% if dkim_status not in ["pass", "neutral"]
+                      and ml.mirror_id %}
+                    (DKIM failures on mirrored lists are common)
+                    {% endif %}
                   </span>
                   {% endif %}
                 </dd>
@@ -145,7 +149,8 @@
               See thread on opendkim-users 2019-03-04
             #}
             {% if dkim_status != None and dkim_status != "pass"
-              and dkim_status != "permerror" %}
+              and dkim_status != "permerror"
+              and not ml.mirror_id %}
             <span class="info" title="{{ dkim_explain }}">
               DKIM signature:
               <span class="text-danger">
