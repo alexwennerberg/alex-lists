@@ -23,7 +23,7 @@ def _format_patch(msg, limit=None):
     # Predict the starting lines of each file name
     patch = msg.patch()
     file_lines = {
-        " {} ".format(f.path): f
+        f" {f.path.strip()} ": f
         for f in patch.added_files + patch.modified_files + patch.removed_files
     }
 
@@ -43,8 +43,8 @@ def _format_patch(msg, limit=None):
             if f != None:
                 f = file_lines[f]
                 text += Markup(" <a href='#{}'>{}</a>".format(
-                    escape(msg.message_id) + "+" + escape(f.path),
-                    escape(f.path)))
+                    escape(msg.message_id) + "+" + escape(f.path.strip()),
+                    escape(f.path.strip())))
                 try:
                     stat = line[line.rindex(" ") + 1:]
                     line = line[:line.rindex(" ") + 1]
@@ -66,7 +66,7 @@ def _format_patch(msg, limit=None):
                         stat = escape(stat)
                 except ValueError:
                     stat = Markup("")
-                text += escape(line[len(f.path) + 1:])
+                text += escape(line[len(f.path.strip()) + 1:])
                 text += escape(stat)
                 text += Markup("\n")
             else:
