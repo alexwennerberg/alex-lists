@@ -101,7 +101,7 @@ def create_mirror_GET():
 
 def mirror_subscribe(ml, mirror):
     posting_domain = cfg("lists.sr.ht", "posting-domain")
-    list_name = "{}/{}".format(ml.owner.canonical_name, ml.name)
+    list_name = "u.{}.{}".format(ml.owner.username, ml.name)
 
     smtp = smtplib.SMTP(smtp_host, smtp_port)
     smtp.ehlo()
