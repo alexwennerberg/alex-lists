@@ -20,12 +20,17 @@ def _format_patch(msg, limit=None):
     text = Markup("")
     is_diff = False
 
+    def get_path(f):
+        # [2:] to remove a/ or b/
+        return f.target_file[2:].strip()
+
     # Predict the starting lines of each file name
     patch = msg.patch()
     file_lines = {
-        f" {f.path.strip()} ": f
+        f" {get_path(f)} ": f
         for f in patch.added_files + patch.modified_files + patch.removed_files
     }
+    print(file_lines)
 
     line_no = 0
     for line in msg.body.replace("\r", "").split("\n"):
@@ -43,8 +48,8 @@ def _format_patch(msg, limit=None):
             if f != None:
                 f = file_lines[f]
                 text += Markup(" <a href='#{}'>{}</a>".format(
-                    escape(msg.message_id) + "+" + escape(f.path.strip()),
-                    escape(f.path.strip())))
+                    escape(msg.message_id) + "+" + escape(get_path(f)),
+                    escape(get_path(f))))
                 try:
                     stat = line[line.rindex(" ") + 1:]
                     line = line[:line.rindex(" ") + 1]
@@ -66,7 +71,7 @@ def _format_patch(msg, limit=None):
                         stat = escape(stat)
                 except ValueError:
                     stat = Markup("")
-                text += escape(line[len(f.path.strip()) + 1:])
+                text += escape(line[len(get_path(f)) + 1:])
                 text += escape(stat)
                 text += Markup("\n")
             else:
@@ -76,20 +81,23 @@ def _format_patch(msg, limit=None):
         else:
             if line.strip() == "--":
                 text += escape(line + "\n")
-            elif line.startswith("---"):
-                path = line[4:].lstrip("a/")
-                text += (
-                    Markup("<a href='#{0}' id='{0}' class='text-info'>".format(
-                        escape(msg.message_id) + "+" + escape(path)
-                    ))
-                    + escape(line)
-                    + Markup("</a>\n"))
             elif line.startswith("+++"):
+                path = line[4:].lstrip("b/")
+                if f" {path} " in file_lines:
+                    text += (
+                        Markup("<a href='#{0}' id='{0}' class='text-info'>".format(
+                            escape(msg.message_id) + "+" + escape(path)
+                        ))
+                        + escape(line)
+                        + Markup("</a>\n"))
+                    continue
+            elif line.startswith("---"):
                 text += (
                     Markup("<span class='text-info'>")
                     + escape(line)
                     + Markup("</span>\n"))
-            elif line.startswith("+"):
+                continue
+            if line.startswith("+"):
                 text += (
                     Markup("<span class='text-success'>")
                     + Markup(
