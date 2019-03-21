@@ -158,7 +158,7 @@
             {% endif %}
           </div>
         </div>
-        <pre class="message-body">{{ format_body(msg) | urlize(nofollow=True) }}</pre>
+        <pre class="message-body">{{ format_body(msg) }}</pre>
 
         {% if len(msg.replies) > 1 %}
         {% for child in msg.replies %}

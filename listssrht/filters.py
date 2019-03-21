@@ -1,4 +1,5 @@
 from jinja2 import Markup, escape
+from jinja2.filters import urlize
 from srht.config import cfg
 
 def post_address(ml, suffix=""):
@@ -128,6 +129,7 @@ def format_body(msg, limit=None):
         return _format_patch(msg, limit)
     text = Markup("")
     line_no = 0
+    body = urlize(msg.body, rel="noopener nofollow")
     for line in msg.body.replace("\r", "").split("\n"):
         line_no += 1
         if line_no == limit:
@@ -135,10 +137,10 @@ def format_body(msg, limit=None):
         if line.startswith(">"):
             text += (
                 Markup("<span class='text-muted'>")
-                    + escape(line)
+                    + Markup(urlize(escape(line), rel="noopener nofollow"))
                 + Markup("</span>\n"))
         else:
-            text += escape(line + "\n")
+            text += Markup(urlize(escape(line), rel="noopener nofollow")) + "\n"
     return text.rstrip()
 
 def diffstat(patch):
