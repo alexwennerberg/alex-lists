@@ -30,7 +30,6 @@ def _format_patch(msg, limit=None):
         f" {get_path(f)} ": f
         for f in patch.added_files + patch.modified_files + patch.removed_files
     }
-    print(file_lines)
 
     line_no = 0
     for line in msg.body.replace("\r", "").split("\n"):
