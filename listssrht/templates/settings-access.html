@@ -8,7 +8,14 @@
 {% macro perm_checkbox(type, perms, name, readonly=False) %}
 {% if type.name not in ["none", "all"] %}
 <div class="form-check form-check-inline">
-  <label class="form-check-label" title="{{access_help_map[type]}}">
+  <label
+    class="form-check-label"
+    {% if type.name == "browse" and name != "nonsub" %}
+    title="Inherited from anonymous permissions"
+    {% else %}
+    title="{{access_help_map[type]}}"
+    {% endif %}
+  >
     {% if readonly %}
       {% if type in perms %}
         {{icon('check', cls='text-success')}}
@@ -29,8 +36,9 @@
       {% if readonly %}
       disabled
       {% endif %}
-      {% if type.name == "browse" and name == "sub" %}
-      disabled checked
+      {% if type.name == "browse" and name != "nonsub" %}
+      disabled
+      {{ "checked" if type in ml.nonsubscriber_permissions }}
       {% else %}
       {{ "checked" if type in perms }}
       {% endif %}
