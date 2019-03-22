@@ -1,6 +1,6 @@
 from flask import Blueprint, abort
 from listssrht.blueprints.api import get_user, get_access, get_email
-from listssrht.types import Email, ListAccess
+from listssrht.types import List, Email, ListAccess
 from sqlalchemy import or_
 from srht.api import paginated_response
 from srht.oauth import oauth, current_token
@@ -14,7 +14,7 @@ def user_emails_GET(username):
     user = get_user(username)
     emails = Email.query.filter(Email.sender_id == user.id)
     if current_token.user_id != user.id:
-        emails = emails.join(List).filter(or_(
+        emails = emails.join(List, List.id == Email.list_id).filter(or_(
             List.account_permissions > 0,
             List.nonsubscriber_permissions > 0))
     return paginated_response(Email.id,
