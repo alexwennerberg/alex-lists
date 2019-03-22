@@ -45,7 +45,7 @@
         {% endif %}
         {% if current_user.id == ml.owner_id %}
         <li class="nav-item">
-          {{link(url_for("archives.settings_GET",
+          {{link(url_for("settings.info_GET",
             owner_name=ml.owner.canonical_name,
             list_name=ml.name), "settings")}}
         </li>

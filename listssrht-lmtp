@@ -48,6 +48,12 @@ class MailHandler:
         self.fetch_email = await self.pg.prepare(
                 '''SELECT "list_id" FROM "email"
                    WHERE "message_id" = $1''')
+        self.fetch_acl_by_email = await self.pg.prepare(
+                '''SELECT "permissions" FROM "access"
+                   WHERE list_id = $1 AND email = $2''')
+        self.fetch_acl_by_user = await self.pg.prepare(
+                '''SELECT "permissions" FROM "access"
+                   WHERE list_id = $1 AND user_id = $2''')
 
     async def lookup_destination(self, address):
         """Looks up the list this message is addressed to and returns its ID."""
@@ -136,6 +142,11 @@ class MailHandler:
         _from = parseaddr(mail["From"])
         user_id = await self.fetch_user_by_email.fetchval(_from[1])
 
+        if user_id:
+            acl = await self.fetch_acl_by_user.fetchrow(dest_id, user_id)
+        else:
+            acl = await self.fetch_acl_by_email.fetchrow(dest_id, _from[1])
+
         if command != "post":
             print("Command accepted: {}".format(mail.get("Subject")))
             dispatch_message.delay(address, dest_id, str(mail))
@@ -147,7 +158,16 @@ class MailHandler:
             return "500 Rejected. {} See {} for help.".format(
                 err, self.reject_url)
 
-        if owner_id != user_id:
+        if owner_id == user_id:
+            print("Message accepted: {}".format(mail.get("Subject")))
+            dispatch_message.delay(address, dest_id, str(mail))
+            return "250 Message accepted for delivery"
+
+        if acl is not None:
+            if access not in ListAccess(acl[0]):
+                print("Rejected: your account is not allowed to post to this list")
+                return "500 Rejected. Your account is not allowed to post to this list."
+        else:
             sub = await self.fetch_subscription.fetchval(_from[1], user_id)
 
             if access not in nonsub_perms and not sub:

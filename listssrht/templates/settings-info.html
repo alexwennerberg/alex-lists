@@ -1,0 +1,57 @@
+{% extends "settings.html" %}
+{% block title %}
+<title>
+  {{ owner.canonical_name }}/{{ ml.name }} settings &mdash; {{ cfg("sr.ht", "site-name") }} lists
+</title>
+{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-7">
+      <form method="POST">
+        {{csrf_token()}}
+        <div class="form-group">
+          <label for="list_name">
+            Name
+            <span class="text-muted">(you can't edit this)</p>
+          </label>
+          <input
+            type="text"
+            name="list_name"
+            id="list_name"
+            class="form-control"
+            value="{{ ml.name }}"
+            disabled />
+        </div>
+        <div class="form-group {{valid.cls("list_desc")}}">
+          <label for="list_desc">Description</label>
+          <textarea
+            name="list_desc"
+            id="list_desc"
+            class="form-control"
+            rows="10"
+            aria-describedby="list_desc-help"
+          >{{list_desc or ml.description or ""}}</textarea>
+          <p
+            id="tracker_desc-help"
+            class="form-text text-muted"
+          >Markdown supported</p>
+          {{ valid.summary("list_desc") }}
+        </div>
+        {{ valid.summary() }}
+        <span class="pull-right">
+          <a
+            href="{{ url_for("archives.archive",
+              owner_name=ml.owner.canonical_name,
+              list_name=ml.name) }}"
+            class="btn btn-default"
+          >Cancel</a>
+          <button type="submit" class="btn btn-primary">
+            Save {{icon("caret-right")}}
+          </button>
+        </span>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

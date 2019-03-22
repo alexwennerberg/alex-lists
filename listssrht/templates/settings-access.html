@@ -1,0 +1,193 @@
+{% extends "settings.html" %}
+{% block title %}
+<title>
+  {{ owner.canonical_name }}/{{ ml.name }} settings &mdash; {{ cfg("sr.ht", "site-name") }} lists
+</title>
+{% endblock %}
+
+{% macro perm_checkbox(type, perms, name, readonly=False) %}
+{% if type.name not in ["none", "all"] %}
+<div class="form-check form-check-inline">
+  <label class="form-check-label" title="{{access_help_map[type]}}">
+    {% if readonly %}
+      {% if type in perms %}
+        {{icon('check', cls='text-success')}}
+      {% else %}
+        <span style="display: inline-block; min-width: 16px;">
+          {{icon('times', cls='text-danger')}}
+        </span>
+      {% endif %}
+      {{type.name}}
+    {% else %}
+    <input
+      class="form-check-input"
+      type="checkbox"
+      {% if name %}
+      name="perm_{{ name }}_{{ type.name }}"
+      {% endif %}
+      value="{{type.value}}"
+      {% if readonly %}
+      disabled
+      {% endif %}
+      {% if type.name == "browse" and name == "sub" %}
+      disabled checked
+      {% else %}
+      {{ "checked" if type in perms }}
+      {% endif %}
+    > {{type.name}}
+    {% endif %}
+  </label>
+</div>
+{% endif %}
+{% endmacro %}
+
+{% block content %}
+<div class="container">
+  {% if not hide_global %}
+  <div class="row">
+    <div class="col-md-10">
+      <form method="POST">
+        <h3>Global permissions</h3>
+        {{csrf_token()}}
+        <div class="form-group {{valid.cls("list_any_access")}}">
+          <p>
+            These permissions allow you to control what kinds of users are able
+            to do what sorts of activities on your mailing list.
+          </p>
+          <div class="event-list">
+            <div class="event">
+              <h4>Non-subscriber Permissions</h4>
+              <p>
+                Permissions granted to users who are not subscribed or logged
+                in to a sr.ht account.
+              </p>
+              {% for a in access_type_list %}
+              {{ perm_checkbox(a, ml.nonsubscriber_permissions , "nonsub") }}
+              {% endfor %}
+              {{ valid.summary("list_nonsubscriber_access") }}
+            </div>
+            <div class="event">
+              <h4>Subscriber Permissions</h4>
+              <p>
+                Permissions granted to users who are subscribed to the list.
+              </p>
+              {% for a in access_type_list %}
+              {{ perm_checkbox(a, ml.subscriber_permissions , "sub") }}
+              {% endfor %}
+              {{ valid.summary("list_subscriber_access") }}
+            </div>
+            <div class="event">
+              <h4>Account Holder Permissions</h4>
+              <p>
+                Permissions granted to logged in holders of sr.ht accounts.
+              </p>
+              {% for a in access_type_list %}
+              {{ perm_checkbox(a, ml.account_permissions, "account") }}
+              {% endfor %}
+              {{ valid.summary("list_account_access") }}
+            </div>
+          </div>
+        </div>
+        <p>The list owner (you) is always granted all permissions.</p>
+        {{ valid.summary() }}
+        <span class="pull-right">
+          <button type="submit" class="btn btn-primary">
+            Save changes {{icon("caret-right")}}
+          </button>
+        </span>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+  {% if not hide_user %}
+  <div class="row">
+    <div class="col-md-10">
+      <form method="POST" action="{{url_for("settings.acl_POST", 
+            owner_name=ml.owner.canonical_name, list_name=ml.name)}}">
+        <h3>User permissions</h3>
+        {{csrf_token()}}
+        <div class="form-group">
+          <label for="user">Username or email</label>
+          <input
+            type="text"
+            class="form-control {{valid.cls("user")}}"
+            id="user"
+            name="user"
+            placeholder="~{{ current_user.username }} or {{current_user.email}}"
+            value="{{user or ""}}"
+          />
+          {{valid.summary("user")}}
+        </div>
+        <div class="event-list">
+          <div class="event">
+            <h4>Access grants</h4>
+            <p>These will override any other permissions for this user.</p>
+            {% for a in access_type_list %}
+            {{ perm_checkbox(a, ListAccess.all, "acl") }}
+            {% endfor %}
+            {{ valid.summary("list_acl_access") }}
+          </div>
+        </div>
+        {{ valid.summary() }}
+        <span class="pull-right">
+          <button type="submit" class="btn btn-primary">
+            Set access {{icon("caret-right")}}
+          </button>
+        </span>
+      </form>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-10">
+      {% if any(ml.acls) %}
+      <table class="table">
+        <thead>
+          <tr>
+            <th>user</th>
+            <th>granted</th>
+            <th>access</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for acl in ml.acls %}
+          <tr>
+            <td>
+              {% if acl.user %}
+              <a
+                href="{{url_for("user.user_profile",
+                  username=acl.user.username)}}"
+              >~{{acl.user.username}}</a>
+              {% else %}
+              <a href="mailto:{{ acl.email }}">{{acl.email}}</a>
+              {% endif %}
+            </td>
+            <td>{{ acl.created | date }}</td>
+            <td>
+              {% for a in access_type_list %}
+              {{ perm_checkbox(a, acl.permissions, None, readonly=True) }}
+              {% endfor %}
+            </td>
+            <td style="width: 6rem">
+              <form
+                method="POST"
+                action="{{url_for("settings.acl_delete_POST",
+                  owner_name=ml.owner.canonical_name, list_name=ml.name,
+                  acl_id=acl.id)}}"
+              >
+                {{csrf_token()}}
+                <button type="submit" class="btn btn-danger btn-fill">
+                  Delete
+                </button>
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
