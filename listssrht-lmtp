@@ -21,10 +21,6 @@ class MailHandler:
         self.pg = pg
 
     async def initialize(self):
-        self.permit_mimetypes = cfg("lists.sr.ht::worker",
-                "permit-mimetypes").split(',')
-        self.reject_mimetypes = cfg("lists.sr.ht::worker",
-                "reject-mimetypes").split(',')
         self.reject_url = cfg("lists.sr.ht::worker", "reject-url")
         self.fetch_user = await self.pg.prepare(
                 '''SELECT "id" FROM "user"
@@ -38,7 +34,9 @@ class MailHandler:
                        "owner_id",
                        "nonsubscriber_permissions",
                        "subscriber_permissions",
-                       "account_permissions"
+                       "account_permissions",
+                       "permit_mimetypes",
+                       "reject_mimetypes"
                    FROM "list"
                    WHERE "owner_id" = $1 AND "name" = $2''')
         self.fetch_subscription = await self.pg.prepare(
@@ -87,12 +85,14 @@ class MailHandler:
                 owner_id, list_name)
         return result, command
 
-    def validate(self, mail):
+    def validate(self, mail, permit_mimetypes, reject_mimetypes):
         required_headers = ["To", "From", "Subject", "Message-Id"]
         for header in required_headers:
             if not mail.get(header):
                 return "The {} header is required.".format(header)
         found_textpart = False
+        permit_mimetypes = permit_mimetypes.split(",")
+        reject_mimetypes = reject_mimetypes.split(",") + ["text/html"]
         for part in mail.walk():
             content_type = part.get_content_type()
             if content_type == "text/plain":
@@ -100,14 +100,14 @@ class MailHandler:
             if fnmatch(content_type, "multipart/*"):
                 continue
             permit = False
-            for whitelist in self.permit_mimetypes:
+            for whitelist in permit_mimetypes:
                 if fnmatch(content_type, whitelist):
                     permit = True
                     break
             if not permit:
                 return "Content-Type {} is not in the whitelist.".format(
                         content_type)
-            for blacklist in self.reject_mimetypes:
+            for blacklist in reject_mimetypes:
                 if fnmatch(content_type, blacklist):
                     return "Content-Type {} is blacklisted.".format(
                             content_type)
@@ -127,7 +127,9 @@ class MailHandler:
         if dest is None:
             print("Rejected, mailing list not found")
             return "550 The mailing list you requested does not exist."
-        dest_id, owner_id, nonsub_perms, sub_perms, external_perms = dest
+        (dest_id, owner_id,
+                nonsub_perms, sub_perms, external_perms,
+                permit_mimetypes, reject_mimetypes) = dest
         nonsub_perms = ListAccess(nonsub_perms)
         sub_perms = ListAccess(sub_perms)
         external_perms = ListAccess(external_perms)
@@ -152,7 +154,7 @@ class MailHandler:
             dispatch_message.delay(address, dest_id, str(mail))
             return "250 Message accepted for delivery"
 
-        err = self.validate(mail)
+        err = self.validate(mail, permit_mimetypes, reject_mimetypes)
         if err is not None:
             print("Rejected due to validation errors")
             return "500 Rejected. {} See {} for help.".format(

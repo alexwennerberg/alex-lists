@@ -1,0 +1,70 @@
+{% extends "settings.html" %}
+{% block title %}
+<title>
+  {{ owner.canonical_name }}/{{ ml.name }} settings &mdash; {{ cfg("sr.ht", "site-name") }} lists
+</title>
+{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-8">
+      <form method="POST">
+        {{csrf_token()}}
+        <div class="form-group">
+          <label for="permit_mimetypes">
+            Permitted mimetypes
+          </label>
+          <input
+            type="text"
+            name="permit_mimetypes"
+            id="permit_mimetypes"
+            class="form-control"
+            value="{{ ml.permit_mimetypes }}"
+            aria-describedby="permit_mimetypes-help" />
+          <p
+            id="permit_mimetypes-help"
+            class="form-text text-muted"
+          >
+            Comma separated list of mimetypes, <a
+              href="https://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_13_01"
+              rel="noopener"
+              target="_blank"
+            >fnmatch</a> for wildcards.
+          </p>
+          {{ valid.summary("permit_mimetypes") }}
+        </div>
+        <div class="form-group">
+          <label for="reject_mimetypes">
+            Rejected mimetypes
+          </label>
+          <input
+            type="text"
+            name="reject_mimetypes"
+            id="reject_mimetypes"
+            class="form-control"
+            value="{{ ml.reject_mimetypes }}"
+            aria-describedby="reject_mimetypes-help" />
+          <p
+            id="reject_mimetypes-help"
+            class="form-text text-muted"
+          >
+            Comma separated list of mimetypes, <a
+              href="https://pubs.opengroup.org/onlinepubs/009695399/utilities/xcu_chap02.html#tag_02_13_01"
+              rel="noopener"
+              target="_blank"
+            >fnmatch</a> for wildcards.
+            <code>text/html</code> is always rejected.
+          </p>
+          {{ valid.summary("reject_mimetypes") }}
+        </div>
+        {{ valid.summary() }}
+        <span class="pull-right">
+          <button type="submit" class="btn btn-primary">
+            Save {{icon("caret-right")}}
+          </button>
+        </span>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -177,3 +177,31 @@ def acl_delete_POST(owner_name, list_name, acl_id):
     db.session.commit()
     return redirect(url_for("settings.access_GET",
         owner_name=owner_name, list_name=list_name))
+
+@settings.route("/<owner_name>/<list_name>/settings/content")
+@loginrequired
+def content_GET(owner_name, list_name):
+    owner, ml, access = get_list(owner_name, list_name)
+    if not ml:
+        abort(404)
+    if ml.owner_id != current_user.id:
+        abort(403)
+    return render_template("settings-content.html",
+            view="content", ml=ml, owner=owner)
+
+@settings.route("/<owner_name>/<list_name>/settings/content", methods=["POST"])
+@loginrequired
+def content_POST(owner_name, list_name):
+    owner, ml, access = get_list(owner_name, list_name)
+    if not ml:
+        abort(404)
+    if ml.owner_id != current_user.id:
+        abort(403)
+
+    valid = Validation(request)
+    ml.permit_mimetypes = valid.optional("permit_mimetypes")
+    ml.reject_mimetypes = valid.optional("reject_mimetypes")
+
+    db.session.commit()
+    return redirect(url_for("settings.content_GET",
+        owner_name=owner_name, list_name=list_name))

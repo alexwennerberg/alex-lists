@@ -31,5 +31,10 @@
       list_name=ml.name), "access")}}
   </li>
   {% endif %}
+  <li class="nav-item">
+    {{link(url_for("settings.content_GET",
+      owner_name=owner.canonical_name,
+      list_name=ml.name), "content")}}
+  </li>
 </ul>
 {% endblock %}

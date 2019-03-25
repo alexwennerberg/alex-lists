@@ -30,6 +30,10 @@ class List(Base):
     Permissions granted to holders of sr.ht accounts.
     """
 
+    permit_mimetypes = sa.Column(sa.Unicode, nullable=False,
+            server_default="text/*,application/pgp-signature,application/pgp-keys")
+    reject_mimetypes = sa.Column(sa.Unicode, nullable=False, server_default="")
+
     owner_id = sa.Column(sa.Integer, sa.ForeignKey('user.id'), nullable=False)
     owner = sa.orm.relationship('User', backref=sa.orm.backref('lists'))
 
