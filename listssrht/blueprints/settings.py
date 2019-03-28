@@ -95,6 +95,9 @@ def access_POST(owner_name, list_name):
     ml.nonsubscriber_permissions = _process_access(valid, "nonsub")
     ml.subscriber_permissions = _process_access(valid, "sub")
     ml.account_permissions = _process_access(valid, "account")
+    if ListAccess.browse in ml.nonsubscriber_permissions:
+        ml.subscriber_permissions |= ListAccess.browse
+        ml.account_permissions |= ListAccess.browse
 
     ListWebhook.deliver(ListWebhook.Events.list_update,
             ml.to_dict(), ListWebhook.Subscription.list_id == ml.id)
