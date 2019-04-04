@@ -1,5 +1,5 @@
 import pkg_resources
-from flask import Blueprint, abort
+from flask import abort
 from listssrht.blueprints.archives import get_list as _get_list
 from listssrht.types import Email, User, Subscription, ListAccess
 from listssrht.webhooks import UserWebhook
