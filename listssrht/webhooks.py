@@ -7,7 +7,9 @@ if not hasattr(db, "session"):
     import listssrht.types
     db.init()
 from srht.webhook import Event
-from srht.webhook.celery import CeleryWebhook, worker
+from srht.webhook.celery import CeleryWebhook, make_worker
+
+worker = make_worker(broker=cfg("lists.sr.ht", "webhooks"))
 
 class ListWebhook(CeleryWebhook):
     events = [
