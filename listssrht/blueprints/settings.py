@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, abort, request, redirect, url_for
 from flask import send_file, session
 from flask_login import current_user
+from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
 from srht.validation import Validation
