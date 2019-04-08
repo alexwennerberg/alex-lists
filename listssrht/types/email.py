@@ -7,11 +7,13 @@ from unidiff import PatchSet
 
 class Email(Base):
     __tablename__ = 'email'
+    _no_autoupdate = True
     id = sa.Column(sa.Integer, primary_key=True)
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
     subject = sa.Column(sa.Unicode(2048), nullable=False)
     message_id = sa.Column(sa.Unicode(2048), nullable=False)
+    in_reply_to = sa.Column(sa.Unicode(2048), nullable=False)
     headers = sa.Column(sa.JSON, nullable=False)
     body = sa.Column(sa.Unicode, nullable=False)
     envelope = sa.Column(sa.Unicode, nullable=False)
