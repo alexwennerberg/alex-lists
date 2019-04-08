@@ -1,11 +1,15 @@
 from flask import Blueprint, render_template, abort, request, redirect, url_for
+from flask import send_file
 from flask_login import current_user
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
 from srht.validation import Validation
 from listssrht.blueprints.archives import get_list
-from listssrht.types import User, List, ListAccess, Access
+from listssrht.types import Access, Email, List, ListAccess, User
 from listssrht.webhooks import ListWebhook
+import hashlib
+import os
+import mailbox
 
 settings = Blueprint("settings", __name__)
 
@@ -208,3 +212,40 @@ def content_POST(owner_name, list_name):
     db.session.commit()
     return redirect(url_for("settings.content_GET",
         owner_name=owner_name, list_name=list_name))
+
+@settings.route("/<owner_name>/<list_name>/settings/import-export")
+@loginrequired
+def import_export_GET(owner_name, list_name):
+    owner, ml, access = get_list(owner_name, list_name)
+    if not ml:
+        abort(404)
+    if ml.owner_id != current_user.id:
+        abort(403)
+    return render_template("settings-import-export.html",
+            view="import/export", ml=ml, owner=owner)
+
+@settings.route("/<owner_name>/<list_name>/settings/export", methods=["POST"])
+@loginrequired
+def export_POST(owner_name, list_name):
+    owner, ml, access = get_list(owner_name, list_name)
+    if not ml:
+        abort(404)
+    if ml.owner_id != current_user.id:
+        abort(403)
+
+    sha = hashlib.sha256()
+    sha.update(f"{owner_name}/{list_name}".encode())
+    digest = sha.hexdigest()
+    path = f"/tmp/{digest}.mbox"
+
+    mbox = mailbox.mbox(path)
+    for message in (Email.query
+            .filter(Email.list_id == ml.id)
+            .order_by(Email.created)).all():
+        mbox.add(message.parsed())
+    mbox.close()
+
+    f = open(path, "rb")
+    os.unlink(path)
+    return send_file(f, as_attachment=True,
+            attachment_filename=f"{owner.username}-{list_name}.mbox")

@@ -1,0 +1,24 @@
+{% extends "settings.html" %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-10">
+      <h3>Export mail spool</h3>
+      <p>
+        This tool allows you to export your mailing list in mbox format.
+      </p>
+      <form
+        method="POST"
+        action="{{url_for("settings.export_POST",
+          owner_name=owner.canonical_name, list_name=ml.name)}}"
+      >
+        {{csrf_token()}}
+        <button class="btn btn-primary">
+          Export mail spool {{icon("caret-right")}}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
