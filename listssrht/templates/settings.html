@@ -35,11 +35,11 @@
       owner_name=owner.canonical_name,
       list_name=ml.name), "content")}}
   </li>
+  {% endif %}
   <li class="nav-item">
     {{link(url_for("settings.import_export_GET",
       owner_name=owner.canonical_name,
       list_name=ml.name), "import/export")}}
   </li>
-  {% endif %}
 </ul>
 {% endblock %}

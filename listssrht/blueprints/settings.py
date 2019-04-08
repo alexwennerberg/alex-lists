@@ -247,7 +247,10 @@ def export_POST(owner_name, list_name):
     for message in (Email.query
             .filter(Email.list_id == ml.id)
             .order_by(Email.created)).all():
-        mbox.add(message.parsed())
+        try:
+            mbox.add(message.parsed())
+        except:
+            continue # plow on forward
     mbox.close()
 
     f = open(path, "rb")
