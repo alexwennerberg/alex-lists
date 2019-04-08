@@ -12,6 +12,7 @@ from listssrht.webhooks import ListWebhook
 import base64
 import email
 import hashlib
+import mailbox
 import os
 
 settings = Blueprint("settings", __name__)
