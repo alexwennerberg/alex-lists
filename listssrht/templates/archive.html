@@ -86,6 +86,11 @@
           value="{{ search if search else "" }}" />
       </form>
       {% endif %}
+      {% if ml.import_in_progress %}
+      <div class="alert alert-primary">
+        An import operation is currently in progress.
+      </div>
+      {% endif %}
       {% if any(threads) %}
       <div class="event-list">
         {% for message in threads %}

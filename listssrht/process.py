@@ -6,16 +6,20 @@ if not hasattr(db, "session"):
     db.init()
 from listssrht.types import Email, List, User, Subscription, ListAccess
 
+import base64
 import email
 import email.utils
 import io
 import json
+import mailbox
 import smtplib
+import tempfile
 from celery import Celery
 from datetime import datetime
 from email import policy
 from email.mime.text import MIMEText
 from email.utils import parseaddr, getaddresses, formatdate, make_msgid
+from email.utils import parsedate_to_datetime
 from unidiff import PatchSet
 
 dispatch = Celery("lists.sr.ht", broker=cfg("lists.sr.ht", "redis"))
@@ -67,7 +71,7 @@ def _forward(dest, mail):
             unixfrom=True, maxheaderlen=998))
     smtp.quit()
 
-def archive(dest, envelope):
+def _archive(dest, envelope):
     mail = Email()
     # TODO: Use message date within a tolerance from now
     mail.created = datetime.utcnow()
@@ -345,7 +349,7 @@ def _mirror(ml, mail):
             list_post = list_post[1:-1]
         mirror.list_post = list_post
 
-    return archive(ml, mail)
+    return _archive(ml, mail)
 
 @dispatch.task
 def dispatch_message(address, list_id, mail):
@@ -372,7 +376,7 @@ def dispatch_message(address, list_id, mail):
                 _webhooks(dest, archived)
                 db.session.commit()
             else:
-                archived = archive(dest, mail)
+                archived = _archive(dest, mail)
                 _webhooks(dest, archived)
                 db.session.commit()
                 _forward(dest, mail)
@@ -383,3 +387,50 @@ def dispatch_message(address, list_id, mail):
     except:
         db.session.rollback()
         raise
+
+@dispatch.task
+def import_mbox(spool, list_id):
+    ml = List.query.filter(List.id == list_id).one_or_none()
+    if not ml:
+        print(f"Warning: unable to import mbox for unknown list {list_id}")
+        return
+    with tempfile.NamedTemporaryFile() as f:
+        f.write(base64.b64decode(spool.encode()))
+        f.flush()
+        try:
+            factory = lambda f: email.message_from_bytes(f.read(),
+                        policy=email.policy.SMTP)
+            mbox = mailbox.mbox(f.name, factory=factory)
+        except:
+            print("Error opening this file. Is it in mbox format?")
+            # TODO: tell the user?
+            return
+
+        db.session.skip_autoupdate = True  # we want to use dates from the mbox
+        for msg in mbox.values():
+            msg_id = msg.get("Message-ID")
+            if not msg_id:
+                continue # Message ID is required
+            try:
+                existing = (Email.query
+                        .filter(Email.message_id == msg_id)
+                        .filter(Email.list_id == ml.id)).count()
+                if existing != 0:
+                    continue # Drop messages with a duplicate message ID
+                mail = _archive(ml, msg)
+                date = msg.get("Date")
+                if not date:
+                    continue
+                date = parsedate_to_datetime(date)
+                if not date:
+                    continue
+                date = date.replace(tzinfo=None)
+                mail.created = date
+                mail.updated = date
+                db.session.commit()
+            except:
+                print(f"Skipping email {msg_id} due to exception")
+                db.session.rollback()
+                continue # plow on forward
+    ml.import_in_progress = False
+    db.session.commit()

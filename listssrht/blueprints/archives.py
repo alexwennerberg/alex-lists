@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, abort, request, redirect, url_for
-from flask import Response
+from flask import Response, session
 from flask_login import current_user
 from sqlalchemy import String, cast, or_
 from srht.config import cfg
@@ -134,10 +134,12 @@ def archive(owner_name, list_name):
                 .filter(Subscription.list_id == ml.id)
                 .filter(Subscription.user_id == current_user.id)).one_or_none()
 
+    message = session.pop("message", None)
     return render_template("archive.html",
             view="archives", owner=owner, ml=ml, threads=threads,
             access=access, ListAccess=ListAccess,
-            search=search, subscription=subscription, **pagination)
+            search=search, subscription=subscription,
+            message=message, **pagination)
 
 @archives.route("/<owner_name>/<list_name>/<message_id>")
 def thread(owner_name, list_name, message_id):

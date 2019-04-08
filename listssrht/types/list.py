@@ -11,6 +11,8 @@ class List(Base):
     updated = sa.Column(sa.DateTime, nullable=False)
     name = sa.Column(sa.String(128), nullable=False)
     description = sa.Column(sa.Unicode(2048))
+    import_in_progress = sa.Column(
+            sa.Boolean, nullable=False, server_default='f')
 
     nonsubscriber_permissions = sa.Column(FlagType(ListAccess),
             nullable=False, server_default=str(ListAccess.all.value))

@@ -1,15 +1,17 @@
 from flask import Blueprint, render_template, abort, request, redirect, url_for
-from flask import send_file
+from flask import send_file, session
 from flask_login import current_user
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
 from srht.validation import Validation
 from listssrht.blueprints.archives import get_list
 from listssrht.types import Access, Email, List, ListAccess, User
+from listssrht.process import import_mbox
 from listssrht.webhooks import ListWebhook
+import base64
+import email
 import hashlib
 import os
-import mailbox
 
 settings = Blueprint("settings", __name__)
 
@@ -236,7 +238,8 @@ def export_POST(owner_name, list_name):
     sha = hashlib.sha256()
     sha.update(f"{owner_name}/{list_name}".encode())
     digest = sha.hexdigest()
-    path = f"/tmp/{digest}.mbox"
+    export_dir = cfg('lists.sr.ht', 'export-directory', default='/tmp') 
+    path = f"/{export_dir}/{digest}.mbox"
 
     mbox = mailbox.mbox(path)
     for message in (Email.query
@@ -249,3 +252,31 @@ def export_POST(owner_name, list_name):
     os.unlink(path)
     return send_file(f, as_attachment=True,
             attachment_filename=f"{owner.username}-{list_name}.mbox")
+
+@settings.route("/<owner_name>/<list_name>/settings/import", methods=["POST"])
+@loginrequired
+def import_POST(owner_name, list_name):
+    owner, ml, access = get_list(owner_name, list_name)
+    if not ml:
+        abort(404)
+    if ml.owner_id != current_user.id:
+        abort(403)
+    if ml.import_in_progress:
+        abort(400)
+
+    spool = request.files.get("spool")
+    valid = Validation(request)
+    valid.expect(spool is not None, "Mail spool is required", field="spool")
+
+    if not valid.ok:
+        return render_template("settings-import-export.html",
+                view="import/export", ml=ml, owner=owner, **valid.kwargs)
+
+    spool = spool.stream.read()
+    spool = base64.b64encode(spool).decode()
+    import_mbox.delay(spool, ml.id)
+
+    ml.import_in_progress = True
+    db.session.commit()
+    return redirect(url_for("archives.archive",
+        owner_name=owner_name, list_name=list_name))
