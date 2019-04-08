@@ -67,8 +67,11 @@ def _forward(dest, mail):
             unixfrom=True, maxheaderlen=998))
     smtp.quit()
 
-def _archive(dest, envelope):
+def archive(dest, envelope):
     mail = Email()
+    # TODO: Use message date within a tolerance from now
+    mail.created = datetime.utcnow()
+    mail.updated = datetime.utcnow()
     mail.subject = envelope["Subject"]
     mail.message_id = envelope["Message-ID"]
     mail.headers = {
@@ -94,36 +97,64 @@ def _archive(dest, envelope):
         mail.is_patch = False
     mail.is_request_pull = False # TODO: Detect git request-pull
     reply_to = envelope["In-Reply-To"]
-    parent = Email.query.filter(Email.message_id == reply_to).one_or_none()
+
+    db.session.add(mail)
+    db.session.flush() # obtain an ID for this email
+
+    # Set parent of this email
+    parent = Email.query.filter(Email.message_id == reply_to,
+            Email.list_id == dest.id).one_or_none()
     if parent is not None:
         mail.parent_id = parent.id
-        thread = parent
-        tenvelope = email.message_from_string(thread.envelope,
-                policy=email.policy.SMTP)
-        participants = set([envelope["From"], tenvelope["From"]])
-        while thread.parent_id != None:
-            tenvelope = email.message_from_string(thread.envelope,
-                    policy=email.policy.SMTP)
-            participants.update([tenvelope["From"]])
-            thread = thread.parent
+        mail.parent = parent
+
+    thread = mail
+    while thread.parent_id:
+        thread = thread.parent
+
+    if thread.id != mail.id:
         mail.thread_id = thread.id
+
+    # Reparent emails that arrived out-of-order
+    children = Email.query.filter(Email.in_reply_to == mail.message_id,
+            Email.list_id == dest.id).all()
+    ex_threads = set()
+    for child in children:
+        child.parent_id = mail.id
+        if child.thread_id != thread.id:
+            ex_threads.update({ child.thread_id })
+        child.thread_id = thread.id
+    (Email.__table__.update().where(Email.thread_id in ex_threads)
+            .values(thread_id=thread.id))
+
+    db.session.flush()
+    # Update thread nreplies & nparticipants
+    thread.nreplies = 0
+    participants = set()
+    for current in Email.query.filter(Email.thread_id == thread.id):
+        tenvelope = email.message_from_string(current.envelope,
+                policy=email.policy.SMTP)
+        participants.update({ a for a in tenvelope["From"].split(",") })
         thread.nreplies += 1
-        thread.nparticipants = len(participants)
+    thread.nparticipants = len(participants)
+
     # TODO: Enumerate CC's and create SQL relationships for them
     # TODO: Some users will have many email addresses
     sender = parseaddr(envelope["From"])
     sender = User.query.filter(User.email == sender[1]).one_or_none()
     if sender:
         mail.sender_id = sender.id
-    db.session.add(mail)
-    db.session.commit()
     print("Archived {} with ID {}".format(mail.subject, mail.id))
+    return mail
+
+def _webhooks(dest, mail):
     from listssrht.webhooks import UserWebhook, ListWebhook
     ListWebhook.deliver(ListWebhook.Events.post_received, mail.to_dict(),
             ListWebhook.Subscription.list_id == dest.id)
-    if sender:
+    if mail.sender:
         UserWebhook.deliver(UserWebhook.Events.email_received,
-                mail.to_dict(), UserWebhook.Subscription.user_id == sender.id)
+                mail.to_dict(),
+                UserWebhook.Subscription.user_id == mail.sender.id)
 
 def _subscribe(dest, mail):
     sender = parseaddr(mail["From"])
@@ -314,7 +345,7 @@ def _mirror(ml, mail):
             list_post = list_post[1:-1]
         mirror.list_post = list_post
 
-    _archive(ml, mail)
+    return archive(ml, mail)
 
 @dispatch.task
 def dispatch_message(address, list_id, mail):
@@ -330,15 +361,20 @@ def dispatch_message(address, list_id, mail):
         if command == "post":
             msgid = mail.get("Message-ID")
             if not msgid or Email.query.filter(
-                    Email.message_id == msgid).count():
+                    Email.message_id == msgid,
+                    Email.list_id == dest.id).count():
                 print("Dropping email due to duplicate message ID")
                 return
             dest.updated = datetime.utcnow()
 
             if dest.mirror_id:
-                _mirror(dest, mail)
+                archived = _mirror(dest, mail)
+                _webhooks(dest, archived)
+                db.session.commit()
             else:
-                _archive(dest, mail)
+                archived = archive(dest, mail)
+                _webhooks(dest, archived)
+                db.session.commit()
                 _forward(dest, mail)
         elif command == "subscribe":
             _subscribe(dest, mail)
