@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from aiosmtpd.lmtp import LMTP
+from aiosmtpd.lmtp import SMTP, LMTP
 from email.utils import parseaddr
 from fnmatch import fnmatch
 from grp import getgrnam
@@ -218,12 +218,18 @@ async def create_server():
     pg = await asyncpg.create_pool(dsn=cfg("lists.sr.ht", "connection-string"))
     handler = MailHandler(pg)
     await handler.initialize()
-    sock_path = cfg("lists.sr.ht::worker", "sock")
-    await loop.create_unix_server(
-            lambda: LMTP(handler, enable_SMTPUTF8=True),
-            path=sock_path)
-    os.chmod(sock_path, 0o775)
-    os.chown(sock_path, os.getuid(), sock_gid)
+    sock = cfg("lists.sr.ht::worker", "sock")
+    if "/" in sock:
+        await loop.create_unix_server(
+                lambda: LMTP(handler, enable_SMTPUTF8=True),
+                path=sock)
+        os.chmod(sock, 0o775)
+        os.chown(sock, os.getuid(), sock_gid)
+    else:
+        host, port = sock.split(":")
+        await loop.create_server(
+                lambda: SMTP(handler, enable_SMTPUTF8=True),
+                host=host, port=int(port))
 
 def sigint_handler():
     print("Exiting due to SIGINT")
@@ -231,7 +237,7 @@ def sigint_handler():
 
 loop.add_signal_handler(signal.SIGINT, sigint_handler)
 
-print("Starting LTMP server")
+print("Starting incoming mail daemon")
 loop.run_until_complete(create_server())
 loop.run_forever()
 loop.close()
