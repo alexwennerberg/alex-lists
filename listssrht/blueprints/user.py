@@ -82,6 +82,7 @@ def lists_for_user(username):
     else:
         lists = lists.filter(List.nonsubscriber_permissions > 0)
 
+    lists = lists.order_by(List.updated.desc())
     terms = request.args.get('search')
     if terms:
         lists = search(lists, terms, [List.name, List.description], {})
