@@ -4,6 +4,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, abort
 from flask_login import current_user
 from srht.config import cfg, cfgi
 from srht.database import db
+from srht.oauth import UserType
 from srht.flask import loginrequired
 from srht.validation import Validation
 from sqlalchemy import or_
@@ -67,10 +68,17 @@ def user_profile(username):
 @user.route("/lists/create")
 @loginrequired
 def create_list_GET():
+    if (cfg("lists.sr.ht", "allow-new-lists", default="yes") != "yes"
+            and current_user.user_type != UserType.admin):
+        abort(401)
     return render_template("create.html")
 
 @user.route("/lists/create", methods=["POST"])
 def create_list_POST():
+    if (cfg("lists.sr.ht", "allow-new-lists", default="yes") != "yes"
+            and current_user.user_type != UserType.admin):
+        abort(401)
+
     valid = Validation(request)
     ml = List(current_user, valid)
     if not valid.ok:

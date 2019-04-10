@@ -10,10 +10,15 @@
         <a href="https://man.sr.ht/lists.sr.ht">available here</a>.
       </p>
       <p>
+        {% if
+          cfg("lists.sr.ht", "allow-new-lists", default="yes") == "yes"
+          or current_user.user_type.value == "admin"
+        %}
         <a
           href="{{url_for("user.create_list_GET")}}"
           class="btn btn-primary btn-block"
         >Create new list {{icon("caret-right")}}</a>
+        {% endif %}
         <!--
         <a
           href="{{url_for("user.create_mirror_GET")}}"
