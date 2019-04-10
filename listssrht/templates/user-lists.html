@@ -1,0 +1,57 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-4">
+      <h2>
+        ~{{ user.username }}
+      </h2>
+      {% if user.location %}
+      <p>{{user.location}}</p>
+      {% endif %}
+      {% if user.url %}
+      <p>
+        <a href="{{user.url}}" target="_blank" rel="me noopener noreferrer nofollow">
+          {{user.url}}
+        </a>
+      </p>
+      {% endif %}
+      {% if user.bio %}
+      <p>{{user.bio | md}}</p>
+      {% endif %}
+    </div>
+    <div class="col-md-8">
+      {% if any(lists) %}
+      <form>
+        <input
+          name="search"
+          type="text"
+          placeholder="Search"
+          class="form-control"
+          value="{{ search if search else "" }}" />
+      </form>
+      <div class="event-list">
+        {% for list in lists %}
+        <div class="event">
+          <h4>
+            <a href="{{ url_for("archives.archive",
+                owner_name=list.owner.canonical_name,
+                list_name=list.name
+              ) }}"
+            >{{list.owner.canonical_name}}/{{list.name}}</a>
+          </h4>
+          {{list.description|md}}
+          <span class="text-muted">Last active {{ list.updated | date }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {{pagination()}}
+      {% else %}
+      <p>
+        This user has no mailing lists.
+      </p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -5,7 +5,8 @@ from flask_login import current_user
 from srht.config import cfg, cfgi
 from srht.database import db
 from srht.oauth import UserType
-from srht.flask import loginrequired
+from srht.flask import loginrequired, paginate_query
+from srht.search import search
 from srht.validation import Validation
 from sqlalchemy import or_
 from listssrht.types import List, User, Email, Subscription, Mirror
@@ -64,6 +65,30 @@ def user_profile(username):
 
     return render_template("user.html",
             user=user, recent=recent, lists=lists, parseaddr=parseaddr)
+
+@user.route("/lists/~<username>")
+def lists_for_user(username):
+    user = User.query.filter(User.username == username).first()
+    if not user:
+        abort(404)
+    lists = List.query.filter(List.owner_id == user.id)
+
+    if current_user:
+        if current_user.id != user.id:
+            lists = lists.filter(or_(
+                    List.account_permissions > 0,
+                    List.nonsubscriber_permissions > 0
+                ))
+    else:
+        lists = lists.filter(List.nonsubscriber_permissions > 0)
+
+    terms = request.args.get('search')
+    if terms:
+        lists = search(lists, terms, [List.name, List.description], {})
+    lists, pagination = paginate_query(lists)
+
+    return render_template("user-lists.html",
+            user=user, lists=lists, search=terms, **pagination)
 
 @user.route("/lists/create")
 @loginrequired

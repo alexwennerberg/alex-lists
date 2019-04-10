@@ -32,6 +32,12 @@
         <span class="text-muted">Last active {{ list.updated | date }}</span>
       </div>
       {% endfor %}
+      <a
+        href="{{ url_for("user.lists_for_user",
+          username=(user or current_user).username) }}"
+        class="btn btn-default btn-block"
+        style="margin-top: 1rem"
+      >View more {{icon("caret-right")}}</a>
       {% endif %}
     </div>
     <div class="col-md-8">
