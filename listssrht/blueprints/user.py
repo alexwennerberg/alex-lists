@@ -14,8 +14,6 @@ import smtplib
 
 user = Blueprint("user", __name__)
 
-meta_uri = cfg("meta.sr.ht", "origin")
-
 smtp_host = cfg("mail", "smtp-host", default=None)
 smtp_port = cfgi("mail", "smtp-port", default=None)
 smtp_user = cfg("mail", "smtp-user", default=None)
