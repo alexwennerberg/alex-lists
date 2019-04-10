@@ -13,7 +13,7 @@ class Email(Base):
     updated = sa.Column(sa.DateTime, nullable=False)
     subject = sa.Column(sa.Unicode(2048), nullable=False)
     message_id = sa.Column(sa.Unicode(2048), nullable=False)
-    in_reply_to = sa.Column(sa.Unicode(2048), nullable=False)
+    in_reply_to = sa.Column(sa.Unicode(2048))
     headers = sa.Column(sa.JSON, nullable=False)
     body = sa.Column(sa.Unicode, nullable=False)
     envelope = sa.Column(sa.Unicode, nullable=False)
