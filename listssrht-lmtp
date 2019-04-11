@@ -77,6 +77,8 @@ class MailHandler:
             address = address[:address.rfind("+")]
         if not command in ["subscribe", "unsubscribe", "post"]:
             return None, None
+        # Get redirect if present
+        address = cfg("lists.sr.ht::redirects", address, default=address)
         if address.startswith("~"):
             # TODO: user groups
             if not "/" in address:
