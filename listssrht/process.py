@@ -52,7 +52,8 @@ def _forward(dest, mail):
     smtp = smtplib.SMTP(smtp_host, smtp_port)
     smtp.ehlo()
     smtp.starttls()
-    smtp.login(smtp_user, smtp_password)
+    if smtp_user and smtp_password:
+        smtp.login(smtp_user, smtp_password)
 
     froms = mail.get_all('From', [])
     tos = mail.get_all('To', [])
@@ -227,7 +228,8 @@ Feel free to reply to this email if you have any questions.""".format(
     smtp = smtplib.SMTP(smtp_host, smtp_port)
     smtp.ehlo()
     smtp.starttls()
-    smtp.login(smtp_user, smtp_password)
+    if smtp_user and smtp_password:
+        smtp.login(smtp_user, smtp_password)
     smtp.sendmail(smtp_user, [sender[1]], reply.as_string(unixfrom=True))
     smtp.quit()
     db.session.commit()
@@ -277,7 +279,8 @@ Feel free to reply to this email if you have any questions.""".format(
     smtp = smtplib.SMTP(smtp_host, smtp_port)
     smtp.ehlo()
     smtp.starttls()
-    smtp.login(smtp_user, smtp_password)
+    if smtp_user and smtp_password:
+        smtp.login(smtp_user, smtp_password)
     smtp.sendmail(smtp_user, [sender[1]], reply.as_string(unixfrom=True))
     smtp.quit()
     db.session.commit()
@@ -318,7 +321,8 @@ def _configure_mirror(ml, mirror, mail):
     smtp = smtplib.SMTP(smtp_host, smtp_port)
     smtp.ehlo()
     smtp.starttls()
-    smtp.login(smtp_user, smtp_password)
+    if smtp_user and smtp_password:
+        smtp.login(smtp_user, smtp_password)
     smtp.sendmail(smtp_user, [sender[1]], reply.as_string(unixfrom=True))
     smtp.quit()
     db.session.commit()
