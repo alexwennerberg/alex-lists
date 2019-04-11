@@ -124,6 +124,21 @@
                   list_name=ml.name,
                   message_id=msg.message_id
                 ) }}" target="_blank">Download raw message</a>
+              {% if current_user and current_user.id == ml.owner_id %}
+              <h4 style="margin-top: 1rem">Moderation tools</h4>
+              <form
+                method="POST"
+                action="{{url_for("archives.remove_message",
+                  owner_name=ml.owner.canonical_name, list_name=ml.name,
+                  message_id=msg.message_id)}}"
+              >
+                {{csrf_token()}}
+                <button class="btn btn-danger">
+                  Remove message from the archives
+                  {{icon('caret-right')}}
+                </button>
+              </form>
+              {% endif %}
             </div>
           </details>
           <div class="date">

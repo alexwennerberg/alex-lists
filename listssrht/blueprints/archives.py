@@ -217,6 +217,30 @@ def mbox(owner_name, list_name, message_id):
     mbox = format_mbox(thread)
     return Response(mbox, mimetype='application/mbox')
 
+@archives.route("/<owner_name>/<list_name>/<message_id>/remove", methods=["POST"])
+@loginrequired
+def remove_message(owner_name, list_name, message_id):
+    owner, ml, access = get_list(owner_name, list_name)
+    if not ml:
+        abort(404)
+    if ml.owner_id != current_user.id:
+        abort(401)
+    message = (Email.query
+            .filter(Email.message_id == message_id)
+            .filter(Email.list_id == ml.id)
+        ).one_or_none()
+    if not message:
+        abort(404)
+    redir = url_for("archives.archive",
+            owner_name=owner_name, list_name=list_name)
+    if message.thread != None:
+        redir = url_for("archives.thread",
+            owner_name=owner_name, list_name=list_name,
+            message_id=message.thread.message_id)
+    db.session.delete(message)
+    db.session.commit()
+    return redirect(redir)
+
 @archives.route("/<owner_name>/<list_name>/subscribe", methods=["POST"])
 @loginrequired
 def subscribe(owner_name, list_name):
