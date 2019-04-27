@@ -165,6 +165,8 @@ def acl_POST(owner_name, list_name):
         else:
             acl.email = username
     acl.permissions = _process_access(valid, "acl")
+    if ListAccess.browse in ml.nonsubscriber_permissions:
+        acl.permissions |= ListAccess.browse
     db.session.add(acl)
     db.session.commit()
     return redirect(url_for("settings.access_GET",
