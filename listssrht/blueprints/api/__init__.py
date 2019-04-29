@@ -7,10 +7,10 @@ from srht.flask import csrf_bypass
 from srht.oauth import current_token, oauth
 
 def get_user(username):
-    if username == None:
-        username = current_token.user.username
     user = None
-    if "@" in username:
+    if username == None:
+        user = current_token.user
+    elif "@" in username:
         user = User.query.filter(User.email == username).one_or_none()
     elif username.startswith("~"):
         user = User.query.filter(User.username == username[1:]).one_or_none()
