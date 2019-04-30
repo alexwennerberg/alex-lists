@@ -10,11 +10,7 @@
 <div class="form-check form-check-inline">
   <label
     class="form-check-label"
-    {% if type.name == "browse" and name != "nonsub" %}
-    title="Inherited from anonymous permissions"
-    {% else %}
     title="{{access_help_map[type]}}"
-    {% endif %}
   >
     {% if readonly %}
       {% if type in perms %}
@@ -36,12 +32,7 @@
       {% if readonly %}
       disabled
       {% endif %}
-      {% if type.name == "browse" and name != "nonsub" %}
-      disabled
-      {{ "checked" if type in ml.nonsubscriber_permissions }}
-      {% else %}
       {{ "checked" if type in perms }}
-      {% endif %}
     > {{type.name}}
     {% endif %}
   </label>
@@ -67,7 +58,9 @@
               <h4>Non-subscriber Permissions</h4>
               <p>
                 Permissions granted to users who are not subscribed or logged
-                in to a sr.ht account.
+                in to a sr.ht account. Any permission granted to anonymous
+                users are granted to subscribers and account holders as well,
+                unless explicitly revoked from that user.
               </p>
               {% for a in access_type_list %}
               {{ perm_checkbox(a, ml.nonsubscriber_permissions , "nonsub") }}
