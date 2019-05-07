@@ -5,7 +5,7 @@ from listssrht.webhooks import ListWebhook, UserWebhook
 from sqlalchemy import or_
 from srht.api import paginated_response
 from srht.database import db
-from srht.oauth import oauth, current_token, OAuthScope
+from srht.oauth import oauth, current_token
 from srht.validation import Validation
 
 lists = Blueprint("api.lists", __name__)
