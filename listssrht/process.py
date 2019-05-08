@@ -5,6 +5,7 @@ if not hasattr(db, "session"):
     import listssrht.types
     db.init()
 from listssrht.types import Email, List, User, Subscription, ListAccess
+from listssrht.types import Patchset
 
 import base64
 import email
@@ -12,6 +13,8 @@ import email.utils
 import io
 import json
 import mailbox
+import pygit2
+import re
 import smtplib
 import tempfile
 from celery import Celery
@@ -20,7 +23,6 @@ from email import policy
 from email.mime.text import MIMEText
 from email.utils import parseaddr, getaddresses, formatdate, make_msgid
 from email.utils import parsedate_to_datetime
-from unidiff import PatchSet
 
 dispatch = Celery("lists.sr.ht", broker=cfg("lists.sr.ht", "redis"))
 
@@ -72,6 +74,68 @@ def _forward(dest, mail):
             unixfrom=True, maxheaderlen=998))
     smtp.quit()
 
+patch_subject = re.compile(r".*\[PATCH( (?P<prefix>[^\]]+))?\] (?P<subject>.*)")
+patch_version = re.compile(r"(v(?P<version>[0-9]+))?"
+    r"( (?P<index>[0-9]+)/(?P<count>[0-9]+))?$")
+
+def _import_patch(thread, mail, envelope):
+    match = patch_subject.match(mail.subject)
+    if not match:
+        # TODO: figure out a better way of dealing with patches that have weird
+        # subjects
+        return
+    prefix = match.group("prefix")
+    subject = match.group("subject")
+    version = index = count = 1
+    match = patch_version.search(prefix) if prefix else None
+    if match:
+        version = int(match.group("version")) if match.group("version") else 1
+        index = int(match.group("index")) if match.group("index") else 1
+        count = int(match.group("count")) if match.group("count") else 1
+        prefix = patch_version.sub("", prefix).strip()
+    mail.patch_index = index
+    mail.patch_count = count
+    mail.patch_version = version
+    mail.patch_prefix = prefix
+    mail.patch_subject = subject
+    # TODO: generate diffstat?
+    print(f"Received patch {index}/{count}: {subject}")
+    if not all(any(m for m in thread
+            if m.patch_index == i) for i in range(1, count+1)):
+        return
+    if any(m.patchset_id for m in thread):
+        return # TODO: is this a new revision? complicated
+    print("Complete patchset received")
+
+    def is_cover(m):
+        match = patch_subject.match(m.subject)
+        prefix = match.group("prefix") if match else None
+        match = patch_version.search(prefix) if prefix else None
+        if not match:
+            return False
+        index = (int(match.group("index").strip())
+            if match.group("index") else 1)
+        return index == 0
+    cover_letter = next((m for m in thread if is_cover(m)), None)
+
+    patchset = Patchset()
+    patchset.cover_letter_id = cover_letter.id if cover_letter else None
+
+    subject = cover_letter.subject if cover_letter else thread[0].subject
+    match = patch_subject.match(subject)
+    patchset.subject = match.group("subject") if match else subject
+    patchset.prefix = prefix
+
+    patchset.list_id = mail.list_id
+    patchset.version = version
+    db.session.add(patchset)
+    db.session.flush()
+    for m in thread:
+        m.patchset_id = patchset.id
+    db.session.commit()
+    # TODO: identify patchset that this supersedes, if appropriate
+    return patchset
+
 def _archive(dest, envelope):
     mail = Email()
     # TODO: Use message date within a tolerance from now
@@ -95,8 +159,7 @@ def _archive(dest, envelope):
             mail.body = part.get_payload(decode=True).decode(charset)
             break
     try:
-        with io.StringIO(mail.body) as f:
-            patch = PatchSet(f)
+        patch = pygit2.Diff.parse_diff(mail.body.replace("\r\n", "\n"))
         mail.is_patch = len(patch) > 0
     except:
         mail.is_patch = False
@@ -135,13 +198,20 @@ def _archive(dest, envelope):
     db.session.flush()
     # Update thread nreplies & nparticipants
     thread.nreplies = 0
+    thread_members = [thread]
     participants = set()
     for current in Email.query.filter(Email.thread_id == thread.id):
+        thread_members.append(current)
         tenvelope = email.message_from_string(current.envelope,
                 policy=email.policy.SMTP)
         participants.update({ a for a in tenvelope["From"].split(",") })
         thread.nreplies += 1
     thread.nparticipants = len(participants)
+
+    if not mail in thread_members:
+        thread.append(mail)
+    if mail.is_patch:
+        _import_patch(thread_members, mail, envelope)
 
     # TODO: Enumerate CC's and create SQL relationships for them
     # TODO: Some users will have many email addresses

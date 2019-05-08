@@ -44,6 +44,26 @@ class Email(Base):
     sender = sa.orm.relationship('User',
             backref=sa.orm.backref('sent_messages'))
 
+    # "[PATCH meta.sr.ht v2 1/4] Add thing to stuff"
+    # patch_index: 1; patch_count: 4
+    # patch_version: 2
+    # patch_prefix: meta.sr.ht
+    # patch_subject: Add thing to stuff
+    patch_index = sa.Column(sa.Integer)
+    patch_count = sa.Column(sa.Integer)
+    patch_version = sa.Column(sa.Integer)
+    patch_prefix = sa.Column(sa.Unicode)
+    patch_subject = sa.Column(sa.Unicode)
+
+    superseded_by_id = sa.Column(sa.Integer, sa.ForeignKey('email.id'))
+    superseded_by = sa.orm.relationship('Email',
+            backref=sa.orm.backref('previous_version', remote_side=[id]),
+            foreign_keys=[superseded_by_id])
+
+    patchset_id = sa.Column(sa.Integer, sa.ForeignKey('patchset.id'))
+    patchset = sa.orm.relationship("Patchset",
+            backref=sa.orm.backref("patches"), foreign_keys=[patchset_id])
+
     # TODO: Enumerate CC's and create a relationship there
 
     def __repr__(self):

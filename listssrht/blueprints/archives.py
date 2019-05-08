@@ -159,6 +159,9 @@ def thread(owner_name, list_name, message_id):
             owner_name=owner_name,
             list_name=list_name,
             message_id=thread.thread.message_id) + "#" + thread.message_id)
+    # TODO: link to patchset
+    # TODO: multi-order sort by patch version and index, for emails which
+    # arrive out of order
     patches = [mail for mail in thread.descendants if mail.is_patch]
     if thread.is_patch:
         patches.append(thread)
