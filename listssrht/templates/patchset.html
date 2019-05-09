@@ -73,7 +73,7 @@
         {{patchset.subject}}
         <small>v{{patchset.version}}</small>
         <span class="pull-right {{status_to_color[patchset.status]}}">
-          {{patchset.status.value.upper()}}
+          {{patchset.status.value.replace("_", " ").upper()}}
         </span>
       </h3>
       {{ msg_header(msg) }}
@@ -138,7 +138,7 @@
                 {% if patchset.status == opt %}
                 selected
                 {% endif %}
-              >{{opt.value.upper()}}</option>
+              >{{opt.value.replace("_", " ").upper()}}</option>
               {% endfor %}
             </select>
           </div>

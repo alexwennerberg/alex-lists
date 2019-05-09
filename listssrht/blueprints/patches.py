@@ -4,16 +4,25 @@ from emailthreads import parse as parse_thread
 from flask import Blueprint, render_template, abort, Response, request, redirect
 from flask import url_for
 from flask_login import current_user
-from listssrht.blueprints.archives import get_list
+from listssrht.blueprints.archives import get_list, apply_search
 from listssrht.filters import post_address
 from listssrht.types import List, Email, Patchset, PatchsetStatus, ListAccess
+from listssrht.types import Subscription
 from sqlalchemy import or_
 from srht.database import db
-from srht.flask import loginrequired
+from srht.flask import loginrequired, paginate_query
 from srht.validation import Validation
 from urllib.parse import quote, urlencode
 
 patches = Blueprint("patches", __name__)
+
+status_to_color = {
+    PatchsetStatus.proposed: "text-info",
+    PatchsetStatus.needs_revision: "text-warning",
+    PatchsetStatus.approved: "text-success",
+    PatchsetStatus.rejected: "text-danger",
+    PatchsetStatus.applied: ""
+}
 
 @patches.route("/<owner_name>/<list_name>/patches")
 def patchlist(owner_name, list_name):
@@ -22,7 +31,23 @@ def patchlist(owner_name, list_name):
         abort(404)
     if ListAccess.browse not in access:
         abort(403)
-    # TODO
+    threads = (Email.query
+            .filter(Email.list_id == ml.id)
+            .filter(Email.patchset_id != None)
+        ).order_by(Email.updated.desc())
+    threads, search = apply_search(threads)
+    threads, pagination = paginate_query(threads)
+
+    subscription = None
+    if current_user:
+        subscription = (Subscription.query
+                .filter(Subscription.list_id == ml.id)
+                .filter(Subscription.user_id == current_user.id)).one_or_none()
+    return render_template("archive.html",
+            view="patches", owner=owner, ml=ml, threads=threads,
+            access=access, ListAccess=ListAccess, search=search,
+            subscription=subscription, status_to_color=status_to_color,
+            **pagination)
 
 def _parse_thread(thread):
     parsed = parse_thread(thread)
@@ -65,14 +90,6 @@ def gen_cover_letter(patches):
                     for f in patch.removed_files + patch.modified_files)
     cover += f"\n {nfiles} files changed, {insertions} insertions(+), {deletions} deletions(-)\n"
     return cover
-
-status_to_color = {
-    PatchsetStatus.proposed: "text-info",
-    PatchsetStatus.needs_revision: "text-warning",
-    PatchsetStatus.approved: "text-success",
-    PatchsetStatus.rejected: "text-danger",
-    PatchsetStatus.applied: ""
-}
 
 @patches.route("/<owner_name>/<list_name>/patches/<patchset_id>")
 def patchset(owner_name, list_name, patchset_id):

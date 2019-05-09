@@ -2,6 +2,7 @@
 {% block content %}
 <div class="container-fluid">
   <div class="row">
+    {% if view == "archives" %}
     <div class="col-md-3">
       {% if ml.description %}
       {{ml.description | md}}
@@ -76,12 +77,19 @@
       {% endif %}
     </div>
     <div class="col-md-9">
+    {% else %}
+    <div class="col-md-12">
+    {% endif %}
       {% if any(threads) or search %}
       <form>
         <input
           name="search"
           type="text"
+          {% if view == "archives" %}
           placeholder='Search...     from:me     is:patch     In-Reply-To:<12345@example.org>     "PATCH my-project"'
+          {% else %}
+          placeholder='Search...     status:approved    prefix:my-project    from:me'
+          {% endif %}
           class="form-control"
           value="{{ search if search else "" }}" />
       </form>
@@ -114,6 +122,16 @@
           </small>
           <h4>
             {% if message.patchset_id %}
+            {% if view == "patches" %}
+            <small
+              class="{{status_to_color[message.patchset.status]}}"
+              style="margin-left: 0; display: inline-block; width: 8rem"
+            >
+              <strong>
+                {{message.patchset.status.value.replace("_", " ").upper()}}
+              </strong>
+            </small>
+            {% endif %}
             <a href="{{
               url_for('patches.patchset',
                 owner_name=owner.canonical_name,
