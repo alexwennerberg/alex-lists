@@ -50,11 +50,13 @@
 </pre>
 {% if any(feedback.standalone_feedback) %}
 {% for feedback in feedback.standalone_feedback %}
+{% if feedback.source_msg._email not in patches %}
 <blockquote>
   {% set msg = feedback.source_msg._email %}
   {{ msg_header(msg) }}
   <pre class="message-body">{{"\n".join(feedback.lines)}}</pre>
 </blockquote>
+{% endif %}
 {% endfor %}
 {% endif %}
 {% endmacro %}
