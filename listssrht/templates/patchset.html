@@ -41,14 +41,14 @@
   <blockquote>
     {% set msg = sub.source_msg._email %}
     {{ display_msg(msg, body="\n".join(sub.lines),
-      index=sub.index, standalone=False) }}
+      index=sub.index) }}
   </blockquote>
   {% endfor %}
 <pre class="message-body">
   {%- endif -%}
 {%- endfor -%}
 </pre>
-{% if any(feedback.standalone_feedback) and standalone %}
+{% if any(feedback.standalone_feedback) %}
 {% for feedback in feedback.standalone_feedback %}
 {% if feedback.source_msg._email not in patches %}
 <blockquote>
