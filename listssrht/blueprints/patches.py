@@ -1,11 +1,16 @@
 import email
 from email.utils import parseaddr
 from emailthreads import parse as parse_thread
-from flask import Blueprint, render_template, abort, Response
+from flask import Blueprint, render_template, abort, Response, request, redirect
+from flask import url_for
+from flask_login import current_user
 from listssrht.blueprints.archives import get_list
 from listssrht.filters import post_address
-from listssrht.types import List, User, Email, Patchset, ListAccess
+from listssrht.types import List, Email, Patchset, PatchsetStatus, ListAccess
 from sqlalchemy import or_
+from srht.database import db
+from srht.flask import loginrequired
+from srht.validation import Validation
 from urllib.parse import quote, urlencode
 
 patches = Blueprint("patches", __name__)
@@ -61,6 +66,14 @@ def gen_cover_letter(patches):
     cover += f"\n {nfiles} files changed, {insertions} insertions(+), {deletions} deletions(-)\n"
     return cover
 
+status_to_color = {
+    PatchsetStatus.proposed: "text-info",
+    PatchsetStatus.needs_revision: "text-warning",
+    PatchsetStatus.approved: "text-success",
+    PatchsetStatus.rejected: "text-danger",
+    PatchsetStatus.applied: ""
+}
+
 @patches.route("/<owner_name>/<list_name>/patches/<patchset_id>")
 def patchset(owner_name, list_name, patchset_id):
     owner, ml, access = get_list(owner_name, list_name)
@@ -95,9 +108,34 @@ def patchset(owner_name, list_name, patchset_id):
         return f"mailto:{post_address(msg.list)}?{urlencode(params, quote_via=quote)}"
 
     return render_template("patchset.html", view="patches", owner=owner,
-            parseaddr=parseaddr, reply_to=reply_to, ml=ml,
+            parseaddr=parseaddr, reply_to=reply_to, ml=ml, access=access,
             thread=thread, patchset=patchset, patches=patches,
-            feedback=feedback, gen_cover_letter=gen_cover_letter)
+            feedback=feedback, gen_cover_letter=gen_cover_letter,
+            PatchsetStatus=PatchsetStatus, status_to_color=status_to_color)
+
+@patches.route("/<owner_name>/<list_name>/patches/<patchset_id>/update",
+        methods=["POST"])
+@loginrequired
+def patchset_update(owner_name, list_name, patchset_id):
+    owner, ml, access = get_list(owner_name, list_name)
+    if not ml:
+        abort(404)
+    if ml.owner_id != current_user.id:
+        abort(403)
+    patchset = (Patchset.query
+            .filter(Patchset.id == patchset_id)
+            .filter(Patchset.list_id == ml.id)).one_or_none()
+    if not patchset:
+        abort(404)
+    valid = Validation(request)
+    status = valid.require("status", cls=PatchsetStatus)
+    if not valid.ok:
+        # not possible without end-user fuckery, so no pretty error for you
+        abort(400)
+    patchset.status = status
+    db.session.commit()
+    return redirect(url_for("patches.patchset", owner_name=owner_name,
+        list_name=list_name, patchset_id=patchset_id))
 
 def format_mbox(msg):
     b = bytes()

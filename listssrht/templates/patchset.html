@@ -68,7 +68,14 @@
       {% else %}
       {% set msg = patchset.patches[0] %}
       {% endif %}
-      <h3>{{patchset.subject}}</h3>
+      <h3>
+        {{patchset.prefix}}:
+        {{patchset.subject}}
+        <small>v{{patchset.version}}</small>
+        <span class="pull-right {{status_to_color[patchset.status]}}">
+          {{patchset.status.value.upper()}}
+        </span>
+      </h3>
       {{ msg_header(msg) }}
     </div>
   </div>
@@ -99,8 +106,8 @@
             import this patchset into git:
           </p>
           <pre>curl -s {{root}}{{ url_for('archives.mbox',
-          owner_name=owner.canonical_name, list_name=ml.name,
-          message_id=thread.message_id) }} | git am -3</pre>
+            owner_name=owner.canonical_name, list_name=ml.name,
+            message_id=thread.message_id) }} | git am -3</pre>
           <a
             href="https://git-send-email.io/"
             target="_blank"
@@ -108,10 +115,41 @@
           >Learn more about email &amp; git {{icon('caret-right')}}</a>
         </details>
       </div>
-      <a class="btn btn-default btn-block" href="{{ url_for('archives.thread',
-        owner_name=owner.canonical_name, list_name=ml.name,
-        message_id=thread.message_id) }}"
-      >View original thread {{icon('caret-right')}}</a>
+      {% if current_user and current_user.id == ml.owner_id %}
+      {# TODO: Better ACLs so non-owners can do this too #}
+      <div class="event-list" style="margin-top: 1rem">
+        <form
+          class="event"
+          method="POST"
+          action="{{url_for('patches.patchset_update',
+            owner_name=owner.canonical_name, list_name=ml.name,
+            patchset_id=patchset.id)}}"
+        >
+          {{csrf_token()}}
+          <div class="form-group">
+            <select
+              name="status"
+              id="status"
+              class="form-control"
+            >
+              {% for opt in PatchsetStatus %}
+              <option
+                value="{{opt.value}}"
+                {% if patchset.status == opt %}
+                selected
+                {% endif %}
+              >{{opt.value.upper()}}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <button
+            type="submit"
+            class="btn btn-success pull-right"
+          >Update {{icon('caret-right')}}</button>
+          <div class="clearfix"></div>
+        </form>
+      </div>
+      {% endif %}
     </div>
   </div>
   <div class="row">
