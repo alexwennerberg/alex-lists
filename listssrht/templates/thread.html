@@ -14,30 +14,28 @@
   <div class="row">
     <div class="col-md-4">
       <div class="form-group">
+        {% if thread.patchset_id %}
+        <a class="btn btn-success btn-block" href="{{ url_for('patches.patchset',
+          owner_name=owner.canonical_name, list_name=ml.name,
+          patchset_id=thread.patchset_id) }}"
+        >Review patch {{icon('caret-right')}}</a>
+        {% if current_user %}
+        <a class="btn btn-default btn-block"
+          href="{{reply_to(thread.replies[-1] if thread.replies else thread)}}"
+        >Reply to thread {{icon('caret-right')}}</a>
+        {% endif %}
+        {% else %}
         {% if current_user %}
         <a class="btn btn-primary btn-block"
           href="{{reply_to(thread.replies[-1] if thread.replies else thread)}}"
         >Reply to thread {{icon('caret-right')}}</a>
+        {% endif %}
         {% endif %}
         <a class="btn btn-default btn-block" href="{{ url_for('archives.mbox',
           owner_name=owner.canonical_name, list_name=ml.name,
           message_id=thread.message_id) }}"
         >Export thread (mbox) {{icon('caret-right')}}</a>
       </div>
-      {% if any(patches) %}
-      <h3>Patches</h3>
-      <div class="event-list">
-        {% for patch in patches %}
-        <div class="event">
-          <a href="#{{ patch.message_id }}">{{ patch.subject }}</a>
-          {% set stats = diffstat(patch) %}
-          <br />
-          <span class="text-success">+{{stats.added}}</span>
-          <span class="text-danger">-{{stats.removed}}</span>
-        </div>
-        {% endfor %}
-      </div>
-      {% endif %}
     </div>
     <div class="col-md-8">
       {% macro display_message(msg) %}

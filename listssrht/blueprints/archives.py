@@ -162,10 +162,6 @@ def thread(owner_name, list_name, message_id):
     # TODO: link to patchset
     # TODO: multi-order sort by patch version and index, for emails which
     # arrive out of order
-    patches = [mail for mail in thread.descendants if mail.is_patch]
-    if thread.is_patch:
-        patches.append(thread)
-    patches = sorted(patches, key=lambda p: p.created)
 
     def reply_to(msg):
         params = {
@@ -178,8 +174,7 @@ def thread(owner_name, list_name, message_id):
         return f"mailto:{post_address(msg.list)}?{urlencode(params, quote_via=quote)}"
 
     return render_template("thread.html", view="archives", owner=owner,
-            ml=ml, thread=thread, patches=patches,
-            parseaddr=email.utils.parseaddr,
+            ml=ml, thread=thread, parseaddr=email.utils.parseaddr,
             parse_auth_result=parse_auth_result, reply_to=reply_to)
 
 @archives.route("/<owner_name>/<list_name>/<message_id>/raw")

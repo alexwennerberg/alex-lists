@@ -26,7 +26,7 @@ class Patchset(Base):
     list = sa.orm.relationship('List', backref=sa.orm.backref('patchsets'))
 
     cover_letter_id = sa.Column(sa.Integer, sa.ForeignKey('email.id'))
-    cover_letter = sa.orm.backref("Email", foreign_keys=[cover_letter_id])
+    cover_letter = sa.orm.relationship("Email", foreign_keys=[cover_letter_id])
 
     superseded_by_id = sa.Column(sa.Integer, sa.ForeignKey('patchset.id'))
     superseded_by = sa.orm.relationship('Patchset',

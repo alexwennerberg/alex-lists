@@ -1,0 +1,126 @@
+{% extends "list.html" %}
+{% block title %}
+<title>
+  {{ patchset.subject }} &mdash; {{ cfg("sr.ht", "site-name") }} lists
+</title>
+{% endblock %}
+{% macro msg_header(msg) %}
+<div class="message-header">
+  <div class="from">
+    {% set from_hdr = msg.parsed()['From'] %}
+    {% set from = parseaddr(from_hdr) %}
+    {% if msg.sender != None %}
+    <a href="/{{ msg.sender.canonical_name }}">{{from[0]}}</a>
+    {% else %}
+    {{from[0]}}
+    {% endif %}
+    {% if current_user %}
+    <a href="{{reply_to(msg)}}">&lt;{{ from[1] }}&gt;</a>
+    {% endif %}
+  </div>
+  <div class="date">
+    <a
+      id="{{ msg.message_id }}"
+      href="#{{ msg.message_id }}"
+      class="text-muted"
+    >{{ msg.created | date }}</a>
+  </div>
+</div>
+{% endmacro %}
+
+{% macro display_msg(msg, body=None, index=0, standalone=True) %}
+{{ msg_header(msg) }}
+{% set feedback = feedback[msg.id] %}
+<pre class="message-body">
+  {%- for line in (body if body else format_body(msg)).splitlines() -%}
+  {{- line + "\n" -}}
+  {%- set line = loop.index + index - 1 -%}
+  {%- if line in feedback.feedback_by_line -%}
+</pre>
+  {% for sub in feedback.feedback_by_line[line] %}
+  <blockquote>
+    {% set msg = sub.source_msg._email %}
+    {{ display_msg(msg, body="\n".join(sub.lines),
+      index=sub.index) }}
+  </blockquote>
+  {% endfor %}
+<pre class="message-body">
+  {%- endif -%}
+{%- endfor -%}
+</pre>
+{% if any(feedback.standalone_feedback) %}
+{% for feedback in feedback.standalone_feedback %}
+<blockquote>
+  {% set msg = feedback.source_msg._email %}
+  {{ msg_header(msg) }}
+  <pre class="message-body">{{"\n".join(feedback.lines)}}</pre>
+</blockquote>
+{% endfor %}
+{% endif %}
+{% endmacro %}
+
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      {% if patchset.cover_letter %}
+      {% set msg = patchset.cover_letter %}
+      {% else %}
+      {% set msg = patchset.patches[0] %}
+      {% endif %}
+      <h3>{{patchset.subject}}</h3>
+      {{ msg_header(msg) }}
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-8">
+      {% if patchset.cover_letter %}
+      <pre class="message-body">{{ format_body(msg) }}</pre>
+      {% else %}
+      <pre class="message-body">{{ gen_cover_letter(patches) }}</pre>
+      {% endif %}
+      {% for feedback in feedback[msg.id].standalone_feedback %}
+      {% set msg = feedback.source_msg._email %}
+      {% if not msg.is_patch %}
+      {{ display_msg(msg, body="\n".join(feedback.lines)) }}
+      {% endif %}
+      {% endfor %}
+    </div>
+    <div class="col-md-4">
+      <a class="btn btn-primary btn-block" href="{{ url_for('patches.mbox',
+        owner_name=owner.canonical_name, list_name=ml.name,
+        patchset_id=patchset.id) }}"
+      >Export patchset (mbox) {{icon('caret-right')}}</a>
+      <div class="event-list">
+        <details class="event">
+          <summary>How do I use this?</summary>
+          <p>
+            Copy &amp; paste the following snippet into your terminal to
+            import this patchset into git:
+          </p>
+          <pre>curl -s {{root}}{{ url_for('archives.mbox',
+          owner_name=owner.canonical_name, list_name=ml.name,
+          message_id=thread.message_id) }} | git am -3</pre>
+          <a
+            href="https://git-send-email.io/"
+            target="_blank"
+            class="btn btn-link btn-block"
+          >Learn more about email &amp; git {{icon('caret-right')}}</a>
+        </details>
+      </div>
+      <a class="btn btn-default btn-block" href="{{ url_for('archives.thread',
+        owner_name=owner.canonical_name, list_name=ml.name,
+        message_id=thread.message_id) }}"
+      >View original thread {{icon('caret-right')}}</a>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      {% for msg in patches %}
+      <h3>{{msg.subject}}</h3>
+      {{ display_msg(msg) }}
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

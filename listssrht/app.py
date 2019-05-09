@@ -17,11 +17,13 @@ class ListsApp(SrhtFlask):
 
         from listssrht.blueprints.api import register_api
         from listssrht.blueprints.archives import archives
+        from listssrht.blueprints.patches import patches
         from listssrht.blueprints.settings import settings
         from listssrht.blueprints.user import user
 
         register_api(self)
         self.register_blueprint(archives)
+        self.register_blueprint(patches)
         self.register_blueprint(settings)
         self.register_blueprint(user)
 
