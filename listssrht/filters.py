@@ -97,7 +97,7 @@ def _format_patch(msg, limit=None):
                     + escape(line)
                     + Markup("</span>\n"))
                 continue
-            if line.startswith("+"):
+            elif line.startswith("+"):
                 text += (
                     Markup("<span class='text-success'>")
                     + Markup(
