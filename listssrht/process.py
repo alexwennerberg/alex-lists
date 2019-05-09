@@ -76,7 +76,7 @@ def _forward(dest, mail):
 
 patch_subject = re.compile(r".*\[PATCH( (?P<prefix>[^\]]+))?\] (?P<subject>.*)")
 patch_version = re.compile(r"(v(?P<version>[0-9]+))?"
-    r"( (?P<index>[0-9]+)/(?P<count>[0-9]+))?$")
+    r"( ?(?P<index>[0-9]+)/(?P<count>[0-9]+))?$")
 
 def _import_patch(thread, mail, envelope):
     match = patch_subject.match(mail.subject)
