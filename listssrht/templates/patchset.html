@@ -38,7 +38,7 @@
   {%- if line in feedback.feedback_by_line -%}
 </pre>
   {% for sub in feedback.feedback_by_line[line] %}
-  <blockquote>
+  <blockquote class="feedback">
     {% set msg = sub.source_msg._email %}
     {{ display_msg(msg, body="\n".join(sub.lines),
       index=sub.index) }}
