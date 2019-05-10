@@ -6,6 +6,7 @@ from srht.database import Base
 class PatchsetStatus(Enum):
     proposed = "proposed"
     needs_revision = "needs_revision"
+    superseded = "superseded"
     approved = "approved"
     rejected = "rejected"
     applied = "applied"
