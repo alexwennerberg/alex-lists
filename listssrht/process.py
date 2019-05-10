@@ -70,8 +70,7 @@ def _forward(dest, mail):
             print(to + " is already copied, skipping")
             continue
         print("Forwarding message to " + to)
-        smtp.sendmail(smtp_user, [to], mail.as_string(
-            unixfrom=True, maxheaderlen=998))
+        smtp.sendmail(smtp_user, [to], mail.as_bytes(unixfrom=True))
     smtp.quit()
 
 patch_subject = re.compile(r".*\[PATCH( (?P<prefix>[^\]]+))?\] (?P<subject>.*)")
@@ -300,7 +299,7 @@ Feel free to reply to this email if you have any questions.""".format(
     smtp.starttls()
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
-    smtp.sendmail(smtp_user, [sender[1]], reply.as_string(unixfrom=True))
+    smtp.sendmail(smtp_user, [sender[1]], reply.as_bytes(unixfrom=True))
     smtp.quit()
     db.session.commit()
 
@@ -351,7 +350,7 @@ Feel free to reply to this email if you have any questions.""".format(
     smtp.starttls()
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
-    smtp.sendmail(smtp_user, [sender[1]], reply.as_string(unixfrom=True))
+    smtp.sendmail(smtp_user, [sender[1]], reply.as_bytes(unixfrom=True))
     smtp.quit()
     db.session.commit()
 
@@ -393,7 +392,7 @@ def _configure_mirror(ml, mirror, mail):
     smtp.starttls()
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
-    smtp.sendmail(smtp_user, [sender[1]], reply.as_string(unixfrom=True))
+    smtp.sendmail(smtp_user, [sender[1]], reply.as_bytes(unixfrom=True))
     smtp.quit()
     db.session.commit()
 
