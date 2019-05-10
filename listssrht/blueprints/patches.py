@@ -128,7 +128,8 @@ def patchset(owner_name, list_name, patchset_id):
             parseaddr=parseaddr, reply_to=reply_to, ml=ml, access=access,
             thread=thread, patchset=patchset, patches=patches,
             feedback=feedback, gen_cover_letter=gen_cover_letter,
-            PatchsetStatus=PatchsetStatus, status_to_color=status_to_color)
+            PatchsetStatus=PatchsetStatus, status_to_color=status_to_color,
+            max=max)
 
 @patches.route("/<owner_name>/<list_name>/patches/<patchset_id>/update",
         methods=["POST"])
