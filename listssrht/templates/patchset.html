@@ -160,7 +160,16 @@
   <div class="row">
     <div class="col-md-12">
       {% for msg in patches %}
-      <h3>{{msg.subject}}</h3>
+      <h3>
+        {{msg.subject}}
+        <a href="{{ url_for("archives.raw",
+                  owner_name=ml.owner.canonical_name,
+                  list_name=ml.name,
+                  message_id=msg.message_id
+        ) }}" class="btn btn-link pull-right">
+          Export this patch {{icon('caret-right')}}
+        </a>
+      </h3>
       {{ display_msg(msg) }}
       {% endfor %}
     </div>
