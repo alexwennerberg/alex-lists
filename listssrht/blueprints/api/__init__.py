@@ -55,14 +55,17 @@ def get_email(email_id):
 def register_api(app):
     from listssrht.blueprints.api.emails import emails
     from listssrht.blueprints.api.lists import lists
+    from listssrht.blueprints.api.patches import patches
     from listssrht.blueprints.api.subscriptions import subs
 
     app.register_blueprint(emails)
     app.register_blueprint(lists)
+    app.register_blueprint(patches)
     app.register_blueprint(subs)
 
     csrf_bypass(emails)
     csrf_bypass(lists)
+    csrf_bypass(patches)
     csrf_bypass(subs)
 
     @app.route("/api/version")

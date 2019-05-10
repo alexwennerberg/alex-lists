@@ -1,6 +1,6 @@
 from flask import Blueprint, abort, request
 from listssrht.blueprints.api import get_user, get_list
-from listssrht.types import User, List, Email, ListAccess
+from listssrht.types import List, Email, ListAccess
 from listssrht.webhooks import ListWebhook, UserWebhook
 from sqlalchemy import or_
 from srht.api import paginated_response
