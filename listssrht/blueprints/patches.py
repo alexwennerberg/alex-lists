@@ -1,4 +1,5 @@
 import email
+from email import policy
 from email.utils import parseaddr
 from emailthreads import parse as parse_thread
 from flask import Blueprint, render_template, abort, Response, request, redirect
@@ -160,7 +161,7 @@ def format_mbox(msg):
     b = bytes()
     if msg.is_patch:
         parsed = msg.parsed()
-        b += parsed.as_bytes(unixfrom=True) + b'\r\n'
+        b += parsed.as_bytes(unixfrom=True, policy=email.policy.SMTP) + b'\r\n'
     for reply in msg.replies:
         if not reply.is_patch:
             continue
