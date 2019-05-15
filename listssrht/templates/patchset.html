@@ -155,6 +155,10 @@
         </form>
       </div>
       {% endif %}
+      <a class="btn btn-link btn-block" href="{{ url_for('archives.thread',
+        owner_name=owner.canonical_name, list_name=ml.name,
+        message_id=thread.message_id) }}"
+      >View this thread in the archives {{icon('caret-right')}}</a>
     </div>
   </div>
   <div class="row">

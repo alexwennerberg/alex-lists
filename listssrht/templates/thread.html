@@ -172,22 +172,13 @@
           </div>
         </div>
         <pre class="message-body">{{ format_body(msg) }}</pre>
-
-        {% if len(msg.replies) > 1 %}
-        {% for child in msg.replies %}
-        {{ display_message(child) }}
-        {% endfor %}
-        {% endif %}
       </div>
-
-      {% if len(msg.replies) <= 1 %}
-      {% for child in msg.replies %}
-      {{ display_message(child) }}
-      {% endfor %}
-      {% endif %}
       {% endmacro %}
 
       {{ display_message(thread) }}
+      {% for msg in messages %}
+      {{ display_message(msg) }}
+      {% endfor %}
     </div>
   </div>
 </div>

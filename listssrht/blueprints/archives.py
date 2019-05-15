@@ -159,9 +159,12 @@ def thread(owner_name, list_name, message_id):
             owner_name=owner_name,
             list_name=list_name,
             message_id=thread.thread.message_id) + "#" + thread.message_id)
-    # TODO: link to patchset
     # TODO: multi-order sort by patch version and index, for emails which
     # arrive out of order
+
+    messages = (Email.query
+            .filter(Email.thread_id == thread.id)
+            .order_by(Email.created)).all()
 
     def reply_to(msg):
         params = {
@@ -174,8 +177,10 @@ def thread(owner_name, list_name, message_id):
         return f"mailto:{post_address(msg.list)}?{urlencode(params, quote_via=quote)}"
 
     return render_template("thread.html", view="archives", owner=owner,
-            ml=ml, thread=thread, parseaddr=email.utils.parseaddr,
-            parse_auth_result=parse_auth_result, reply_to=reply_to)
+            ml=ml, thread=thread, messages=messages,
+            parseaddr=email.utils.parseaddr,
+            parse_auth_result=parse_auth_result,
+            reply_to=reply_to)
 
 @archives.route("/<owner_name>/<list_name>/<message_id>/raw")
 def raw(owner_name, list_name, message_id):
