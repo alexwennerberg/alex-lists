@@ -161,7 +161,8 @@ def format_mbox(msg):
     b = bytes()
     if msg.is_patch:
         parsed = msg.parsed()
-        b += parsed.as_bytes(unixfrom=True, policy=email.policy.SMTP) + b'\r\n'
+        b += parsed.as_bytes(unixfrom=True,
+                policy=email.policy.SMTPUTF8) + b'\r\n'
     for reply in msg.replies:
         if not reply.is_patch:
             continue
