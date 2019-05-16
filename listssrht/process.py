@@ -71,7 +71,7 @@ def _forward(dest, mail):
             continue
         print("Forwarding message to " + to)
         smtp.sendmail(smtp_user, [to], mail.as_bytes(
-            unixfrom=True, policy=email.policy.SMTP))
+            unixfrom=True, policy=email.policy.SMTPUTF8))
     smtp.quit()
 
 patch_subject = re.compile(r".*\[PATCH( (?P<prefix>[^\]]+))?\] (?P<subject>.*)")
@@ -203,7 +203,7 @@ def _archive(dest, envelope):
     for current in Email.query.filter(Email.thread_id == thread.id):
         thread_members.append(current)
         tenvelope = email.message_from_string(current.envelope,
-                policy=email.policy.SMTP)
+                policy=email.policy.SMTPUTF8)
         participants.update({ a for a in tenvelope["From"].split(",") })
         thread.nreplies += 1
     thread.nparticipants = len(participants)
@@ -301,7 +301,7 @@ Feel free to reply to this email if you have any questions.""".format(
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
     smtp.sendmail(smtp_user, [sender[1]], reply.as_bytes(
-        unixfrom=True, policy=email.policy.SMTP))
+        unixfrom=True, policy=email.policy.SMTPUTF8))
     smtp.quit()
     db.session.commit()
 
@@ -353,7 +353,7 @@ Feel free to reply to this email if you have any questions.""".format(
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
     smtp.sendmail(smtp_user, [sender[1]], reply.as_bytes(
-        unixfrom=True, policy=email.policy.SMTP))
+        unixfrom=True, policy=email.policy.SMTPUTF8))
     smtp.quit()
     db.session.commit()
 
@@ -396,7 +396,7 @@ def _configure_mirror(ml, mirror, mail):
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
     smtp.sendmail(smtp_user, [sender[1]], reply.as_bytes(
-        unixfrom=True, policy=email.policy.SMTP))
+        unixfrom=True, policy=email.policy.SMTPUTF8))
     smtp.quit()
     db.session.commit()
 
@@ -436,7 +436,7 @@ def dispatch_message(address, list_id, mail):
         command = address[address.rfind("+") + 1:].lower()
         address = address[:address.rfind("+")]
     dest = List.query.filter(List.id == list_id).one_or_none()
-    mail = email.message_from_string(mail, policy=email.policy.SMTP)
+    mail = email.message_from_string(mail, policy=email.policy.SMTPUTF8)
 
     try:
         if command == "post":
@@ -476,7 +476,7 @@ def import_mbox(spool, list_id):
         f.flush()
         try:
             factory = lambda f: email.message_from_bytes(f.read(),
-                        policy=email.policy.SMTP)
+                        policy=email.policy.SMTPUTF8)
             mbox = mailbox.mbox(f.name, factory=factory)
         except:
             print("Error opening this file. Is it in mbox format?")

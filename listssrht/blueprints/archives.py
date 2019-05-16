@@ -12,6 +12,7 @@ from listssrht.types import List, User, Email, Subscription, ListAccess, Access
 from listssrht.webhooks import ListWebhook, UserWebhook
 from urllib.parse import quote, urlencode
 import email
+import email.policy
 import email.utils
 
 archives = Blueprint("archives", __name__)
@@ -199,7 +200,7 @@ def raw(owner_name, list_name, message_id):
 
 def format_mbox(msg):
     parsed = msg.parsed()
-    b = parsed.as_bytes(unixfrom=True) + b'\r\n'
+    b = parsed.as_bytes(unixfrom=True, policy=email.policy.SMTPUTF8) + b'\r\n'
     for reply in msg.replies:
         b += format_mbox(reply)
     return b
