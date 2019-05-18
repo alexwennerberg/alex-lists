@@ -146,7 +146,7 @@ def _archive(dest, envelope):
     mail.headers = {
         key: value for key, value in envelope.items()
     }
-    mail.envelope = envelope.as_bytes(unixfrom=True, maxheaderlen=998)
+    mail.envelope = envelope.as_string(unixfrom=True, maxheaderlen=998)
     mail.list_id = dest.id
     for part in envelope.walk():
         if part.is_multipart():
