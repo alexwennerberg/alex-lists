@@ -74,7 +74,9 @@
       {% set msg = patchset.patches[0] %}
       {% endif %}
       <h3>
+        {% if patchset.prefix %}
         {{patchset.prefix}}:
+        {% endif %}
         {{patchset.subject}}
         <small>v{{patchset.version}}</small>
         <span class="pull-right {{status_to_color[patchset.status]}}">
