@@ -49,6 +49,7 @@ def patchlist(owner_name, list_name):
             view="patches", owner=owner, ml=ml, threads=threads,
             access=access, ListAccess=ListAccess, search=search,
             subscription=subscription, status_to_color=status_to_color,
+            parseaddr=parseaddr,
             **pagination)
 
 def _parse_thread(thread):
