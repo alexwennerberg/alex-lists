@@ -140,6 +140,7 @@ def archive(owner_name, list_name):
             view="archives", owner=owner, ml=ml, threads=threads,
             access=access, ListAccess=ListAccess,
             search=search, subscription=subscription,
+            parseaddr=email.utils.parseaddr,
             message=message, **pagination)
 
 @archives.route("/<owner_name>/<list_name>/<message_id>")

@@ -117,6 +117,15 @@
             </span>
             {% endif %}
             <span>
+              {% set from_hdr = message.parsed()['From'] %}
+              {% set from = parseaddr(from_hdr) %}
+              {% if message.sender != None %}
+              <a href="/{{ message.sender.canonical_name }}">{{from[0]}}</a>
+              {% else %}
+              {{from[0]}}
+              {% endif %}
+            </span>
+            <span>
               {{icon("clock")}} {{ message.updated | date }}
             </span>
           </small>
