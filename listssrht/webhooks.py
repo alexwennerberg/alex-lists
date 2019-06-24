@@ -16,7 +16,7 @@ class ListWebhook(CeleryWebhook):
         Event("post:received", "lists:read"),
         Event("list:update", "lists:read"),
         Event("patchset:received", "patches:read"),
-        Event("patchset:update", "patches:read"),
+        Event("patchset:update", "patches:read"), # TODO: Deliver
     ]
 
     list_id = sa.Column(sa.Integer, sa.ForeignKey("list.id"), nullable=False)
