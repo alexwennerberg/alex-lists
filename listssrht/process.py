@@ -133,6 +133,12 @@ def _import_patch(thread, mail, envelope):
     for m in thread:
         m.patchset_id = patchset.id
     db.session.commit()
+
+    from listssrht.webhooks import ListWebhook
+    ListWebhook.deliver(ListWebhook.Events.patchset_received,
+            patchset.to_dict(),
+            ListWebhook.Subscription.list_id == mail.list_id)
+    db.session.commit()
     # TODO: identify patchset that this supersedes, if appropriate
     return patchset
 
