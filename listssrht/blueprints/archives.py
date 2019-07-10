@@ -9,6 +9,7 @@ from srht.flask import paginate_query, loginrequired
 from srht.validation import Validation
 from listssrht.filters import post_address
 from listssrht.types import List, User, Email, Subscription, ListAccess, Access
+from listssrht.types import Patchset, PatchsetStatus
 from listssrht.webhooks import ListWebhook, UserWebhook
 from urllib.parse import quote, urlencode
 import email
@@ -58,6 +59,7 @@ def apply_search(query, terms=None):
         terms = request.args.get("search")
     if not terms:
         return query.filter(Email.parent_id == None), None
+    query = query.join(Patchset, Email.patchset_id == Patchset.id)
     def canonicalize(header):
         return "-".join(h[0].upper() + h[1:] for h in header.split("-"))
     def me_alias(header, q, v):
@@ -65,6 +67,11 @@ def apply_search(query, terms=None):
                 "%" + current_user.email + "%"))
             if current_user and v == "me" else
             q.filter(cast(Email.headers[header], String).ilike("%" + v + "%")))
+    def patchset_status(q, v):
+        try:
+            return q.filter(Patchset.status == PatchsetStatus(v))
+        except ValueError:
+            return q.filter(False)
     return search(query, terms, [Email.body, Email.subject], {
         "is": lambda q, v: q.filter({
             "patch": Email.is_patch,
@@ -73,6 +80,8 @@ def apply_search(query, terms=None):
         "from": lambda q, v: me_alias("From", q, v),
         "to": lambda q, v: me_alias("To", q, v),
         "cc": lambda q, v: me_alias("Cc", q, v),
+        "status": patchset_status,
+        "prefix": Patchset.prefix,
         None: lambda q, p, v: query.filter(cast(
             Email.headers[canonicalize(p)], String).ilike("%" + v + "%")),
     }), terms
