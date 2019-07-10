@@ -4,8 +4,9 @@
   {{ patchset.subject }} &mdash; {{ cfg("sr.ht", "site-name") }} lists
 </title>
 {% endblock %}
-{% macro msg_header(msg) %}
+{% macro msg_header(msg, showfrom=True) %}
 <div class="message-header">
+  {% if showfrom %}
   <div class="from">
     {% set from_hdr = msg.parsed()['From'] %}
     {% set from = parseaddr(from_hdr) %}
@@ -18,6 +19,7 @@
     <a href="{{reply_to(msg)}}">&lt;{{ from[1] }}&gt;</a>
     {% endif %}
   </div>
+  {% endif %}
   <div class="date">
     <a
       id="{{ msg.message_id }}"
@@ -83,20 +85,16 @@
           {{patchset.status.value.replace("_", " ").upper()}}
         </span>
       </h3>
+      {% if patchset.cover_letter %}
       {{ msg_header(msg) }}
+      {% endif %}
     </div>
   </div>
   <div class="row">
     <div class="col-md-8">
       {% if patchset.cover_letter %}
       <pre class="message-body">{{ format_body(msg) }}</pre>
-      {% else %}
-      <pre class="message-body">{{ gen_cover_letter(patches) }}</pre>
       {% endif %}
-      <a class="btn btn-link btn-block" href="{{ url_for('archives.thread',
-        owner_name=owner.canonical_name, list_name=ml.name,
-        message_id=thread.message_id) }}"
-      >View this thread in the archives {{icon('caret-right')}}</a>
       {% for feedback in feedback[msg.id].standalone_feedback %}
       {% set msg = feedback.source_msg._email %}
       {% if not msg.is_patch %}
@@ -178,6 +176,10 @@
       </h3>
       {{ display_msg(msg) }}
       {% endfor %}
+      <a class="btn btn-link btn-block" href="{{ url_for('archives.thread',
+        owner_name=owner.canonical_name, list_name=ml.name,
+        message_id=thread.message_id) }}"
+      >View this thread in the archives {{icon('caret-right')}}</a>
     </div>
   </div>
 </div>
