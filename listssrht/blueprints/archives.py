@@ -53,8 +53,9 @@ def get_list(owner_name, list_name, current_user=current_user):
         access = ml.nonsubscriber_permissions
     return owner, ml, access
 
-def apply_search(query):
-    terms = request.args.get("search")
+def apply_search(query, terms=None):
+    if not terms:
+        terms = request.args.get("search")
     if not terms:
         return query.filter(Email.parent_id == None), None
     def canonicalize(header):

@@ -98,3 +98,15 @@
   border-width: 1rem;
   border-color: #e9ecef;
 }
+
+input.patch-select {
+  margin-right: 1rem;
+}
+
+label.status {
+  margin-left: 0;
+  display: inline-block;
+  width: 10rem;
+  font-size: 0.9rem;
+  font-weight: bold;
+}

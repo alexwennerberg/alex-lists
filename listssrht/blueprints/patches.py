@@ -36,6 +36,7 @@ def patchlist(owner_name, list_name):
     threads = (Email.query
             .filter(Email.list_id == ml.id)
             .filter(Email.patchset_id != None)
+            .filter(Email.parent_id == None)
         ).order_by(Email.updated.desc())
     threads, search = apply_search(threads)
     threads, pagination = paginate_query(threads)
@@ -49,7 +50,7 @@ def patchlist(owner_name, list_name):
             view="patches", owner=owner, ml=ml, threads=threads,
             access=access, ListAccess=ListAccess, search=search,
             subscription=subscription, status_to_color=status_to_color,
-            parseaddr=parseaddr,
+            parseaddr=parseaddr, PatchsetStatus=PatchsetStatus,
             **pagination)
 
 def _parse_thread(thread):
@@ -157,6 +158,37 @@ def patchset_update(owner_name, list_name, patchset_id):
     db.session.commit()
     return redirect(url_for("patches.patchset", owner_name=owner_name,
         list_name=list_name, patchset_id=patchset_id))
+
+@patches.route("/<owner_name>/<list_name>/patches/bulk-update", methods=["POST"])
+@loginrequired
+def patchset_bulk_update(owner_name, list_name):
+    owner, ml, access = get_list(owner_name, list_name)
+    if not ml:
+        abort(404)
+    if ml.owner_id != current_user.id:
+        abort(403)
+    select_all = False
+    selection = []
+    for item in request.form:
+        if item == "select-all":
+            select_all = True
+            break
+        if item.startswith("select-"):
+            selection.append(int(item.split("-")[1]))
+    if select_all:
+        patchsets = (Patchset.query
+                .filter(Patchset.list_id == ml.id)
+                .join(Email, Patchset.cover_letter_id))
+        patchsets, _ = apply_search(patchsets, terms=request.form.get("search"))
+    else:
+        patchsets = (Patchset.query
+            .filter(Patchset.id.in_(selection))
+            .filter(Patchset.list_id == ml.id))
+    status = PatchsetStatus(request.form.get("status"))
+    patchsets.update({ Patchset.status: status }, synchronize_session=False)
+    db.session.commit()
+    return redirect(url_for("patches.patchlist",
+        owner_name=owner_name, list_name=list_name))
 
 def format_mbox(msg):
     b = bytes()
