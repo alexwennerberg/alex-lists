@@ -20,10 +20,10 @@ patches = Blueprint("patches", __name__)
 status_to_color = {
     PatchsetStatus.proposed: "text-info",
     PatchsetStatus.needs_revision: "text-warning",
-    PatchsetStatus.superseded: "",
+    PatchsetStatus.superseded: "text-muted",
     PatchsetStatus.approved: "text-success",
     PatchsetStatus.rejected: "text-danger",
-    PatchsetStatus.applied: ""
+    PatchsetStatus.applied: "text-muted"
 }
 
 @patches.route("/<owner_name>/<list_name>/patches")
