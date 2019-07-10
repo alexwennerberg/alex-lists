@@ -28,13 +28,22 @@
         <form method="POST" action="{{url_for("archives.subscribe",
               owner_name=owner.canonical_name, list_name=ml.name) }}">
           {{csrf_token()}}
+          {% if ListAccess.browse in access %}
           <button class="btn btn-primary btn-block">
             Subscribe {{icon("caret-right")}}
           </button>
+          {% endif %}
           {% if ListAccess.post in access %}
           <a
             href="mailto:{{ post_address(ml) }}"
-            class="btn btn-default btn-block"
+            class="
+              btn btn-block
+              {% if ListAccess.browse not in access %}
+              btn-primary
+              {% else %}
+              btn-default
+              {% endif %}
+            "
           >New post {{icon("caret-right")}}</a>
           {% endif %}
         </form>
@@ -44,7 +53,7 @@
         {% set subscribe_address = post_address(ml, suffix="+subscribe") %}
         {% set posting_address = post_address(ml) %}
 
-        {% if subscribe_address %}
+        {% if subscribe_address and ListAccess.browse in access %}
         <a
           {% if subscribe_address.startswith("mailto:") %}
           href="{{subscribe_address}}"
@@ -61,7 +70,14 @@
           {% else %}
           href="mailto:{{posting_address}}"
           {% endif %}
-          class="btn btn-default btn-block"
+          class="
+            btn btn-block
+            {% if ListAccess.browse not in access %}
+            btn-primary
+            {% else %}
+            btn-default
+            {% endif %}
+          "
         >New post {{icon("caret-right")}}</a>
         {% endif %}
         {% endif %}
@@ -80,6 +96,7 @@
     {% else %}
     <div class="col-md-12">
     {% endif %}
+      {% if ListAccess.browse in access %}
       {% if any(threads) or search %}
       <form>
         <input
@@ -185,6 +202,11 @@
         No one has posted to this list yet.
         {% endif %}
       </p>
+      {% endif %}
+      {% else %}
+      <div class="alert alert-warning">
+        This list has restricted browsing, you cannot view the archives.
+      </div>
       {% endif %}
     </div>
   </div>

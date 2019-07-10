@@ -121,7 +121,7 @@ def archive(owner_name, list_name):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
         abort(404)
-    if ListAccess.browse not in access:
+    if access.value == 0:
         abort(403)
     threads = (Email.query
             .filter(Email.list_id == ml.id)
