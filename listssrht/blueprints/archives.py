@@ -107,7 +107,11 @@ def _dkim_explain(status, domain):
     }.get(status)
 
 def parse_auth_result(mail, method):
-    domain = email.utils.parseaddr(mail["From"])[1].split("@", 2)[1].lower()
+    address = email.utils.parseaddr(mail["From"])[1]
+    mailboxhost = address.split("@", 2)
+    if len(mailboxhost) < 2:
+        return None, None
+    domain = mailboxhost[1].lower()
     if msgauth_server is None:
         return None, None
     fields = mail.get_all("Authentication-Results", failobj=[])
