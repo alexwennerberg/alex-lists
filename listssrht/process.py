@@ -70,8 +70,11 @@ def _forward(dest, mail):
             print(to + " is already copied, skipping")
             continue
         print("Forwarding message to " + to)
-        smtp.sendmail(smtp_user, [to], mail.as_bytes(
-            unixfrom=True, policy=email.policy.SMTPUTF8))
+        try:
+            smtp.sendmail(smtp_user, [to], mail.as_bytes(
+                unixfrom=True, policy=email.policy.SMTPUTF8))
+        except:
+            continue
     smtp.quit()
 
 patch_subject = re.compile(r".*\[PATCH( (?P<prefix>[^\]]+))?\] (?P<subject>.*)")
