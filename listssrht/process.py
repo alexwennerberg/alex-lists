@@ -303,6 +303,8 @@ Feel free to reply to this email if you have any questions.""".format(
             mail.get("Subject") or "Your subscription request")
     reply["Reply-To"] = "{} <{}>".format(
             cfg("sr.ht", "owner-name"), cfg("sr.ht", "owner-email"))
+    reply["Date"] = formatdate()
+    reply["Message-ID"] = make_msgid()
     print(reply.as_string(unixfrom=True))
     smtp = smtplib.SMTP(smtp_host, smtp_port)
     smtp.ehlo()
