@@ -87,7 +87,10 @@
                   </code>
                   <a href="#{{msg.parent.message_id}}">(view parent)</a>
                 </dd>
+                <dd>
                 {% endif %}
+                <dt>Sender timestamp</dt>
+                <dd>{{"{:.0f}".format(msg.message_date.timestamp())}}</dd>
                 <dt>DKIM signature</dt>
                 <dd>
                   {% if dkim_status == None %}

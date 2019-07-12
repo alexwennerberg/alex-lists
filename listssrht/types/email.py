@@ -21,6 +21,7 @@ class Email(Base):
     """true if email is via git format-patch"""
     is_request_pull = sa.Column(sa.Boolean, nullable=False)
     """true if email is via git request-pull"""
+    message_date = sa.Column(sa.DateTime)
 
     list_id = sa.Column(sa.Integer, sa.ForeignKey('list.id'))
     list = sa.orm.relationship('List', backref=sa.orm.backref('messages'))
