@@ -14,6 +14,7 @@ import email
 from email.utils import parsedate_to_datetime
 from email import policy
 from alembic import op
+from datetime import datetime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session as BaseSession, relationship
 import sqlalchemy as sa
@@ -37,7 +38,12 @@ def upgrade():
                 mail.envelope, policy=policy.default)
         date = envelope.get("Date")
         if date is not None:
-            mail.message_date = parsedate_to_datetime(date)
+            # I hate the datetime module with a passion which burns so deep
+            # that the very fires of Mount Doom in the dark heart of of Mordor
+            # are icy in comparison
+            localdate = parsedate_to_datetime(date)
+            utcdate = datetime.utcfromtimestamp(localdate.timestamp())
+            mail.message_date = utcdate
     session.commit()
 
 
