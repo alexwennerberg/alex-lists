@@ -79,7 +79,10 @@ class Email(Base):
             "parent_id": self.parent_id,
             "thread_id": self.thread_id,
             "list": self.list.to_dict(short=True),
-            "sender": self.sender.to_dict(short=True) if self.sender else None,
+            "sender": self.sender.to_dict(short=True)
+                if self.sender else None,
+            "patchset": self.patchset.to_dict(short=True)
+                if self.patchset else None,
             **({
                 "is_patch": self.is_patch,
                 "is_request_pull": self.is_request_pull,

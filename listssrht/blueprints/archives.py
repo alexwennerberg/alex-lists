@@ -1,3 +1,4 @@
+from datetime import datetime
 from flask import Blueprint, render_template, abort, request, redirect, url_for
 from flask import Response, session
 from flask_login import current_user
@@ -84,6 +85,8 @@ def apply_search(query, terms=None):
         "prefix": lambda q, v: (q
             .join(Patchset, Email.patchset_id == Patchset.id)
             .filter(Patchset.prefix == v)),
+        "sender-timestamp": lambda q, v: (q
+            .filter(Email.message_date == datetime.utcfromtimestamp(int(v)))),
         None: lambda q, p, v: query.filter(cast(
             Email.headers[canonicalize(p)], String).ilike("%" + v + "%")),
     }), terms

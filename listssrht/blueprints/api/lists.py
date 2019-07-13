@@ -1,5 +1,6 @@
 from flask import Blueprint, abort, request
 from listssrht.blueprints.api import get_user, get_list
+from listssrht.blueprints.archives import apply_search
 from listssrht.types import List, Email, ListAccess
 from listssrht.webhooks import ListWebhook, UserWebhook
 from sqlalchemy import or_
@@ -84,4 +85,5 @@ def user_lists_by_name_posts_GET(username, list_name):
     if not ListAccess.browse in access:
         abort(404)
     emails = Email.query.filter(Email.list_id == ml.id)
+    emails, _ = apply_search(emails)
     return paginated_response(Email.id, emails, short=True)

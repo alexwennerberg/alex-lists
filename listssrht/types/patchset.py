@@ -43,9 +43,11 @@ class Patchset(Base):
             "prefix": self.prefix,
             "version": self.version,
             "status": self.status.value,
-            "list": self.list.to_dict(short=True),
-            "cover_letter": self.cover_letter.to_dict(short=True)
-                if self.cover_letter else None,
-            "superseded_by": self.superseded_by.to_dict(short=True)
-                if self.superseded_by else None,
+            **({
+                "list": self.list.to_dict(short=True),
+                "cover_letter": self.cover_letter.to_dict(short=True)
+                    if self.cover_letter else None,
+                "superseded_by": self.superseded_by.to_dict(short=True)
+                    if self.superseded_by else None,
+            } if not short else {}),
         }
