@@ -2,6 +2,7 @@ from flask import Blueprint, abort, request
 from listssrht.blueprints.api import get_user, get_list
 from listssrht.types import Email, List, ListAccess, Patchset, PatchsetStatus
 from srht.api import paginated_response
+from srht.database import db
 from srht.oauth import oauth, current_token
 from srht.validation import Validation
 
