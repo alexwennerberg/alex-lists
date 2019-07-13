@@ -89,8 +89,10 @@
                 </dd>
                 <dd>
                 {% endif %}
+                {% if msg.message_date %}
                 <dt>Sender timestamp</dt>
                 <dd>{{"{:.0f}".format(msg.message_date.timestamp())}}</dd>
+                {% endif %}
                 <dt>DKIM signature</dt>
                 <dd>
                   {% if dkim_status == None %}
