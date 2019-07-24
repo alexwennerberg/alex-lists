@@ -216,7 +216,7 @@ class MailHandler:
     async def handle_DATA_w_conn(self, server, session, envelope, conn):
         address = envelope.rcpt_tos[0]
         mail = email.message_from_bytes(envelope.content,
-                policy=email.policy.SMTP)
+                policy=email.policy.SMTPUTF8.clone(max_line_length=998))
         dest, command = await self.lookup_destination(conn, address)
         if dest is None:
             sender = parseaddr(mail["From"])

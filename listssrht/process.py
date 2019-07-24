@@ -10,6 +10,7 @@ from listssrht.types import Patchset
 import base64
 import email
 import email.utils
+import email.policy
 import io
 import json
 import mailbox
@@ -19,7 +20,6 @@ import smtplib
 import tempfile
 from celery import Celery
 from datetime import datetime
-from email import policy
 from email.mime.text import MIMEText
 from email.utils import parseaddr, getaddresses, formatdate, make_msgid
 from email.utils import parsedate_to_datetime
@@ -30,6 +30,8 @@ smtp_host = cfg("mail", "smtp-host", default=None)
 smtp_port = cfgi("mail", "smtp-port", default=None)
 smtp_user = cfg("mail", "smtp-user", default=None)
 smtp_password = cfg("mail", "smtp-password", default=None)
+
+policy = email.policy.SMTPUTF8.clone(max_line_length=998)
 
 def _forward(dest, mail):
     domain = cfg("lists.sr.ht", "posting-domain")
@@ -71,8 +73,7 @@ def _forward(dest, mail):
             continue
         print("Forwarding message to " + to)
         try:
-            smtp.sendmail(smtp_user, [to], mail.as_bytes(
-                unixfrom=True, policy=email.policy.SMTPUTF8))
+            smtp.send_message(mail, smtp_user, [to])
         except:
             continue
     smtp.quit()
@@ -155,7 +156,7 @@ def _archive(dest, envelope):
     mail.headers = {
         key: value for key, value in envelope.items()
     }
-    mail.envelope = envelope.as_string(unixfrom=True, maxheaderlen=998)
+    mail.envelope = envelope.as_string(unixfrom=True)
     mail.list_id = dest.id
     for part in envelope.walk():
         if part.is_multipart():
@@ -211,8 +212,7 @@ def _archive(dest, envelope):
     participants = set()
     for current in Email.query.filter(Email.thread_id == thread.id):
         thread_members.append(current)
-        tenvelope = email.message_from_string(current.envelope,
-                policy=email.policy.SMTPUTF8)
+        tenvelope = email.message_from_string(current.envelope, policy=policy)
         participants.update({ a for a in tenvelope["From"].split(",") })
         thread.nreplies += 1
     thread.nparticipants = len(participants)
@@ -311,8 +311,7 @@ Feel free to reply to this email if you have any questions.""".format(
     smtp.starttls()
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
-    smtp.sendmail(smtp_user, [sender[1]], reply.as_bytes(
-        unixfrom=True, policy=email.policy.SMTPUTF8))
+    smtp.send_message(reply, smtp_user, [sender[1]])
     smtp.quit()
     db.session.commit()
 
@@ -363,8 +362,7 @@ Feel free to reply to this email if you have any questions.""".format(
     smtp.starttls()
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
-    smtp.sendmail(smtp_user, [sender[1]], reply.as_bytes(
-        unixfrom=True, policy=email.policy.SMTPUTF8))
+    smtp.send_message(reply, smtp_user, [sender[1]])
     smtp.quit()
     db.session.commit()
 
@@ -406,8 +404,7 @@ def _configure_mirror(ml, mirror, mail):
     smtp.starttls()
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
-    smtp.sendmail(smtp_user, [sender[1]], reply.as_bytes(
-        unixfrom=True, policy=email.policy.SMTPUTF8))
+    smtp.send_message(reply, smtp_user, [sender[1]])
     smtp.quit()
     db.session.commit()
 
@@ -447,7 +444,7 @@ def dispatch_message(address, list_id, mail):
         command = address[address.rfind("+") + 1:].lower()
         address = address[:address.rfind("+")]
     dest = List.query.filter(List.id == list_id).one_or_none()
-    mail = email.message_from_string(mail, policy=email.policy.SMTPUTF8)
+    mail = email.message_from_string(mail, policy=policy)
 
     try:
         if command == "post":
@@ -514,8 +511,7 @@ def import_mbox(spool, list_id):
         f.write(base64.b64decode(spool.encode()))
         f.flush()
         try:
-            factory = lambda f: email.message_from_bytes(f.read(),
-                        policy=email.policy.SMTPUTF8)
+            factory = lambda f: email.message_from_bytes(f.read(), policy=policy)
             mbox = mailbox.mbox(f.name, factory=factory)
         except:
             print("Error opening this file. Is it in mbox format?")
