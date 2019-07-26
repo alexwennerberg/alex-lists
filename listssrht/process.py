@@ -477,6 +477,34 @@ def dispatch_message(address, list_id, mail):
         raise
 
 @dispatch.task
+def send_error_for(mail, error):
+    # Instead of letting postfix send an unfriendly bounce message, for some
+    # errors we send our own bounce message which is a little easier to
+    # understand.
+    mail = email.message_from_string(mail, policy=email.policy.SMTPUTF8)
+    reply = MIMEText(error)
+    posting_domain = cfg("lists.sr.ht", "posting-domain")
+    reply["To"] = mail["From"]
+    reply["From"] = "mailer@" + posting_domain
+    reply["In-Reply-To"] = mail["Message-ID"]
+    reply["Subject"] = "Re: " + (
+            mail.get("Subject") or "Your recent email to " + posting_domain)
+    reply["Reply-To"] = "{} <{}>".format(
+            cfg("sr.ht", "owner-name"), cfg("sr.ht", "owner-email"))
+    reply["Date"] = formatdate()
+    reply["Message-ID"] = make_msgid()
+    print(reply.as_string(unixfrom=True))
+    smtp = smtplib.SMTP(smtp_host, smtp_port)
+    smtp.ehlo()
+    smtp.starttls()
+    sender = parseaddr(mail["From"])
+    if smtp_user and smtp_password:
+        smtp.login(smtp_user, smtp_password)
+    smtp.sendmail(smtp_user, [sender[1]], reply.as_bytes(
+        unixfrom=True, policy=email.policy.SMTPUTF8))
+    smtp.quit()
+
+@dispatch.task
 def import_mbox(spool, list_id):
     ml = List.query.filter(List.id == list_id).one_or_none()
     if not ml:

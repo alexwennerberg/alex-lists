@@ -12,12 +12,74 @@ import os
 import signal
 import sys
 
-from listssrht.process import dispatch_message
+from listssrht.process import dispatch_message, send_error_for
 
 loop = asyncio.new_event_loop()
 
 always_reject = cfg("lists.sr.ht::worker", "reject-mimetypes")
 always_reject = always_reject.split(",")
+posting_domain = cfg("lists.sr.ht", "posting-domain")
+
+html_error = """Hi {}!
+
+We received your email, but were unable to deliver it because it
+contains HTML. HTML emails are not permitted. The following guide can
+help you configure your client to send in plain text instead:
+
+https://useplaintext.email
+
+If you have any questions, please reply to this email to reach the mail
+admin. We apologise for the inconvenience.
+"""
+
+forbidden_mimetype_error = """Hi {}!
+
+We received your email, but were unable to deliver it because it
+contains content which has been blacklisted by the list admin. Please
+remove your {} attachments and send again.
+
+You are also advised to configure your email client to send emails in
+plain text to avoid additional errors in the future:
+
+https://useplaintext.email
+
+If you have any questions, please reply to this email to reach the mail
+admin. We apologise for the inconvenience.
+"""
+
+text_plain_required_error = """Hi {}!
+
+We received your email, but were unable to deliver it because there were
+no text/plain parts. Our mail system requires all emails to have at
+least one plain text part. The following guide can help you configure
+your client to send in plain text:
+
+https://useplaintext.email
+
+If you have any questions, please reply to this email to reach the mail
+admin. We apologise for the inconvenience.
+"""
+
+unknown_mailing_list_error = """Hi {}!
+
+We received your email, but were unable to deliver it because the
+mailing list you wrote to was not found. The correct posting addresses
+are:
+
+~username/list-name@{}
+
+Or if your mail system has trouble sending to addresses with ~ or / in
+them, you can use:
+
+u.username.list-name@{}
+
+If your mail system does not support our normal posting addresses, we
+would appreciate it if you wrote to your mail admin to ask them to fix
+their system. Our posting addresses are valid per RFC-5322.
+
+If you have any questions, please reply to this email to reach the mail
+admin. We apologise for the inconvenience.
+"""
 
 class MailHandler:
     def __init__(self, pg):
@@ -67,9 +129,6 @@ class MailHandler:
                 '''SELECT "permissions" FROM "access"
                    WHERE list_id = $1 AND user_id = $2''')
 
-    async def initialize(self):
-        self.reject_url = cfg("lists.sr.ht::worker", "reject-url")
-
     async def lookup_destination(self, conn, address):
         """Looks up the list this message is addressed to and returns its ID."""
         # Note: we assume postfix took care of the domain
@@ -111,6 +170,8 @@ class MailHandler:
             if not mail.get(header):
                 return "The {} header is required.".format(header)
         found_textpart = False
+        sender = parseaddr(mail["From"])
+        sender = sender[0] or sender[1]
         permit_mimetypes = permit_mimetypes.split(",")
         reject_mimetypes = reject_mimetypes.split(",") + always_reject
         for part in mail.walk():
@@ -125,14 +186,20 @@ class MailHandler:
                     permit = True
                     break
             if not permit:
-                return "Content-Type {} is not in the whitelist.".format(
-                        content_type)
+                if content_type == "text/html":
+                    return html_error.format(sender)
+                else:
+                    return forbidden_mimetype_error.format(
+                            sender, content_type)
             for blacklist in reject_mimetypes:
                 if fnmatch(content_type, blacklist):
-                    return "Content-Type {} is blacklisted.".format(
-                            content_type)
+                    if content_type == "text/html":
+                        return html_error.format(sender)
+                    else:
+                        return forbidden_mimetype_error.format(
+                                sender, content_type)
         if not found_textpart:
-            return "At least one text/plain part is required."
+            return text_plain_required_error.format(sender)
         return None
 
     async def handle_RCPT(self, server, session,
@@ -148,19 +215,22 @@ class MailHandler:
 
     async def handle_DATA_w_conn(self, server, session, envelope, conn):
         address = envelope.rcpt_tos[0]
+        mail = email.message_from_bytes(envelope.content,
+                policy=email.policy.SMTP)
         dest, command = await self.lookup_destination(conn, address)
         if dest is None:
+            sender = parseaddr(mail["From"])
+            sender = sender[0] or sender[1]
             print("Rejected, mailing list not found")
-            return "550 The mailing list you requested does not exist."
+            send_error_for.delay(str(mail), unknown_mailing_list_error.format(
+                        sender, posting_domain, posting_domain))
+            return "250 Mailing list not found, but sending bounce out of band"
         (dest_id, owner_id,
                 nonsub_perms, sub_perms, external_perms,
                 permit_mimetypes, reject_mimetypes) = dest
         nonsub_perms = ListAccess(nonsub_perms)
         sub_perms = ListAccess(sub_perms)
         external_perms = ListAccess(external_perms)
-
-        mail = email.message_from_bytes(envelope.content,
-                policy=email.policy.SMTP)
 
         fetch_email = await self.fetch_email(conn)
         in_reply_to = mail.get("In-Reply-To")
@@ -186,8 +256,8 @@ class MailHandler:
         err = self.validate(mail, permit_mimetypes, reject_mimetypes)
         if err is not None:
             print("Rejected due to validation errors")
-            return "500 Rejected. {} See {} for help.".format(
-                err, self.reject_url)
+            send_error_for.delay(str(mail), err)
+            return "250 Validation failed, but sending bounce out of band"
 
         if owner_id == user_id:
             print("Message accepted: {}".format(mail.get("Subject")))
@@ -222,7 +292,6 @@ async def create_server():
     sock_gid = getgrnam(cfg("lists.sr.ht::worker", "sock-group")).gr_gid
     pg = await asyncpg.create_pool(dsn=cfg("lists.sr.ht", "connection-string"))
     handler = MailHandler(pg)
-    await handler.initialize()
     sock = cfg("lists.sr.ht::worker", "sock")
     if "/" in sock:
         await loop.create_unix_server(
