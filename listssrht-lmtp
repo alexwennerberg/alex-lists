@@ -16,6 +16,9 @@ from listssrht.process import dispatch_message
 
 loop = asyncio.new_event_loop()
 
+always_reject = cfg("lists.sr.ht::worker", "reject-mimetypes")
+always_reject = always_reject.split(",")
+
 class MailHandler:
     def __init__(self, pg):
         self.pg = pg
@@ -109,7 +112,7 @@ class MailHandler:
                 return "The {} header is required.".format(header)
         found_textpart = False
         permit_mimetypes = permit_mimetypes.split(",")
-        reject_mimetypes = reject_mimetypes.split(",") + ["text/html"]
+        reject_mimetypes = reject_mimetypes.split(",") + always_reject
         for part in mail.walk():
             content_type = part.get_content_type()
             if content_type == "text/plain":
