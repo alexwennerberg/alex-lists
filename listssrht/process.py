@@ -446,6 +446,10 @@ def dispatch_message(address, list_id, mail):
     dest = List.query.filter(List.id == list_id).one_or_none()
     mail = email.message_from_string(mail, policy=policy)
 
+    autosub = mail.get("auto-submitted")
+    if autosub == "auto-generated":
+        return # disregard automatic emails like OOO replies
+
     try:
         if command == "post":
             msgid = mail.get("Message-ID")
