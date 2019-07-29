@@ -13,6 +13,9 @@
 <div class="container">
   <div class="row">
     <div class="col-md-4">
+      {% if ml.description %}
+      {{ml.description | md}}
+      {% endif %}
       <div class="form-group">
         {% if thread.patchset_id %}
         <a class="btn btn-success btn-block" href="{{ url_for('patches.patchset',
