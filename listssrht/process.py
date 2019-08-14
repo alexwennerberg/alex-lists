@@ -505,8 +505,7 @@ def send_error_for(mail, error):
     sender = parseaddr(mail["From"])
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
-    smtp.sendmail(smtp_user, [sender[1]], reply.as_bytes(
-        unixfrom=True, policy=email.policy.SMTPUTF8))
+    smtp.send_message(reply, smtp_user, [sender[1]])
     smtp.quit()
 
 @dispatch.task
