@@ -299,6 +299,7 @@ Feel free to reply to this email if you have any questions.""".format(
     reply["To"] = mail["From"]
     reply["From"] = "mailer@" + cfg("lists.sr.ht", "posting-domain")
     reply["In-Reply-To"] = mail["Message-ID"]
+    reply["Auto-Submitted"] = "auto-replied"
     reply["Subject"] = "Re: " + (
             mail.get("Subject") or "Your subscription request")
     reply["Reply-To"] = "{} <{}>".format(
@@ -350,6 +351,7 @@ Feel free to reply to this email if you have any questions.""".format(
     reply["To"] = mail["From"]
     reply["From"] = "mailer@" + cfg("lists.sr.ht", "posting-domain")
     reply["In-Reply-To"] = mail["Message-ID"]
+    reply["Auto-Submitted"] = "auto-replied"
     reply["Subject"] = "Re: " + (
             mail.get("Subject") or "Your subscription request")
     reply["Reply-To"] = "{} <{}>".format(
@@ -394,6 +396,7 @@ def _configure_mirror(ml, mirror, mail):
     reply["To"] = reply_to
     reply["From"] = f"{posting_domain} mirror <{list_name}@{posting_domain}>"
     reply["In-Reply-To"] = mail["Message-ID"]
+    reply["Auto-Submitted"] = "auto-replied"
     reply["Subject"] = "Re: " + (mail.get("Subject") or "subscribe")
     reply["Date"] = formatdate()
     reply["Message-ID"] = make_msgid()
@@ -488,6 +491,7 @@ def send_error_for(mail, error):
     reply["To"] = mail["From"]
     reply["From"] = "mailer@" + posting_domain
     reply["In-Reply-To"] = mail["Message-ID"]
+    reply["Auto-Submitted"] = "auto-replied"
     reply["Subject"] = "Re: " + (
             mail.get("Subject") or "Your recent email to " + posting_domain)
     reply["Reply-To"] = "{} <{}>".format(
