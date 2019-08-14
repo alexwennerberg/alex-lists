@@ -447,7 +447,7 @@ def dispatch_message(address, list_id, mail):
     mail = email.message_from_string(mail, policy=policy)
 
     autosub = mail.get("auto-submitted")
-    if autosub == "auto-generated":
+    if autosub == "auto-generated" or autosub == "auto-replied":
         return # disregard automatic emails like OOO replies
 
     try:
