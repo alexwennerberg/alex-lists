@@ -102,44 +102,8 @@
   {% endif %}
   {% if not hide_user %}
   <div class="row">
-    <div class="col-md-10">
-      <form method="POST" action="{{url_for("settings.acl_POST", 
-            owner_name=ml.owner.canonical_name, list_name=ml.name)}}">
-        <h3>User permissions</h3>
-        {{csrf_token()}}
-        <div class="form-group">
-          <label for="user">Username or email</label>
-          <input
-            type="text"
-            class="form-control {{valid.cls("user")}}"
-            id="user"
-            name="user"
-            placeholder="~{{ current_user.username }} or {{current_user.email}}"
-            value="{{user or ""}}"
-          />
-          {{valid.summary("user")}}
-        </div>
-        <div class="event-list">
-          <div class="event">
-            <h4>Access grants</h4>
-            <p>These will override any other permissions for this user.</p>
-            {% for a in access_type_list %}
-            {{ perm_checkbox(a, ListAccess.all, "acl") }}
-            {% endfor %}
-            {{ valid.summary("list_acl_access") }}
-          </div>
-        </div>
-        {{ valid.summary() }}
-        <span class="pull-right">
-          <button type="submit" class="btn btn-primary">
-            Set access {{icon("caret-right")}}
-          </button>
-        </span>
-      </form>
-    </div>
-  </div>
-  <div class="row">
-    <div class="col-md-10">
+    <div class="col-md-12">
+      <h3>User permissions</h3>
       {% if any(ml.acls) %}
       <table class="table">
         <thead>
@@ -187,6 +151,42 @@
         </tbody>
       </table>
       {% endif %}
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <form method="POST" action="{{url_for("settings.acl_POST", 
+            owner_name=ml.owner.canonical_name, list_name=ml.name)}}">
+        {{csrf_token()}}
+        <div class="form-group">
+          <label for="user">Username or email</label>
+          <input
+            type="text"
+            class="form-control {{valid.cls("user")}}"
+            id="user"
+            name="user"
+            placeholder="~{{ current_user.username }} or {{current_user.email}}"
+            value="{{user or ""}}"
+          />
+          {{valid.summary("user")}}
+        </div>
+        <div class="event-list">
+          <div class="event">
+            <h4>Access grants</h4>
+            <p>These will override any other permissions for this user.</p>
+            {% for a in access_type_list %}
+            {{ perm_checkbox(a, ListAccess.all, "acl") }}
+            {% endfor %}
+            {{ valid.summary("list_acl_access") }}
+          </div>
+        </div>
+        {{ valid.summary() }}
+        <span class="pull-right">
+          <button type="submit" class="btn btn-primary">
+            Set access {{icon("caret-right")}}
+          </button>
+        </span>
+      </form>
     </div>
   </div>
   {% endif %}

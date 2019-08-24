@@ -1,63 +1,63 @@
-{% extends "layout-full.html" %}
+{% extends "layout.html" %}
 {% block title %}
 <title>
   {{ owner.canonical_name }}/{{ ml.name }} archives &mdash; {{site}}
 </title>
 {% endblock %}
 {% block body %}
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12 header-tabbed">
-      <h2>
-        <a href="{{
-          url_for('user.user_profile', username=owner.username)
-        }}">{{ owner.canonical_name }}</a>/{{ ml.name }}
-        {% if ml.mirror_id %}
-        <small class="text-muted">(mirror)</small>
-        {% endif %}
-      </h2>
-      {% block tabs %}
-      {% macro link(path, title) %}
-      <a
-        class="nav-link {% if view == title %}active{% endif %}"
-        href="{{ path }}">{{ title }}</a>
-      {% endmacro %}
-      <ul class="nav nav-tabs">
-        <li class="nav-item">
-          {{link(url_for("archives.archive",
-            owner_name=owner.canonical_name,
-            list_name=ml.name), "archives")}}
-        </li>
-        <li class="nav-item">
-          {{link(url_for("patches.patchlist",
-            owner_name=owner.canonical_name,
-            list_name=ml.name), "patches")}}
-        </li>
-        {% if not ml.mirror_id or ml.mirror.configured %}
-        {% set posting_address = post_address(ml) %}
-        {% if posting_address %}
-        <li class="nav-item">
-          <a
-            class="nav-link {% if view == "post" %}active{% endif %}"
-            {% if posting_address.startswith("mailto:") %}
-            href="{{posting_address}}"
-            {% else %}
-            href="mailto:{{posting_address}}"
-            {% endif %}
-          >new post</a>
-        </li>
-        {% endif %}
-        {% endif %}
-        {% if current_user.id == ml.owner_id %}
-        <li class="nav-item">
-          {{link(url_for("settings.info_GET",
-            owner_name=ml.owner.canonical_name,
-            list_name=ml.name), "settings")}}
-        </li>
-        {% endif %}
-      </ul>
-      {% endblock %}
-    </div>
+<div class="header-tabbed">
+  {% block tabs_container %}
+  <div class="container">
+  {% endblock %}
+    <h2>
+      <a href="{{
+        url_for('user.user_profile', username=owner.username)
+      }}">{{ owner.canonical_name }}</a>/{{ ml.name }}
+      {% if ml.mirror_id %}
+      <small class="text-muted">(mirror)</small>
+      {% endif %}
+    </h2>
+    {% block tabs %}
+    {% macro link(path, title) %}
+    <a
+      class="nav-link {% if view == title %}active{% endif %}"
+      href="{{ path }}">{{ title }}</a>
+    {% endmacro %}
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        {{link(url_for("archives.archive",
+          owner_name=owner.canonical_name,
+          list_name=ml.name), "archives")}}
+      </li>
+      <li class="nav-item">
+        {{link(url_for("patches.patchlist",
+          owner_name=owner.canonical_name,
+          list_name=ml.name), "patches")}}
+      </li>
+      {% if not ml.mirror_id or ml.mirror.configured %}
+      {% set posting_address = post_address(ml) %}
+      {% if posting_address %}
+      <li class="nav-item">
+        <a
+          class="nav-link {% if view == "post" %}active{% endif %}"
+          {% if posting_address.startswith("mailto:") %}
+          href="{{posting_address}}"
+          {% else %}
+          href="mailto:{{posting_address}}"
+          {% endif %}
+        >new post</a>
+      </li>
+      {% endif %}
+      {% endif %}
+      {% if current_user.id == ml.owner_id %}
+      <li class="nav-item">
+        {{link(url_for("settings.info_GET",
+          owner_name=ml.owner.canonical_name,
+          list_name=ml.name), "settings")}}
+      </li>
+      {% endif %}
+    </ul>
+    {% endblock %}
   </div>
 </div>
 {% block content %}{% endblock %}
