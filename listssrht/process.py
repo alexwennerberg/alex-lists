@@ -49,7 +49,7 @@ def _forward(dest, mail):
     mail["List-Archive"] = "<{}/{}>".format(
             cfg("lists.sr.ht", "origin"), list_name)
     mail["List-Post"] = "<mailto:{}@{}>".format(list_name, domain)
-    mail["List-ID"] = "{} <{}@{}>".format(dest.name, list_name, domain)
+    mail["List-ID"] = "{} <{}.{}>".format(list_name, list_name, domain)
     mail["Sender"] = "{} <{}@{}>".format(list_name, list_name, domain)
 
     # TODO: Encrypt emails
