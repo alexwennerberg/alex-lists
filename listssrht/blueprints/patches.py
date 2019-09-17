@@ -84,14 +84,10 @@ def gen_cover_letter(patches):
         insertions = deletions = 0
         for email in patches:
             cover += f" {email.patch_subject}\n"
-            patch = email.patch()
-            nfiles += (len(patch.added_files)
-                    + len(patch.modified_files)
-                    + len(patch.removed_files))
-            insertions += sum(f.added for
-                    f in patch.added_files + patch.modified_files)
-            deletions += sum(f.removed
-                    for f in patch.removed_files + patch.modified_files)
+            stats = email.patch().stats
+            nfiles += stats.files_changed
+            insertions += stats.insertions
+            deletions += stats.deletions
     cover += f"\n {nfiles} files changed, {insertions} insertions(+), {deletions} deletions(-)\n"
     return cover
 

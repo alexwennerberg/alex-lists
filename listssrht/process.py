@@ -168,11 +168,10 @@ def _archive(dest, envelope):
             # TODO: should we consider multiple text parts?
             mail.body = part.get_payload(decode=True).decode(charset)
             break
-    try:
-        patch = pygit2.Diff.parse_diff(mail.body.replace("\r\n", "\n"))
-        mail.is_patch = len(patch) > 0
-    except:
-        mail.is_patch = False
+
+    # force lazy parse of patch (if it exists) after msg body is set
+    mail.patch()
+
     mail.is_request_pull = False # TODO: Detect git request-pull
     reply_to = envelope["In-Reply-To"]
 

@@ -57,7 +57,6 @@ setup(
       'flask-login',
       'aiosmtpd',
       'asyncpg',
-      'unidiff',
   ],
   license = 'AGPL-3.0',
   package_data={

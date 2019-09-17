@@ -1,9 +1,8 @@
 import email
 import io
+import pygit2
 import sqlalchemy as sa
-from email import policy
 from srht.database import Base
-from unidiff import PatchSet
 
 class Email(Base):
     __tablename__ = 'email'
@@ -100,11 +99,16 @@ class Email(Base):
         self._parsed._email = self
         return self._parsed
 
+    # libgit2 Diff object parsed from message body (if it exists)
     def patch(self):
-        if not self.is_patch:
-            return None
-        if hasattr(self, "_patch"):
+        if not hasattr(self, "_patch"):
+            try:
+                self._patch = pygit2.Diff.parse_diff(self.body.replace("\r\n", "\n"))
+                self.is_patch = len(self._patch) > 0
+            except:
+                self.is_patch = False
+
+        if self.is_patch:
             return self._patch
-        with io.StringIO(self.body) as f:
-            self._patch = PatchSet(f)
-        return self._patch
+
+        return None

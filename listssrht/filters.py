@@ -21,18 +21,15 @@ def _format_patch(msg, limit=None):
     text = Markup("")
     is_diff = False
 
-    def get_path(f):
-        # [2:] to remove a/ or b/
-        return f.target_file[2:].strip()
-
     # Predict the starting lines of each file name
     patch = msg.patch()
+    old_files = {delta.old_file.path for delta in patch.deltas}
+    new_files = {delta.new_file.path for delta in patch.deltas}
     file_lines = {
-        f" {get_path(f)} ": f
-        for f in patch.added_files + patch.modified_files + patch.removed_files
+        f" {p} ": p for p in old_files | new_files
     }
-
     line_no = 0
+
     for line in msg.body.replace("\r", "").split("\n"):
         line_no += 1
         if line_no == limit:
@@ -48,8 +45,7 @@ def _format_patch(msg, limit=None):
             if f != None:
                 f = file_lines[f]
                 text += Markup(" <a href='#{}'>{}</a>".format(
-                    escape(msg.message_id) + "+" + escape(get_path(f)),
-                    escape(get_path(f))))
+                    escape(msg.message_id) + "+" + escape(f), escape(f)))
                 try:
                     stat = line[line.rindex(" ") + 1:]
                     line = line[:line.rindex(" ") + 1]
@@ -71,7 +67,7 @@ def _format_patch(msg, limit=None):
                         stat = escape(stat)
                 except ValueError:
                     stat = Markup("")
-                text += escape(line[len(get_path(f)) + 1:])
+                text += escape(line[len(f) + 1:])
                 text += escape(stat)
                 text += Markup("\n")
             else:
@@ -143,9 +139,9 @@ def format_body(msg, limit=None):
             text += Markup(urlize(escape(line), rel="noopener nofollow")) + "\n"
     return text.rstrip()
 
-def diffstat(patch):
-    p = patch.patch()
+def diffstat(patch_email):
+    stats = patch_email.patch().stats
     return type("diffstat", tuple(), {
-        "added": sum(f.added for f in p.added_files + p.modified_files),
-        "removed": sum(f.removed for f in p.removed_files + p.modified_files),
+        "added": stats.insertions,
+        "removed": stats.deletions,
     })
