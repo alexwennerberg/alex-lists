@@ -23,6 +23,7 @@ from datetime import datetime
 from email.mime.text import MIMEText
 from email.utils import parseaddr, getaddresses, formatdate, make_msgid
 from email.utils import parsedate_to_datetime
+from urllib.parse import quote
 
 dispatch = Celery("lists.sr.ht", broker=cfg("lists.sr.ht", "redis"))
 
@@ -36,6 +37,7 @@ policy = email.policy.SMTPUTF8.clone(max_line_length=998)
 def _forward(dest, mail):
     domain = cfg("lists.sr.ht", "posting-domain")
     list_name = "{}/{}".format(dest.owner.canonical_name, dest.name)
+    archive_url = "{}/{}".format(cfg("lists.sr.ht", "origin"), list_name)
     list_unsubscribe = list_name + "+unsubscribe@" + domain
     list_subscribe = list_name + "+subscribe@" + domain
     for overwrite in ["List-Unsubscribe", "List-Subscribe", "List-Archive",
@@ -46,8 +48,8 @@ def _forward(dest, mail):
             "<mailto:{}?subject=unsubscribe>".format(list_unsubscribe))
     mail["List-Subscribe"] = (
             "<mailto:{}?subject=subscribe>".format(list_subscribe))
-    mail["List-Archive"] = "<{}/{}>".format(
-            cfg("lists.sr.ht", "origin"), list_name)
+    mail["List-Archive"] = "<{}>".format(archive_url)
+    mail["Archived-At"] = "<{}/{}>".format(archive_url, quote(mail["Message-ID"]))
     mail["List-Post"] = "<mailto:{}@{}>".format(list_name, domain)
     mail["List-ID"] = "{} <{}.{}>".format(list_name, list_name, domain)
     mail["Sender"] = "{} <{}@{}>".format(list_name, list_name, domain)
