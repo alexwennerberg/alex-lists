@@ -186,6 +186,7 @@ def _archive(dest, envelope):
     if parent is not None:
         mail.parent_id = parent.id
         mail.parent = parent
+        mail.in_reply_to = reply_to
 
     thread = mail
     while thread.parent_id:

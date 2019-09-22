@@ -76,7 +76,9 @@ def apply_search(query, terms=None):
     return search(query, terms, [Email.body, Email.subject], {
         "is": lambda q, v: q.filter({
             "patch": Email.is_patch,
+            "reply": Email.parent_id != None,
             "request-pull": Email.is_request_pull,
+            "thread": Email.nreplies > 0,
         }.get(v, False)),
         "from": lambda q, v: me_alias("From", q, v),
         "to": lambda q, v: me_alias("To", q, v),
