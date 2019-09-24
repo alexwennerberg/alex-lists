@@ -102,8 +102,13 @@ class Email(Base):
     # libgit2 Diff object parsed from message body (if it exists)
     def patch(self):
         if not hasattr(self, "_patch"):
+            body = self.body.replace("\r\n", "\n")
+            # mercurial/patchbomb emails' body may not end with a EOL; this
+            # makes pygit2 fail to parse diff hunks
+            if not body.endswith("\n"):
+                body += "\n"
             try:
-                self._patch = pygit2.Diff.parse_diff(self.body.replace("\r\n", "\n"))
+                self._patch = pygit2.Diff.parse_diff(body)
                 self.is_patch = len(self._patch) > 0
             except:
                 self.is_patch = False
