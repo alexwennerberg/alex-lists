@@ -289,21 +289,25 @@ class MailHandler:
         return "250 Message accepted for delivery"
 
 async def create_server():
-    sock_gid = getgrnam(cfg("lists.sr.ht::worker", "sock-group")).gr_gid
     pg = await asyncpg.create_pool(dsn=cfg("lists.sr.ht", "connection-string"))
     handler = MailHandler(pg)
     sock = cfg("lists.sr.ht::worker", "sock")
+    protocol = cfg("lists.sr.ht::worker", "protocol",
+            default="lmtp" if "/" in sock else "smtp")
+    if protocol == "smtp":
+        def serve():
+            return SMTP(handler, enable_SMTPUTF8=True)
+    else:
+        def serve():
+            return LMTP(handler, enable_SMTPUTF8=True)
     if "/" in sock:
-        await loop.create_unix_server(
-                lambda: LMTP(handler, enable_SMTPUTF8=True),
-                path=sock)
+        sock_gid = getgrnam(cfg("lists.sr.ht::worker", "sock-group")).gr_gid
+        await loop.create_unix_server(serve, path=sock)
         os.chmod(sock, 0o775)
         os.chown(sock, os.getuid(), sock_gid)
     else:
         host, port = sock.split(":")
-        await loop.create_server(
-                lambda: SMTP(handler, enable_SMTPUTF8=True),
-                host=host, port=int(port))
+        await loop.create_server(serve, host=host, port=int(port))
 
 def sigint_handler():
     print("Exiting due to SIGINT")
