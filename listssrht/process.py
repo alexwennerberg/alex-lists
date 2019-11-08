@@ -465,7 +465,7 @@ def dispatch_message(address, list_id, mail):
                 return
             dest.updated = datetime.utcnow()
 
-            list_id = mail.get("List-Id")
+            list_id = mail.get("List-ID")
             if dest.mirror_id or list_id:
                 archived = _mirror(dest, mail)
                 _webhooks(dest, archived)

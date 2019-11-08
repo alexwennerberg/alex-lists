@@ -114,9 +114,9 @@
             Copy &amp; paste the following snippet into your terminal to
             import this patchset into git:
           </p>
-          <pre>curl -s {{root}}{{ url_for('archives.mbox',
+          <pre>curl -s {{root}}{{ url_for('patches.mbox',
             owner_name=owner.canonical_name, list_name=ml.name,
-            message_id=thread.message_id) }} | git am -3</pre>
+            patchset_id=patchset.id) }} | git am -3</pre>
           <a
             href="https://git-send-email.io/"
             target="_blank"
