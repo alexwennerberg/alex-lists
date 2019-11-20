@@ -137,7 +137,7 @@
             >{{ msg.created | date }}</a>
           </div>
           <div class="msg-info">
-            {% if msg.is_patch %}
+            {% if msg.patch() != None %}
             <span class="info">
               {% set stats = diffstat(msg) %}
               Patch:

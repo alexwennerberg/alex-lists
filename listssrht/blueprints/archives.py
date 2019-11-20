@@ -182,8 +182,6 @@ def thread(owner_name, list_name, message_id):
             owner_name=owner_name,
             list_name=list_name,
             message_id=thread.thread.message_id) + "#" + thread.message_id)
-    # TODO: multi-order sort by patch version and index, for emails which
-    # arrive out of order
 
     messages = (Email.query
             .filter(Email.thread_id == thread.id)
