@@ -247,6 +247,8 @@
       <p>
         {% if search %}
         Nothing found.
+        {% elif view == "patches" %}
+        No patches have been posted to this list yet.
         {% else %}
         No one has posted to this list yet.
         {% endif %}
