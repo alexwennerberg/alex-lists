@@ -121,7 +121,7 @@ def _format_patch(msg, limit=None):
     return text.rstrip()
 
 def format_body(msg, limit=None):
-    if msg.patch != None:
+    if msg.patch() is not None:
         return _format_patch(msg, limit)
     text = Markup("")
     line_no = 0
