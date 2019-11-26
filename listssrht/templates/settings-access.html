@@ -6,7 +6,7 @@
 {% endblock %}
 
 {% macro perm_checkbox(type, perms, name, readonly=False) %}
-{% if type.name not in ["none", "all"] %}
+{% if type.name not in ["none", "normal", "all"] %}
 <div class="form-check form-check-inline">
   <label
     class="form-check-label"
