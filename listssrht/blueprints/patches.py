@@ -138,7 +138,7 @@ def patchset_update(owner_name, list_name, patchset_id):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
         abort(404)
-    if ml.owner_id != current_user.id:
+    if ListAccess.moderate not in access:
         abort(403)
     patchset = (Patchset.query
             .filter(Patchset.id == patchset_id)

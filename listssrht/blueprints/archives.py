@@ -198,6 +198,7 @@ def thread(owner_name, list_name, message_id):
         return f"mailto:{post_address(msg.list)}?{urlencode(params, quote_via=quote)}"
 
     return render_template("thread.html", view="archives", owner=owner,
+            access=access, ListAccess=ListAccess,
             ml=ml, thread=thread, messages=messages,
             parseaddr=email.utils.parseaddr,
             parse_auth_result=parse_auth_result,
@@ -247,7 +248,7 @@ def remove_message(owner_name, list_name, message_id):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
         abort(404)
-    if ml.owner_id != current_user.id:
+    if ListAccess.moderate not in access:
         abort(401)
     message = (Email.query
             .filter(Email.message_id == message_id)

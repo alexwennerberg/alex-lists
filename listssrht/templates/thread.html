@@ -112,7 +112,7 @@
                   list_name=ml.name,
                   message_id=msg.message_id
                 ) }}" target="_blank">Download raw message</a>
-              {% if current_user and current_user.id == ml.owner_id %}
+              {% if ListAccess.moderate in access %}
               <h4 style="margin-top: 1rem">Moderation tools</h4>
               <form
                 method="POST"

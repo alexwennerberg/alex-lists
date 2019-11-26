@@ -124,8 +124,7 @@
           >Learn more about email &amp; git {{icon('caret-right')}}</a>
         </details>
       </div>
-      {% if current_user and current_user.id == ml.owner_id %}
-      {# TODO: Better ACLs so non-owners can do this too #}
+      {% if ListAccess.moderate in access %}
       <div class="event-list" style="margin-top: 1rem">
         <form
           class="event"

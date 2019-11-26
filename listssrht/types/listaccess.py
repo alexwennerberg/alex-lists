@@ -12,4 +12,7 @@ class ListAccess(IntFlag):
     """Permission to reply to threads submitted by an authorized user."""
     post = 4
     """Permission to submit new threads."""
-    all = browse | reply | post
+    moderate = 8
+    """Permission to moderate the list."""
+
+    all = browse | reply | post | moderate

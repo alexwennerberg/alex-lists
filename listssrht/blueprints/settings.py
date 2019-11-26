@@ -23,7 +23,9 @@ access_help_map = {
     ListAccess.reply:
         "Permission to reply to threads submitted by an authorized user.",
     ListAccess.post:
-        "Permission to submit new threads."
+        "Permission to submit new threads.",
+    ListAccess.moderate:
+        "Permission to moderate threads and patches.",
 }
 
 @settings.route("/<owner_name>/<list_name>/settings/info")
