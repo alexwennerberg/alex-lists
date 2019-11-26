@@ -15,19 +15,19 @@ class List(Base):
             sa.Boolean, nullable=False, server_default='f')
 
     nonsubscriber_permissions = sa.Column(FlagType(ListAccess),
-            nullable=False, server_default=str(ListAccess.all.value))
+            nullable=False, server_default=str(ListAccess.normal.value))
     """
     Permissions granted to users who are not subscribed or logged in.
     """
 
     subscriber_permissions = sa.Column(FlagType(ListAccess),
-            nullable=False, server_default=str(ListAccess.all.value))
+            nullable=False, server_default=str(ListAccess.normal.value))
     """
     Permissions granted to users who are subscribed to the list.
     """
 
     account_permissions = sa.Column(FlagType(ListAccess),
-            nullable=False, server_default=str(ListAccess.all.value))
+            nullable=False, server_default=str(ListAccess.normal.value))
     """
     Permissions granted to holders of sr.ht accounts.
     """

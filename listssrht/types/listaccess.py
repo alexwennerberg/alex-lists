@@ -15,4 +15,5 @@ class ListAccess(IntFlag):
     moderate = 8
     """Permission to moderate the list."""
 
+    normal = browse | reply | post
     all = browse | reply | post | moderate
