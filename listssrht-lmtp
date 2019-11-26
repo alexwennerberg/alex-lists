@@ -222,6 +222,7 @@ class MailHandler:
             sender = parseaddr(mail["From"])
             sender = sender[0] or sender[1]
             print("Rejected, mailing list not found")
+            print(envelope)
             send_error_for.delay(str(mail), unknown_mailing_list_error.format(
                         sender, posting_domain, posting_domain))
             return "250 Mailing list not found, but sending bounce out of band"
