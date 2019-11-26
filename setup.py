@@ -56,6 +56,7 @@ setup(
       'emailthreads',
       'aiosmtpd',
       'asyncpg',
+      'pygit2',
   ],
   license = 'AGPL-3.0',
   package_data={
