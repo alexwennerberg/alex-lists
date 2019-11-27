@@ -489,18 +489,21 @@ def send_error_for(mail, error):
     # errors we send our own bounce message which is a little easier to
     # understand.
     mail = email.message_from_string(mail, policy=email.policy.SMTPUTF8)
+    autosub = mail.get("auto-submitted")
+    if autosub == "auto-generated" or autosub == "auto-replied":
+        return # disregard automatic emails like OOO replies
     reply = MIMEText(error)
     posting_domain = cfg("lists.sr.ht", "posting-domain")
     reply["To"] = mail["From"]
     reply["From"] = "mailer@" + posting_domain
     reply["In-Reply-To"] = mail["Message-ID"]
-    reply["Auto-Submitted"] = "auto-replied"
     reply["Subject"] = "Re: " + (
             mail.get("Subject") or "Your recent email to " + posting_domain)
     reply["Reply-To"] = "{} <{}>".format(
             cfg("sr.ht", "owner-name"), cfg("sr.ht", "owner-email"))
     reply["Date"] = formatdate()
     reply["Message-ID"] = make_msgid()
+    reply["Auto-Submitted"] = "auto-replied"
     print(reply.as_string(unixfrom=True))
     smtp = smtplib.SMTP(smtp_host, smtp_port)
     smtp.ehlo()
@@ -508,6 +511,7 @@ def send_error_for(mail, error):
     sender = parseaddr(mail["From"])
     if smtp_user and smtp_password:
         smtp.login(smtp_user, smtp_password)
+    autosub = mail.get("auto-submitted")
     smtp.send_message(reply, smtp_user, [sender[1]])
     smtp.quit()
 
