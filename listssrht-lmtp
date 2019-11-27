@@ -215,6 +215,7 @@ class MailHandler:
 
     async def handle_DATA_w_conn(self, server, session, envelope, conn):
         address = envelope.rcpt_tos[0]
+        print(f"DATA for {address}")
         mail = email.message_from_bytes(envelope.content,
                 policy=email.policy.SMTPUTF8.clone(max_line_length=998))
         dest, command = await self.lookup_destination(conn, address)
@@ -306,9 +307,11 @@ async def create_server():
         await loop.create_unix_server(serve, path=sock)
         os.chmod(sock, 0o775)
         os.chown(sock, os.getuid(), sock_gid)
+        print("Accepting LMTP connections")
     else:
         host, port = sock.split(":")
         await loop.create_server(serve, host=host, port=int(port))
+        print("Accepting SMTP connections")
 
 def sigint_handler():
     print("Exiting due to SIGINT")
