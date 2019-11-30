@@ -54,7 +54,6 @@ setup(
   install_requires = [
       'srht',
       'emailthreads',
-      'flask-login',
       'aiosmtpd',
       'asyncpg',
   ],

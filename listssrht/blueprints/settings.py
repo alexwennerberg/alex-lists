@@ -1,9 +1,9 @@
 from flask import Blueprint, render_template, abort, request, redirect, url_for
-from flask import send_file, session
-from flask_login import current_user
+from flask import current_app, send_file, session
 from srht.config import cfg
 from srht.database import db
-from srht.flask import paginate_query, loginrequired
+from srht.flask import paginate_query
+from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from listssrht.blueprints.archives import get_list
 from listssrht.types import Access, Email, List, ListAccess, User
@@ -138,9 +138,11 @@ def acl_POST(owner_name, list_name):
         username = username[1:]
 
     if "@" in username:
+        # TODO: Figure out if we can associate emails with users for users we
+        # haven't seen yet
         user = User.query.filter(User.email == username).one_or_none()
     else:
-        user = User.query.filter(User.username == username).one_or_none()
+        user = current_app.oauth_service.lookup_user(username)
         valid.expect(user, "User not found", field="user")
 
     if not valid.ok:

@@ -1,11 +1,10 @@
 from email.mime.text import MIMEText
 from email.utils import parseaddr, formatdate, make_msgid
 from flask import Blueprint, render_template, request, redirect, url_for, abort
-from flask_login import current_user
 from srht.config import cfg, cfgi
 from srht.database import db
-from srht.oauth import UserType
-from srht.flask import loginrequired, paginate_query
+from srht.oauth import UserType, current_user, loginrequired
+from srht.flask import paginate_query
 from srht.search import search
 from srht.validation import Validation
 from sqlalchemy import or_

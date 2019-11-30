@@ -1,12 +1,12 @@
 from datetime import datetime
 from flask import Blueprint, render_template, abort, request, redirect, url_for
 from flask import Response, session
-from flask_login import current_user
 from sqlalchemy import String, cast, or_
 from srht.config import cfg
 from srht.database import db
 from srht.search import search
-from srht.flask import paginate_query, loginrequired
+from srht.flask import paginate_query
+from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from listssrht.filters import post_address
 from listssrht.types import List, User, Email, Subscription, ListAccess, Access

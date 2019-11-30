@@ -4,14 +4,14 @@ from email.utils import parseaddr
 from emailthreads import parse as parse_thread
 from flask import Blueprint, render_template, abort, Response, request, redirect
 from flask import url_for
-from flask_login import current_user
 from listssrht.blueprints.archives import get_list, apply_search
 from listssrht.filters import post_address
 from listssrht.types import List, Email, Patchset, PatchsetStatus, ListAccess
 from listssrht.types import Subscription
 from sqlalchemy import or_
 from srht.database import db
-from srht.flask import loginrequired, paginate_query
+from srht.flask import paginate_query
+from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from urllib.parse import quote, urlencode
 
