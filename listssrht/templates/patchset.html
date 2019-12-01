@@ -43,15 +43,19 @@
   {%- if line in feedback.feedback_by_line -%}
 </pre>
   {% for sub in feedback.feedback_by_line[line] %}
-  {% set msg = sub.source_msg._email %}
-  <blockquote class="feedback" id="{{msg.id}}+{{sub.source_region[0]}}">
-    {{ display_msg(msg, body="\n".join(sub.lines),
+  {% set child = sub.source_msg._email %}
+  <blockquote class="feedback" id="{{child.id}}+{{sub.source_region[0]}}">
+    {{ display_msg(child, body="\n".join(sub.lines),
       index=sub.source_region[0], standalone=False) }}
     {# Generate link to next message fragment #}
-    {% set next = nextmsg(feedback, msg, line) %}
+    {% set next = nextmsg(feedback, child, line) %}
     {% if next %}
     <div style="text-align: right; margin-top: -1rem; margin-bottom: 1rem">
-      <a href="#{{next.source_msg._email.id}}+{{next.source_region[0]}}">
+      {% if msg.is_patch %}
+      <a href="#{{msg.message_id}}-{{max(1, next[0] - 3)}}">
+      {% else %}
+      <a href="#{{next[1].source_msg._email.id}}+{{next[1].source_region[0]}}">
+      {% endif %}
         Next {{icon("caret-right")}}
       </a>
     </div>
@@ -119,8 +123,12 @@
           {# Generate link to next message fragment #}
           {% set next = nextmsg(fb, msg) %}
           {% if next %}
-          <div style="text-align: right; margin-top: -1rem">
-            <a href="#{{next.source_msg._email.id}}+{{next.source_region[0]}}">
+          <div style="text-align: right; margin-top: -1rem; margin-bottom: 1rem">
+            {% if m.is_patch %}
+            <a href="#{{m.message_id}}-{{max(1, next[0] - 3)}}">
+            {% else %}
+            <a href="#{{next[1].source_msg._email.id}}+{{next[1].source_region[0]}}">
+            {% endif %}
               Next {{icon("caret-right")}}
             </a>
           </div>

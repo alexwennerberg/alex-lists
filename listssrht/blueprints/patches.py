@@ -100,7 +100,7 @@ def nextmsg(feedback, msg, line=-1):
             continue
         for candidate in candidate:
             if candidate.source_msg._email.id == msg.id:
-                return candidate
+                return l, candidate
     return None
 
 @patches.route("/<owner_name>/<list_name>/patches/<patchset_id>")
