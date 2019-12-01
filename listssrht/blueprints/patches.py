@@ -91,6 +91,18 @@ def gen_cover_letter(patches):
     cover += f"\n {nfiles} files changed, {insertions} insertions(+), {deletions} deletions(-)\n"
     return cover
 
+def nextmsg(feedback, msg, line=-1):
+    """
+    Finds the next quoted chunk for a given message
+    """
+    for l, candidate in feedback.feedback_by_line.items():
+        if line != -1 and l <= line:
+            continue
+        for candidate in candidate:
+            if candidate.source_msg._email.id == msg.id:
+                return candidate
+    return None
+
 @patches.route("/<owner_name>/<list_name>/patches/<patchset_id>")
 def patchset(owner_name, list_name, patchset_id):
     owner, ml, access = get_list(owner_name, list_name)
@@ -109,6 +121,9 @@ def patchset(owner_name, list_name, patchset_id):
             .filter(or_(Email.thread_id == thread.id, Email.id == thread.id))
             .filter(Email.is_patch)
             .order_by(Email.patch_index, Email.created)).all()
+    messages = (Email.query
+            .filter(Email.thread_id == thread.id)
+            .order_by(Email.created)).all()
     feedback = dict()
     for msg in [thread] + thread.descendants:
         feedback[msg.id] = _parse_thread(
@@ -129,7 +144,7 @@ def patchset(owner_name, list_name, patchset_id):
             thread=thread, patchset=patchset, patches=patches,
             feedback=feedback, gen_cover_letter=gen_cover_letter,
             PatchsetStatus=PatchsetStatus, status_to_color=status_to_color,
-            max=max)
+            messages=messages, nextmsg=nextmsg, max=max)
 
 @patches.route("/<owner_name>/<list_name>/patches/<patchset_id>/update",
         methods=["POST"])
