@@ -77,11 +77,11 @@ def gen_cover_letter(patches):
         authors.setdefault(addr[0], list())
         authors[addr[0]].append(patch)
     # TODO: generate file changes as well
+    nfiles = 0
+    insertions = deletions = 0
     for author in sorted(authors.keys()):
         patches = authors[author]
         cover += f"{author}: {len(patches)}\n"
-        nfiles = 0
-        insertions = deletions = 0
         for email in patches:
             cover += f" {email.patch_subject}\n"
             stats = email.patch().stats
