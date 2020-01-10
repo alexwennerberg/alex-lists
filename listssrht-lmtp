@@ -148,9 +148,11 @@ class MailHandler:
             owner, list_name = address.split("/")
         else:
             address = address.split(".")
-            if len(address) != 3:
+            if len(address) < 3:
                 return None, None
-            prefix, owner, list_name = address
+            prefix = address[0]
+            owner = address[1]
+            list_name = '.'.join(address[2:])
             if prefix == "u":
                 owner = "~" + owner
             else:
