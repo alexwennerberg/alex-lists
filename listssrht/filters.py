@@ -97,8 +97,8 @@ def _format_patch(msg, limit=None):
                 text += (
                     Markup("<span class='text-success'>")
                     + Markup(
-                        ("<a class='text-success' href='#{0}-{1}' " +
-                        "id='{0}-{1}'>+</a>").format(
+                        ("<a aria-hidden='true' class='lineno text-success' " +
+                        "href='#{0}-{1}' id='{0}-{1}'>+</a>").format(
                             escape(msg.message_id), line_no))
                     + escape(line[1:])
                     + Markup("</span>\n"))
@@ -106,14 +106,16 @@ def _format_patch(msg, limit=None):
                 text += (
                     Markup("<span class='text-danger'>")
                     + Markup(
-                        ("<a class='text-danger' href='#{0}-{1}' " +
-                        "id='{0}-{1}'>-</a>").format(
+                        ("<a aria-hidden='true' class='lineno text-danger' " +
+                        "href='#{0}-{1}' id='{0}-{1}'>-</a>").format(
                             escape(msg.message_id), line_no))
                     + escape(line[1:])
                     + Markup("</span>\n"))
             elif line.startswith(" "):
                 text += (
-                    Markup("<a href='#{0}-{1}' id='{0}-{1}'> </a>".format(
+                    Markup("<a aria-hidden='true' " +
+                        "class='lineno' href='#{0}-{1}'" +
+                        "id='{0}-{1}'> </a>".format(
                             escape(msg.message_id), line_no))
                     + escape(line[1:] + "\n"))
             else:

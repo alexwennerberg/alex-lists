@@ -1,5 +1,13 @@
 @import "base";
 
+a[href^="mailto:"], .from a {
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .archive-entry {
   h4 {
     border: none;
@@ -77,16 +85,22 @@
 }
 
 .message-body {
+  background: $gray-100;
+
   .text-success {
-    color: darken($success, 10) !important;
+    color: color_adjust_contrast_AERT(darken($success, 10), $pre-background) !important;
   }
 
   .text-danger {
-    color: darken($danger, 10) !important;
+    color: color_adjust_contrast_AERT(darken($danger, 10), $pre-background) !important;
   }
 
   .text-info {
-    color: darken($info, 10) !important;
+    color: color_adjust_contrast_AERT(darken($info, 10), $pre-background) !important;
+  }
+
+  .lineno {
+    text-decoration: none;
   }
 }
 
