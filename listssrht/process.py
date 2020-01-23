@@ -154,7 +154,7 @@ def _archive(dest, envelope):
     mail.created = datetime.utcnow()
     mail.updated = datetime.utcnow()
     mail.subject = envelope["Subject"]
-    mail.message_id = envelope["Message-ID"]
+    mail.message_id = envelope["Message-ID"].strip()
     mail.headers = {
         key: value for key, value in envelope.items()
     }
@@ -457,7 +457,7 @@ def dispatch_message(address, list_id, mail):
 
     try:
         if command == "post":
-            msgid = mail.get("Message-ID")
+            msgid = mail.get("Message-ID").strip()
             if not msgid or Email.query.filter(
                     Email.message_id == msgid,
                     Email.list_id == dest.id).count():
@@ -534,7 +534,7 @@ def import_mbox(spool, list_id):
 
         db.session.skip_autoupdate = True  # we want to use dates from the mbox
         for msg in mbox.values():
-            msg_id = msg.get("Message-ID")
+            msg_id = msg.get("Message-ID").strip()
             if not msg_id:
                 continue # Message ID is required
             try:
