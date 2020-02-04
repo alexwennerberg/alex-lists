@@ -4,7 +4,7 @@ from flask import Response, session
 from sqlalchemy import String, cast, or_
 from srht.config import cfg
 from srht.database import db
-from srht.search import search
+from srht.search import search_by
 from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
@@ -60,38 +60,42 @@ def apply_search(query, terms=None):
         terms = request.args.get("search")
     if not terms:
         return query.filter(Email.parent_id == None), None
+
     def canonicalize(header):
         return "-".join(h[0].upper() + h[1:] for h in header.split("-"))
-    def me_alias(header, q, v):
-        return (q.filter(cast(Email.headers[header], String).ilike(
-                "%" + current_user.email + "%"))
-            if current_user and v == "me" else
-            q.filter(cast(Email.headers[header], String).ilike("%" + v + "%")))
-    def patchset_status(q, v):
-        try:
-            return (q.join(Patchset, Email.patchset_id == Patchset.id)
-                    .filter(Patchset.status == PatchsetStatus(v)))
-        except ValueError:
-            return q.filter(False)
-    return search(query, terms, [Email.body, Email.subject], {
-        "is": lambda q, v: q.filter({
+
+    def header_filter(name, value):
+        header = cast(Email.headers[name], String)
+        return header.ilike(f"%{value}%")
+
+    def me_alias(header, value):
+        if current_user and value == "me":
+            value = current_user.email
+
+        return header_filter(header, f"%{value}%")
+
+    def patchset_status(value):
+        status = getattr(PatchsetStatus, value, None)
+        if not status:
+            raise ValueError(f"Invalid patchset status: '{value}'")
+
+        return Email.patchset.has(Patchset.status == status)
+
+    return search_by(query, terms, [Email.body, Email.subject], {
+        "is": lambda v: {
             "patch": Email.is_patch,
             "reply": Email.parent_id != None,
             "request-pull": Email.is_request_pull,
             "thread": Email.nreplies > 0,
-        }.get(v, False)),
-        "from": lambda q, v: me_alias("From", q, v),
-        "to": lambda q, v: me_alias("To", q, v),
-        "cc": lambda q, v: me_alias("Cc", q, v),
+        }.get(v, False),
+        "from": lambda v: me_alias("From", v),
+        "to": lambda v: me_alias("To", v),
+        "cc": lambda v: me_alias("Cc", v),
         "status": patchset_status,
-        "prefix": lambda q, v: (q
-            .join(Patchset, Email.patchset_id == Patchset.id)
-            .filter(Patchset.prefix == v)),
-        "sender-timestamp": lambda q, v: (q
-            .filter(Email.message_date == datetime.utcfromtimestamp(int(v)))),
-        None: lambda q, p, v: query.filter(cast(
-            Email.headers[canonicalize(p)], String).ilike("%" + v + "%")),
-    }), terms
+        "prefix": lambda v: Email.patchset.has(Patchset.prefix == v),
+        "sender-timestamp": lambda v: (
+            Email.message_date == datetime.utcfromtimestamp(int(v))),
+    }, fallback_fn=header_filter), terms
 
 def _dkim_explain(status, domain):
     return {
