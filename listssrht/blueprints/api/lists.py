@@ -84,6 +84,12 @@ def user_lists_by_name_posts_GET(username, list_name):
     user, ml, access = get_list(username, list_name)
     if not ListAccess.browse in access:
         abort(404)
+
+    search = request.args.get("search")
     emails = Email.query.filter(Email.list_id == ml.id)
-    emails, _ = apply_search(emails)
+    try:
+        emails = apply_search(emails, search)
+    except ValueError as ex:
+        return {"errors": [{"reason": str(ex)}]}, 400
+
     return paginated_response(Email.id, emails, short=True)

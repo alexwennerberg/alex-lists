@@ -55,11 +55,9 @@ def get_list(owner_name, list_name, current_user=current_user):
         access = ml.nonsubscriber_permissions
     return owner, ml, access
 
-def apply_search(query, terms=None):
-    if not terms:
-        terms = request.args.get("search")
-    if not terms:
-        return query.filter(Email.parent_id == None), None
+def apply_search(query, search):
+    if not search:
+        return query.filter(Email.parent_id == None)
 
     def canonicalize(header):
         return "-".join(h[0].upper() + h[1:] for h in header.split("-"))
@@ -81,7 +79,7 @@ def apply_search(query, terms=None):
 
         return Email.patchset.has(Patchset.status == status)
 
-    return search_by(query, terms, [Email.body, Email.subject], {
+    return search_by(query, search, [Email.body, Email.subject], {
         "is": lambda v: {
             "patch": Email.is_patch,
             "reply": Email.parent_id != None,
@@ -95,7 +93,7 @@ def apply_search(query, terms=None):
         "prefix": lambda v: Email.patchset.has(Patchset.prefix == v),
         "sender-timestamp": lambda v: (
             Email.message_date == datetime.utcfromtimestamp(int(v))),
-    }, fallback_fn=header_filter), terms
+    }, fallback_fn=header_filter)
 
 def _dkim_explain(status, domain):
     return {
@@ -151,7 +149,14 @@ def archive(owner_name, list_name):
     threads = (Email.query
             .filter(Email.list_id == ml.id)
         ).order_by(Email.updated.desc())
-    threads, search = apply_search(threads)
+
+    search = request.args.get("search")
+    search_error = None
+    try:
+        threads = apply_search(threads, search)
+    except ValueError as ex:
+        search_error = str(ex)
+
     threads, pagination = paginate_query(threads)
 
     subscription = None
@@ -164,7 +169,7 @@ def archive(owner_name, list_name):
     return render_template("archive.html",
             view="archives", owner=owner, ml=ml, threads=threads,
             access=access, ListAccess=ListAccess,
-            search=search, subscription=subscription,
+            search=search, search_error=search_error, subscription=subscription,
             parseaddr=email.utils.parseaddr,
             message=message, **pagination)
 

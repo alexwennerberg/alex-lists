@@ -107,8 +107,11 @@
           {% elif view == "patches" %}
           placeholder='Search...     status:approved    prefix:my-project    from:me'
           {% endif %}
-          class="form-control"
+          class="form-control{% if search_error %} is-invalid{% endif %}"
           value="{{ search if search else "" }}" />
+        {% if search_error %}
+          <div class="invalid-feedback">{{ search_error }}</div>
+        {% endif %}
       </form>
       {% endif %}
       {% if ml.import_in_progress %}

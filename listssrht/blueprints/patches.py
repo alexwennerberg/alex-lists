@@ -38,7 +38,14 @@ def patchlist(owner_name, list_name):
             .filter(Email.patchset_id != None)
             .filter(Email.parent_id == None)
         ).order_by(Email.updated.desc())
-    threads, search = apply_search(threads)
+
+    search = request.args.get("search")
+    search_error = None
+    try:
+        threads = apply_search(threads, search)
+    except ValueError as ex:
+        search_error = str(ex)
+
     threads, pagination = paginate_query(threads)
 
     subscription = None
@@ -49,9 +56,9 @@ def patchlist(owner_name, list_name):
     return render_template("archive.html",
             view="patches", owner=owner, ml=ml, threads=threads,
             access=access, ListAccess=ListAccess, search=search,
-            subscription=subscription, status_to_color=status_to_color,
-            parseaddr=parseaddr, PatchsetStatus=PatchsetStatus,
-            **pagination)
+            search_error=search_error, subscription=subscription,
+            status_to_color=status_to_color, parseaddr=parseaddr,
+            PatchsetStatus=PatchsetStatus, **pagination)
 
 def _parse_thread(thread):
     parsed = parse_thread(thread)
