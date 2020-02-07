@@ -103,7 +103,7 @@ def nextmsg(feedback, msg, line=-1):
                 return l, candidate
     return None
 
-@patches.route("/<owner_name>/<list_name>/patches/<patchset_id>")
+@patches.route("/<owner_name>/<list_name>/patches/<int:patchset_id>")
 def patchset(owner_name, list_name, patchset_id):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
