@@ -5,7 +5,7 @@ from srht.config import cfg, cfgi
 from srht.database import db
 from srht.oauth import UserType, current_user, loginrequired
 from srht.flask import paginate_query
-from srht.search import search
+from srht.search import search_by
 from srht.validation import Validation
 from sqlalchemy import or_
 from listssrht.types import List, User, Email, Subscription, Mirror
@@ -84,7 +84,7 @@ def lists_for_user(username):
     lists = lists.order_by(List.updated.desc())
     terms = request.args.get('search')
     if terms:
-        lists = search(lists, terms, [List.name, List.description], {})
+        lists = search_by(lists, terms, [List.name, List.description], {})
     lists, pagination = paginate_query(lists)
 
     return render_template("user-lists.html",
