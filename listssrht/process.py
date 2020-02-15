@@ -175,7 +175,7 @@ def _archive(dest, envelope):
     mail.patch()
 
     mail.is_request_pull = False # TODO: Detect git request-pull
-    reply_to = envelope["In-Reply-To"]
+    reply_to = envelope["In-Reply-To"].strip()
 
     db.session.add(mail)
     db.session.flush() # obtain an ID for this email
