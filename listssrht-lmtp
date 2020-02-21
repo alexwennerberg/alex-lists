@@ -3,8 +3,9 @@ from aiosmtpd.lmtp import SMTP, LMTP
 from email.utils import parseaddr
 from fnmatch import fnmatch
 from grp import getgrnam
-from srht.config import cfg
 from listssrht.types.listaccess import ListAccess
+from prometheus_client import Counter, start_http_server
+from srht.config import cfg
 import asyncio
 import asyncpg
 import email
@@ -15,6 +16,15 @@ import sys
 from listssrht.process import dispatch_message, send_error_for
 
 loop = asyncio.new_event_loop()
+
+emails_processed = Counter("emails_processed",
+        "Incremented on every incoming email")
+user_errors_processed = Counter("user_errors_processed",
+        "Incremented on every email which results in an error response")
+forwards_processed = Counter("forwards_processed",
+        "Incremented on every email which is forwarded to lists.sr.ht")
+commands_processed = Counter("commands_processed",
+        "Incremented on every command email, e.g. +subscribe")
 
 always_reject = cfg("lists.sr.ht::worker", "reject-mimetypes")
 always_reject = always_reject.split(",")
@@ -211,6 +221,7 @@ class MailHandler:
         return "250 OK"
 
     async def handle_DATA(self, server, session, envelope):
+        emails_processed.inc()
         async with self.pg.acquire() as conn:
             return await self.handle_DATA_w_conn(
                     server, session, envelope, conn)
@@ -226,6 +237,7 @@ class MailHandler:
             sender = sender[0] or sender[1]
             print("Rejected, mailing list not found")
             print(envelope)
+            user_errors_processed.inc()
             send_error_for.delay(str(mail), unknown_mailing_list_error.format(
                         sender, posting_domain, posting_domain))
             return "250 Mailing list not found, but sending bounce out of band"
@@ -255,21 +267,25 @@ class MailHandler:
         if command != "post":
             print("Command accepted: {}".format(mail.get("Subject")))
             dispatch_message.delay(address, dest_id, str(mail))
+            commands_processed.inc()
             return "250 Message accepted for delivery"
 
         err = self.validate(mail, permit_mimetypes, reject_mimetypes)
         if err is not None:
             print("Rejected due to validation errors")
             send_error_for.delay(str(mail), err)
+            user_errors_processed.inc()
             return "250 Validation failed, but sending bounce out of band"
 
         if owner_id == user_id:
             print("Message accepted: {}".format(mail.get("Subject")))
             dispatch_message.delay(address, dest_id, str(mail))
+            forwards_processed.inc()
             return "250 Message accepted for delivery"
 
         if acl is not None:
             if access not in ListAccess(acl[0]):
+                user_errors_processed.inc()
                 print("Rejected: your account is not allowed to post to this list")
                 return "500 Rejected. Your account is not allowed to post to this list."
         else:
@@ -277,17 +293,21 @@ class MailHandler:
             sub = await fetch_sub.fetchval(_from[1], user_id)
 
             if access not in nonsub_perms and not sub:
+                user_errors_processed.inc()
                 print("Rejected: non-subscribers are not allowed to post")
                 return "500 Rejected. Non-subscribers are not allowed to post to this list."
 
             if access not in sub_perms and sub:
+                user_errors_processed.inc()
                 print("Rejected: non-subscribers are not allowed to post")
                 return "500 Rejected. You are not allowed to post to this list."
 
             if access not in external_perms and not user_id:
+                user_errors_processed.inc()
                 print("Rejected: non-users are not allowed to post")
                 return "500 Rejected. Users without an account are not allowed to post to this list."
 
+        forwards_processed.inc()
         print("Message accepted: {}".format(mail.get("Subject")))
         dispatch_message.delay(address, dest_id, str(mail))
         return "250 Message accepted for delivery"
@@ -322,6 +342,7 @@ def sigint_handler():
 loop.add_signal_handler(signal.SIGINT, sigint_handler)
 
 print("Starting incoming mail daemon")
+start_http_server(cfg("lists.sr.ht::worker", "lmtp-metrics-port", default=8006))
 loop.run_until_complete(create_server())
 loop.run_forever()
 loop.close()
