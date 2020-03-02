@@ -8,7 +8,7 @@ from srht.flask import paginate_query
 from srht.search import search_by
 from srht.validation import Validation
 from sqlalchemy import or_
-from listssrht.types import List, User, Email, Subscription, Mirror
+from listssrht.types import List, ListAccess, User, Email, Subscription, Mirror
 from listssrht.webhooks import UserWebhook
 import re
 import smtplib
@@ -48,16 +48,16 @@ def user_profile(username):
     if current_user:
         if current_user.id != user.id:
             lists = lists.filter(or_(
-                    List.account_permissions > 0,
-                    List.nonsubscriber_permissions > 0
-                ))
+                    List.account_permissions.op('&')(ListAccess.browse),
+                    List.nonsubscriber_permissions.op('&')(ListAccess.browse)))
             recent = recent.join(List).filter(or_(
-                List.account_permissions > 0,
-                List.nonsubscriber_permissions > 0))
+                List.account_permissions.op('&')(ListAccess.browse) > 0,
+                List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0))
     else:
-        lists = lists.filter(List.nonsubscriber_permissions > 0)
+        lists = (lists
+                .filter(List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0))
         recent = (recent.join(List)
-                .filter(List.nonsubscriber_permissions > 0))
+                .filter(List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0))
 
     recent = recent.order_by(Email.created.desc()).limit(10).all()
     lists = lists.order_by(List.updated.desc()).limit(10).all()
@@ -75,11 +75,11 @@ def lists_for_user(username):
     if current_user:
         if current_user.id != user.id:
             lists = lists.filter(or_(
-                    List.account_permissions > 0,
-                    List.nonsubscriber_permissions > 0
+                    List.account_permissions.op('&')(ListAccess.browse) > 0,
+                    List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0
                 ))
     else:
-        lists = lists.filter(List.nonsubscriber_permissions > 0)
+        lists = lists.filter(List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0)
 
     lists = lists.order_by(List.updated.desc())
     terms = request.args.get('search')
