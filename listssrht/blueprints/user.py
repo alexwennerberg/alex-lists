@@ -48,8 +48,8 @@ def user_profile(username):
     if current_user:
         if current_user.id != user.id:
             lists = lists.filter(or_(
-                    List.account_permissions.op('&')(ListAccess.browse),
-                    List.nonsubscriber_permissions.op('&')(ListAccess.browse)))
+                    List.account_permissions.op('&')(ListAccess.browse) > 0,
+                    List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0))
             recent = recent.join(List).filter(or_(
                 List.account_permissions.op('&')(ListAccess.browse) > 0,
                 List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0))
