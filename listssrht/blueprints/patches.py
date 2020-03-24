@@ -91,10 +91,11 @@ def gen_cover_letter(patches):
         cover += f"{author}: {len(patches)}\n"
         for email in patches:
             cover += f" {email.patch_subject}\n"
-            stats = email.patch().stats
-            nfiles += stats.files_changed
-            insertions += stats.insertions
-            deletions += stats.deletions
+            if email.patch():
+                stats = email.patch().stats
+                nfiles += stats.files_changed
+                insertions += stats.insertions
+                deletions += stats.deletions
     cover += f"\n {nfiles} files changed, {insertions} insertions(+), {deletions} deletions(-)\n"
     return cover
 
