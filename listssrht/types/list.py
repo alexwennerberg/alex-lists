@@ -74,6 +74,7 @@ class List(Base):
             return [p.name for p in ListAccess
                     if p in perm and p not in [ListAccess.none, ListAccess.all]]
         return {
+            "id": self.id,
             "name": self.name,
             "owner": self.owner.to_dict(short=True),
             **({

@@ -15,6 +15,7 @@ class ListWebhook(CeleryWebhook):
     events = [
         Event("post:received", "lists:read"),
         Event("list:update", "lists:read"),
+        Event("list:delete", "lists:read"),
         Event("patchset:received", "patches:read"),
         Event("patchset:update", "patches:read"), # TODO: Deliver
     ]
