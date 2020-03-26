@@ -67,6 +67,7 @@ setup(
       ]
   },
   scripts = [
+      'listssrht-initdb',
       'listssrht-lmtp',
       'listssrht-migrate',
   ],
