@@ -8,6 +8,7 @@ Idempotent. If the tables already exist, they will not be re-created.
 """
 import listssrht.alembic
 import listssrht.types
+import listssrht.webhooks
 
 from alembic import command
 from alembic.config import Config
