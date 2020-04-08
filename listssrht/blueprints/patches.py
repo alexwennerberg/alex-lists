@@ -207,16 +207,12 @@ def patchset_bulk_update(owner_name, list_name):
     return redirect(url_for("patches.patchlist",
         owner_name=owner_name, list_name=list_name))
 
-def format_mbox(msg):
+def format_mbox(msgs):
     b = bytes()
-    if msg.is_patch:
+    for msg in msgs:
         parsed = msg.parsed()
         b += parsed.as_bytes(unixfrom=True,
                 policy=email.policy.SMTPUTF8) + b'\r\n'
-    for reply in msg.replies:
-        if not reply.is_patch:
-            continue
-        b += format_mbox(reply)
     return b
 
 @patches.route("/<owner_name>/<list_name>/patches/<patchset_id>/mbox")
@@ -233,5 +229,9 @@ def mbox(owner_name, list_name, patchset_id):
         abort(404)
     thread = Email.query.filter(Email.patchset_id == patchset_id).first()
     thread = thread.thread if thread.thread_id else thread
-    mbox = format_mbox(thread)
+    patches = (Email.query
+            .filter(or_(Email.thread_id == thread.id, Email.id == thread.id))
+            .filter(Email.is_patch)
+            .order_by(Email.patch_index, Email.created)).all()
+    mbox = format_mbox(patches)
     return Response(mbox, mimetype='application/mbox')
