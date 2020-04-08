@@ -195,10 +195,8 @@ def patchset_bulk_update(owner_name, list_name):
         if item.startswith("select-"):
             selection.append(int(item.split("-")[1]))
     if select_all:
-        patchsets = (Patchset.query
-                .filter(Patchset.list_id == ml.id)
-                .join(Email, Patchset.cover_letter_id))
-        patchsets, _ = apply_search(patchsets, terms=request.form.get("search"))
+        patchsets = Patchset.query.filter(Patchset.list_id == ml.id)
+        patchsets = apply_search(patchsets, request.form.get("search"))
     else:
         patchsets = (Patchset.query
             .filter(Patchset.id.in_(selection))
