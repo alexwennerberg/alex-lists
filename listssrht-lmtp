@@ -177,7 +177,15 @@ class MailHandler:
         return result, command
 
     def validate(self, mail, permit_mimetypes, reject_mimetypes):
-        required_headers = ["To", "From", "Subject", "Message-Id"]
+        required_headers = ["From", "Subject", "Message-Id"]
+        possible_to_headers = ["To", "Cc"]
+        found_to_header = False
+        for header in possible_to_headers:
+            if mail.get(header):
+                found_to_header = True
+                break
+        if not found_to_header:
+            return "The To or Cc header is required."
         for header in required_headers:
             if not mail.get(header):
                 return "The {} header is required.".format(header)
