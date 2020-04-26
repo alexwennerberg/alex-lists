@@ -128,32 +128,6 @@
       >
         {% for message in threads %}
         <div class="event archive-entry">
-          <small class="text-muted pull-right">
-            {% if message.nreplies > 0 %}
-            <span>
-              {{icon("reply")}}
-              {{message.nreplies}}
-            </span>
-            {% endif %}
-            {% if message.nparticipants > 1 %}
-            <span>
-              {{icon("user")}}
-              {{message.nparticipants}}
-            </span>
-            {% endif %}
-            <span>
-              {% set from_hdr = message.parsed()['From'] %}
-              {% set from = parseaddr(from_hdr) %}
-              {% if message.sender != None %}
-              <a href="/{{ message.sender.canonical_name }}">{{from[0]}}</a>
-              {% else %}
-              {{from[0]}}
-              {% endif %}
-            </span>
-            <span>
-              {{icon("clock")}} {{ message.updated | date }}
-            </span>
-          </small>
           <h4>
             {% if message.patchset_id %}
             {% if view == "patches" %}
@@ -191,6 +165,32 @@
             </a>
             {% endif %}
           </h4>
+          <small class="text-muted pull-right">
+            <span>
+              {% set from_hdr = message.parsed()['From'] %}
+              {% set from = parseaddr(from_hdr) %}
+              {% if message.sender != None %}
+              <a href="/{{ message.sender.canonical_name }}">{{from[0]}}</a>
+              {% else %}
+              {{from[0]}}
+              {% endif %}
+            </span>
+            <span>
+              {{icon("clock")}} {{ message.updated | date }}
+            </span>
+            {% if message.nreplies > 0 %}
+            <span>
+              {{icon("reply")}}
+              {{message.nreplies}}
+            </span>
+            {% endif %}
+            {% if message.nparticipants > 1 %}
+            <span>
+              {{icon("user")}}
+              {{message.nparticipants}}
+            </span>
+            {% endif %}
+          </small>
         </div>
         {% endfor %}
         {% if view == "patches"
