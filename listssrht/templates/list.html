@@ -37,6 +37,7 @@
       {% if not ml.mirror_id or ml.mirror.configured %}
       {% set posting_address = post_address(ml) %}
       {% if posting_address %}
+      {% if ListAccess.post in access %}
       <li class="nav-item">
         <a
           class="nav-link {% if view == "post" %}active{% endif %}"
@@ -47,6 +48,7 @@
           {% endif %}
         >new post</a>
       </li>
+      {% endif %}
       {% endif %}
       {% endif %}
       {% if current_user.id == ml.owner_id %}
