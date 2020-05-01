@@ -204,7 +204,10 @@ def thread(owner_name, list_name, message_id):
                 if not msg.subject.lower().startswith("re:")
                 else msg.subject),
         }
-        return f"mailto:{post_address(msg.list)}?{urlencode(params, quote_via=quote)}"
+        if post_address.startswith("mailto:"):
+            return f"{post_address(msg.list)}?{urlencode(params, quote_via=quote)}"
+        else:
+            return f"mailto:{post_address(msg.list)}?{urlencode(params, quote_via=quote)}"
 
     return render_template("thread.html", view="archives", owner=owner,
             access=access, ListAccess=ListAccess,
