@@ -145,10 +145,11 @@ def patchset(owner_name, list_name, patchset_id):
                 if not msg.subject.lower().startswith("re:")
                 else msg.subject),
         }
-        if post_address.startswith("mailto:"):
-            return f"{post_address(msg.list)}?{urlencode(params, quote_via=quote)}"
+        pa = post_address(msg.list)
+        if pa.startswith("mailto:"):
+            return f"{pa}?{urlencode(params, quote_via=quote)}"
         else:
-            return f"mailto:{post_address(msg.list)}?{urlencode(params, quote_via=quote)}"
+            return f"mailto:{pa}?{urlencode(params, quote_via=quote)}"
 
     return render_template("patchset.html", view="patches", owner=owner,
             parseaddr=parseaddr, reply_to=reply_to, ml=ml, access=access,
