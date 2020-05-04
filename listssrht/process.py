@@ -536,10 +536,11 @@ def import_mbox(spool, list_id):
 
         db.session.skip_autoupdate = True  # we want to use dates from the mbox
         for msg in mbox.values():
-            msg_id = msg.get("Message-ID").strip()
-            if not msg_id:
-                continue # Message ID is required
             try:
+                msg_id = msg.get("Message-ID")
+                if not msg_id:
+                    continue
+                msg_id = msg_id.strip()
                 existing = (Email.query
                         .filter(Email.message_id == msg_id)
                         .filter(Email.list_id == ml.id)).count()
