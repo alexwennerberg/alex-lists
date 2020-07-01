@@ -134,8 +134,13 @@ def patchset(owner_name, list_name, patchset_id):
             .order_by(Email.created)).all()
     feedback = dict()
     for msg in [thread] + thread.descendants:
-        feedback[msg.id] = _parse_thread(
-                [m.parsed() for m in [msg] + msg.replies])
+        try:
+            feedback[msg.id] = _parse_thread(
+                    [m.parsed() for m in [msg] + msg.replies])
+        except:
+            # This can fail when there are multiple head messages, which is a
+            # weird situation but apparently is possible ¯\_(ツ)_/¯
+            pass
 
     def reply_to(msg):
         params = {
