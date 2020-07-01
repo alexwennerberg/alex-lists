@@ -89,6 +89,11 @@
 <div class="container">
   <div class="row">
     <div class="col-md-12">
+      {% if user_message %}
+      <div class="alert alert-success">
+        {{user_message}}
+      </div>
+      {% endif %}
       {% if patchset.cover_letter %}
       {% set msg = patchset.cover_letter %}
       {% else %}
@@ -104,9 +109,7 @@
           {{patchset.status.value.replace("_", " ").upper()}}
         </span>
       </h3>
-      {% if patchset.cover_letter %}
       {{ msg_header(msg) }}
-      {% endif %}
     </div>
   </div>
   <div class="row">
@@ -114,7 +117,6 @@
       {% if patchset.cover_letter %}
       <pre class="message-body">{{ format_body(msg) }}</pre>
       {% else %}
-      {{msg_header(thread)}}
       <pre class="message-body">{{ gen_cover_letter(patches) }}</pre>
       {% endif %}
       {% for m in messages %}
@@ -147,29 +149,47 @@
       {% endfor %}
     </div>
     <div class="col-md-4">
-      <a class="btn btn-primary btn-block" href="{{ url_for('patches.mbox',
-        owner_name=owner.canonical_name, list_name=ml.name,
-        patchset_id=patchset.id) }}"
-      >Export patchset (mbox) {{icon('caret-right')}}</a>
       <div class="event-list">
-        <details class="event">
-          <summary>How do I use this?</summary>
-          <p>
-            Copy &amp; paste the following snippet into your terminal to
-            import this patchset into git:
-          </p>
-          <pre>curl -s {{root}}{{ url_for('patches.mbox',
+        <div class="event">
+          <a class="btn btn-primary btn-block" href="{{ url_for('patches.mbox',
             owner_name=owner.canonical_name, list_name=ml.name,
-            patchset_id=patchset.id) }} | git am -3</pre>
-          <a
-            href="https://git-send-email.io/"
-            target="_blank"
-            class="btn btn-link btn-block"
-          >Learn more about email &amp; git {{icon('caret-right')}}</a>
-        </details>
-      </div>
-      {% if ListAccess.moderate in access %}
-      <div class="event-list" style="margin-top: 1rem">
+            patchset_id=patchset.id) }}"
+          >Export patchset (mbox) {{icon('caret-right')}}</a>
+          <details style="margin-top: 0.5rem">
+            <summary>How do I use this?</summary>
+            <p>
+              Copy &amp; paste the following snippet into your terminal to
+              import this patchset into git:
+            </p>
+            <pre>curl -s {{root}}{{ url_for('patches.mbox',
+              owner_name=owner.canonical_name, list_name=ml.name,
+              patchset_id=patchset.id) }} | git am -3</pre>
+            <a
+              href="https://git-send-email.io/"
+              target="_blank"
+              class="btn btn-link btn-block"
+            >Learn more about email &amp; git {{icon('caret-right')}}</a>
+          </details>
+        </div>
+        <div class="event">
+          <a class="btn btn-default btn-block" href="{{ url_for('archives.thread',
+            owner_name=owner.canonical_name, list_name=ml.name,
+            message_id=thread.message_id) }}"
+          >View this thread in the archives {{icon('caret-right')}}</a>
+          <form
+            style="margin-top: 0.5rem"
+            action="{{ url_for('archives.forward',
+              owner_name=owner.canonical_name, list_name=ml.name,
+              message_id=thread.message_id) }}?patch={{patchset.id}}"
+            method="POST"
+          >
+            {{csrf_token()}}
+            <button
+              class="btn btn-default btn-block"
+            >Forward this thread to me {{icon('caret-right')}}</button>
+          </form>
+        </div>
+        {% if ListAccess.moderate in access %}
         <form
           class="event"
           method="POST"
@@ -200,8 +220,8 @@
           >Update {{icon('caret-right')}}</button>
           <div class="clearfix"></div>
         </form>
+        {% endif %}
       </div>
-      {% endif %}
     </div>
   </div>
   <div class="row">
@@ -219,10 +239,6 @@
       </h3>
       {{ display_msg(msg) }}
       {% endfor %}
-      <a class="btn btn-link btn-block" href="{{ url_for('archives.thread',
-        owner_name=owner.canonical_name, list_name=ml.name,
-        message_id=thread.message_id) }}"
-      >View this thread in the archives {{icon('caret-right')}}</a>
     </div>
   </div>
 </div>

@@ -23,6 +23,7 @@ from datetime import datetime
 from email.mime.text import MIMEText
 from email.utils import parseaddr, getaddresses, formatdate, make_msgid
 from email.utils import parsedate_to_datetime
+from sqlalchemy import or_
 from urllib.parse import quote
 
 dispatch = Celery("lists.sr.ht", broker=cfg("lists.sr.ht", "redis"))
@@ -34,7 +35,7 @@ smtp_password = cfg("mail", "smtp-password", default=None)
 
 policy = email.policy.SMTPUTF8.clone(max_line_length=998)
 
-def _forward(dest, mail):
+def _prep_mail(dest, mail):
     domain = cfg("lists.sr.ht", "posting-domain")
     list_name = "{}/{}".format(dest.owner.canonical_name, dest.name)
     archive_url = "{}/{}".format(cfg("lists.sr.ht", "origin"), list_name)
@@ -53,6 +54,10 @@ def _forward(dest, mail):
     mail["List-Post"] = "<mailto:{}@{}>".format(list_name, domain)
     mail["List-ID"] = "{} <{}.{}>".format(list_name, list_name, domain)
     mail["Sender"] = "{} <{}@{}>".format(list_name, list_name, domain)
+    return mail
+
+def _forward(dest, mail):
+    mail = _prep_mail(dest, mail)
 
     # TODO: Encrypt emails
     smtp = smtplib.SMTP(smtp_host, smtp_port)
@@ -563,3 +568,29 @@ def import_mbox(spool, list_id):
                 continue # plow on forward
     ml.import_in_progress = False
     db.session.commit()
+
+@dispatch.task
+def forward_thread(list_id, thread_id, recipient):
+    thread = (Email.query
+            .filter(or_(Email.thread_id == thread_id, Email.id == thread_id))
+            .filter(Email.list_id == list_id)
+            .order_by(Email.id)).all()
+    if not thread:
+        return
+    dest = thread[0].list
+
+    smtp = smtplib.SMTP(smtp_host, smtp_port)
+    smtp.ehlo()
+    smtp.starttls()
+    if smtp_user and smtp_password:
+        smtp.login(smtp_user, smtp_password)
+
+    for message in thread:
+        mail = email.message_from_string(message.envelope, policy=policy)
+        mail = _prep_mail(dest, mail)
+        try:
+            smtp.send_message(mail, smtp_user, [recipient])
+        except:
+            continue
+
+    smtp.quit()

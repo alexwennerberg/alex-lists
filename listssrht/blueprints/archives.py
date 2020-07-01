@@ -11,6 +11,7 @@ from srht.validation import Validation
 from listssrht.filters import post_address
 from listssrht.types import List, User, Email, Subscription, ListAccess, Access
 from listssrht.types import Patchset, PatchsetStatus
+from listssrht.process import forward_thread
 from listssrht.webhooks import ListWebhook, UserWebhook
 from urllib.parse import quote, urlencode
 import email
@@ -210,12 +211,14 @@ def thread(owner_name, list_name, message_id):
         else:
             return f"mailto:{pa}?{urlencode(params, quote_via=quote)}"
 
+    user_message = session.pop("message", None)
     return render_template("thread.html", view="archives", owner=owner,
             access=access, ListAccess=ListAccess,
             ml=ml, thread=thread, messages=messages,
             parseaddr=email.utils.parseaddr,
             parse_auth_result=parse_auth_result,
-            reply_to=reply_to)
+            reply_to=reply_to,
+            user_message=user_message)
 
 @archives.route("/<owner_name>/<list_name>/<message_id>/raw")
 def raw(owner_name, list_name, message_id):
@@ -322,3 +325,26 @@ def unsubscribe(owner_name, list_name):
         db.session.commit()
     return redirect(url_for("archives.archive",
         owner_name=owner_name, list_name=list_name))
+
+@archives.route("/<owner_name>/<list_name>/forward/<message_id>", methods=["POST"])
+@loginrequired
+def forward(owner_name, list_name, message_id):
+    owner, ml, access = get_list(owner_name, list_name)
+    if not ml:
+        abort(404)
+    if ListAccess.browse not in access:
+        abort(403)
+    email = (Email.query
+            .filter(Email.message_id == message_id)
+            .filter(Email.list_id == ml.id)).one_or_none()
+    if not email:
+        abort(404)
+    forward_thread.delay(ml.id, email.id, current_user.email)
+    session["message"] = "This thread has been forwarded to you."
+    if "patch" in request.args:
+        return redirect(url_for("patches.patchset",
+                owner_name=owner_name, list_name=list_name,
+                patchset_id=request.args["patch"]))
+    return redirect(url_for("archives.thread",
+            owner_name=owner_name, list_name=list_name,
+            message_id=message_id))

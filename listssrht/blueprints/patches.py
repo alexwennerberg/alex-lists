@@ -3,7 +3,7 @@ from email import policy
 from email.utils import parseaddr
 from emailthreads import parse as parse_thread
 from flask import Blueprint, render_template, abort, Response, request, redirect
-from flask import url_for
+from flask import url_for, session
 from listssrht.blueprints.archives import get_list, apply_search
 from listssrht.filters import post_address
 from listssrht.types import List, Email, Patchset, PatchsetStatus, ListAccess
@@ -156,12 +156,14 @@ def patchset(owner_name, list_name, patchset_id):
         else:
             return f"mailto:{pa}?{urlencode(params, quote_via=quote)}"
 
+    user_message = session.pop("message", None)
     return render_template("patchset.html", view="patches", owner=owner,
             parseaddr=parseaddr, reply_to=reply_to, ml=ml, access=access,
             thread=thread, patchset=patchset, patches=patches,
             feedback=feedback, gen_cover_letter=gen_cover_letter,
             PatchsetStatus=PatchsetStatus, status_to_color=status_to_color,
-            messages=messages, nextmsg=nextmsg, max=max)
+            messages=messages, nextmsg=nextmsg, max=max,
+            user_message=user_message)
 
 @patches.route("/<owner_name>/<list_name>/patches/<patchset_id>/update",
         methods=["POST"])
