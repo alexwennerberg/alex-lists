@@ -314,6 +314,8 @@ def delete_POST(owner_name, list_name):
     if ml.owner_id != current_user.id:
         abort(403)
     session["notice"] = f"{ml.name} was deleted."
+    ListWebhook.deliver(ListWebhook.Events.list_delete,
+            ml.to_dict(), ListWebhook.Subscription.list_id == ml.id)
     db.engine.execute(f"DELETE FROM list WHERE id = {ml.id};")
     db.session.commit()
     return redirect(url_for("user.index"))
