@@ -293,3 +293,27 @@ def import_POST(owner_name, list_name):
     db.session.commit()
     return redirect(url_for("archives.archive",
         owner_name=owner_name, list_name=list_name))
+
+@settings.route("/<owner_name>/<list_name>/settings/delete")
+@loginrequired
+def delete_GET(owner_name, list_name):
+    owner, ml, access = get_list(owner_name, list_name)
+    if not ml:
+        abort(404)
+    if ml.owner_id != current_user.id:
+        abort(403)
+    return render_template("settings-delete.html",
+            view="delete", ml=ml, owner=owner)
+
+@settings.route("/<owner_name>/<list_name>/settings/delete", methods=["POST"])
+@loginrequired
+def delete_POST(owner_name, list_name):
+    owner, ml, access = get_list(owner_name, list_name)
+    if not ml:
+        abort(404)
+    if ml.owner_id != current_user.id:
+        abort(403)
+    session["notice"] = f"{ml.name} was deleted."
+    db.engine.execute(f"DELETE FROM list WHERE id = {ml.id};")
+    db.session.commit()
+    return redirect(url_for("user.index"))

@@ -22,7 +22,9 @@ class Email(Base):
     """true if email is via git request-pull"""
     message_date = sa.Column(sa.DateTime)
 
-    list_id = sa.Column(sa.Integer, sa.ForeignKey('list.id'))
+    list_id = sa.Column(sa.Integer,
+            sa.ForeignKey('list.id', ondelete="CASCADE"),
+            nullable=False)
     list = sa.orm.relationship('List', backref=sa.orm.backref('messages'))
 
     parent_id = sa.Column(sa.Integer, sa.ForeignKey('email.id'))
@@ -60,7 +62,8 @@ class Email(Base):
             backref=sa.orm.backref('previous_version', remote_side=[id]),
             foreign_keys=[superseded_by_id])
 
-    patchset_id = sa.Column(sa.Integer, sa.ForeignKey('patchset.id'))
+    patchset_id = sa.Column(sa.Integer,
+            sa.ForeignKey('patchset.id', ondelete="CASCADE"))
     patchset = sa.orm.relationship("Patchset",
             backref=sa.orm.backref("patches"), foreign_keys=[patchset_id])
 

@@ -77,6 +77,18 @@ def user_lists_by_name_PUT(list_name):
     db.session.commit()
     return ml.to_dict()
 
+@lists.route("/api/lists/<list_name>", methods=["DELETE"])
+@oauth("lists:write")
+def user_lists_by_name_DELETE(list_name):
+    user, ml, access = get_list(None, list_name)
+    if ml.owner_id != user.id:
+        abort(403)
+    ListWebhook.deliver(ListWebhook.Events.list_delete,
+            ml.to_dict(), ListWebhook.Subscription.list_id == ml.id)
+    db.engine.execute(f"DELETE FROM list WHERE id = {ml.id};")
+    db.session.commit()
+    return {}, 204
+
 @lists.route("/api/user/<username>/lists/<list_name>/posts")
 @lists.route("/api/lists/<list_name>/posts", defaults={"username": None})
 @oauth("lists:read")

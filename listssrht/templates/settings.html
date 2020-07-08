@@ -41,5 +41,10 @@
       owner_name=owner.canonical_name,
       list_name=ml.name), "import/export")}}
   </li>
+  <li class="nav-item">
+    {{link(url_for("settings.delete_GET",
+      owner_name=owner.canonical_name,
+      list_name=ml.name), "delete")}}
+  </li>
 </ul>
 {% endblock %}

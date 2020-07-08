@@ -23,8 +23,11 @@ class Patchset(Base):
     status = sa.Column(sau.ChoiceType(PatchsetStatus, impl=sa.String()),
             nullable=False, server_default="proposed")
 
-    list_id = sa.Column(sa.Integer, sa.ForeignKey('list.id'))
-    list = sa.orm.relationship('List', backref=sa.orm.backref('patchsets'))
+    list_id = sa.Column(sa.Integer,
+            sa.ForeignKey('list.id', ondelete="CASCADE"),
+            nullable=False)
+    list = sa.orm.relationship('List',
+            backref=sa.orm.backref('patchsets'))
 
     cover_letter_id = sa.Column(sa.Integer, sa.ForeignKey('email.id'))
     cover_letter = sa.orm.relationship("Email", foreign_keys=[cover_letter_id])

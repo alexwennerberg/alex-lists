@@ -10,7 +10,9 @@ class Subscription(Base):
     updated = sa.Column(sa.DateTime, nullable=False)
     email = sa.Column(sa.Unicode(512))
 
-    list_id = sa.Column(sa.Integer, sa.ForeignKey('list.id'), nullable=False)
+    list_id = sa.Column(sa.Integer,
+            sa.ForeignKey('list.id', ondelete="CASCADE"),
+            nullable=False)
     list = sa.orm.relationship('List', backref=sa.orm.backref('subscribers'))
 
     # Non-users can subscribe, so this might be null

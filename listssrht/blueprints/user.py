@@ -1,6 +1,7 @@
 from email.mime.text import MIMEText
 from email.utils import parseaddr, formatdate, make_msgid
 from flask import Blueprint, render_template, request, redirect, url_for, abort
+from flask import session
 from srht.config import cfg, cfgi
 from srht.database import db
 from srht.oauth import UserType, current_user, loginrequired
@@ -35,7 +36,9 @@ def index():
             .join(List)
             .filter(Subscription.user_id == current_user.id)
             .order_by(List.updated.desc())).limit(10).all()]
-    return render_template("dashboard.html", recent=recent, subs=subs)
+    notice = session.pop("notice", None)
+    return render_template("dashboard.html", recent=recent,
+            subs=subs, notice=notice)
 
 @user.route("/~<username>")
 def user_profile(username):
