@@ -131,6 +131,8 @@ def _import_patch(thread, mail, envelope):
 
     patchset = Patchset()
     patchset.cover_letter_id = cover_letter.id if cover_letter else None
+    patchset.submitter = envelope["From"]
+    patchset.message_id = envelope["Message-ID"].strip()
 
     subject = cover_letter.subject if cover_letter else thread[0].subject
     match = patch_subject.match(subject)

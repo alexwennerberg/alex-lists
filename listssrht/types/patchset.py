@@ -20,6 +20,12 @@ class Patchset(Base):
     prefix = sa.Column(sa.Unicode)
     version = sa.Column(sa.Integer, nullable=False)
 
+    submitter = sa.Column(sa.Unicode)
+    """From header of the submitter"""
+
+    message_id = sa.Column(sa.Unicode)
+    """Message ID of the last message in the patchset (for In-Reply-To)"""
+
     status = sa.Column(sau.ChoiceType(PatchsetStatus, impl=sa.String()),
             nullable=False, server_default="proposed")
 
@@ -46,6 +52,8 @@ class Patchset(Base):
             "prefix": self.prefix,
             "version": self.version,
             "status": self.status.value,
+            "submitter": self.submitter,
+            "message_id": self.message_id,
             **({
                 "list": self.list.to_dict(short=True),
                 "cover_letter": self.cover_letter.to_dict(short=True)
