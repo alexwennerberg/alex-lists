@@ -112,6 +112,7 @@
       {{ msg_header(msg) }}
     </div>
   </div>
+
   <div class="row">
     <div class="col-md-8">
       {% if patchset.cover_letter %}
@@ -119,6 +120,19 @@
       {% else %}
       <pre class="message-body">{{ gen_cover_letter(patches) }}</pre>
       {% endif %}
+
+      {% if any(tools) %}
+      <div class="event-list tool-status">
+        {% for tool in tools %}
+        <div class="event">
+          {{icon(tool_icon_to_icon[tool.icon],
+            cls=tool_icon_to_class[tool.icon])}}
+          {{tool_details(tool.details)}}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
       {% for m in messages %}
       {% if m.id in feedback %}
       {% set fb = feedback[m.id] %}

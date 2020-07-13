@@ -1,16 +1,19 @@
+import bleach
 import email
 from email import policy
 from email.utils import parseaddr
 from emailthreads import parse as parse_thread
+from jinja2 import Markup
 from flask import Blueprint, render_template, abort, Response, request, redirect
 from flask import url_for, session
 from listssrht.blueprints.archives import get_list, apply_search
 from listssrht.filters import post_address
 from listssrht.types import List, Email, Patchset, PatchsetStatus, ListAccess
-from listssrht.types import Subscription
+from listssrht.types import Subscription, PatchsetTool, ToolIcon
 from sqlalchemy import or_
 from srht.database import db
 from srht.flask import paginate_query
+from srht.markdown import markdown
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from urllib.parse import quote, urlencode
@@ -23,7 +26,23 @@ status_to_color = {
     PatchsetStatus.superseded: "text-muted",
     PatchsetStatus.approved: "text-success",
     PatchsetStatus.rejected: "text-danger",
-    PatchsetStatus.applied: "text-muted"
+    PatchsetStatus.applied: "text-muted",
+}
+
+tool_icon_to_class = {
+    ToolIcon.pending: "text-muted",
+    ToolIcon.waiting: "text-info icon-spin",
+    ToolIcon.success: "text-success",
+    ToolIcon.failed: "text-danger",
+    ToolIcon.cancelled: "text-warning",
+}
+
+tool_icon_to_icon = {
+    ToolIcon.pending: "minus",
+    ToolIcon.waiting: "circle-notch",
+    ToolIcon.success: "check",
+    ToolIcon.failed: "times",
+    ToolIcon.cancelled: "times",
 }
 
 @patches.route("/<owner_name>/<list_name>/patches")
@@ -156,6 +175,14 @@ def patchset(owner_name, list_name, patchset_id):
         else:
             return f"mailto:{pa}?{urlencode(params, quote_via=quote)}"
 
+    tools = (PatchsetTool.query
+            .filter(PatchsetTool.patchset_id == patchset.id)).all()
+
+    tool_details = lambda d: Markup(bleach.sanitizer.Cleaner(
+            tags=["code", "a", "strong", "em"],
+            attributes={"a": ["href", "target", "rel"]},
+            strip=True).clean(markdown(d, with_styles=False)))
+
     user_message = session.pop("message", None)
     return render_template("patchset.html", view="patches", owner=owner,
             parseaddr=parseaddr, reply_to=reply_to, ml=ml, access=access,
@@ -163,7 +190,9 @@ def patchset(owner_name, list_name, patchset_id):
             feedback=feedback, gen_cover_letter=gen_cover_letter,
             PatchsetStatus=PatchsetStatus, status_to_color=status_to_color,
             messages=messages, nextmsg=nextmsg, max=max,
-            user_message=user_message)
+            user_message=user_message, tools=tools, tool_details=tool_details,
+            tool_icon_to_class=tool_icon_to_class,
+            tool_icon_to_icon=tool_icon_to_icon)
 
 @patches.route("/<owner_name>/<list_name>/patches/<patchset_id>/update",
         methods=["POST"])

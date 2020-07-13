@@ -1,6 +1,7 @@
 from flask import Blueprint, abort, request
 from listssrht.blueprints.api import get_user, get_list
-from listssrht.types import Email, List, ListAccess, Patchset, PatchsetStatus
+from listssrht.types import Email, List, ListAccess
+from listssrht.types import Patchset, PatchsetStatus, PatchsetTool, ToolIcon
 from srht.api import paginated_response
 from srht.database import db
 from srht.oauth import oauth, current_token
@@ -75,3 +76,36 @@ def list_patchsets_by_id_PUT(username, list_name, patchset_id):
         return valid.response
     db.session.commit()
     return patchset.to_dict()
+
+@patches.route("/api/user/<username>/lists/<list_name>/patchsets/<patchset_id>/tools", methods=["PUT"])
+@patches.route("/api/lists/<list_name>/patchsets/<patchset_id>/tools",
+        defaults={"username": None}, methods=["PUT"])
+@oauth("patches:write")
+def list_patchsets_by_id_tools_PUT(username, list_name, patchset_id):
+    user, ml, access = get_list(username, list_name)
+    if ml.owner_id != current_token.user_id:
+        abort(401)
+    patchset = (Patchset.query
+            .filter(Patchset.list_id == ml.id)
+            .filter(Patchset.id == patchset_id)).one_or_none()
+    if not patchset:
+        abort(404)
+    valid = Validation(request)
+    icon = valid.require("icon", cls=ToolIcon)
+    details = valid.require("details")
+    key = valid.require("key")
+    if not valid.ok:
+        return valid.response
+    tool = (PatchsetTool.query
+            .filter(PatchsetTool.patchset_id == patchset.id)
+            .filter(PatchsetTool.key == key)).one_or_none()
+    if not tool:
+        tool = PatchsetTool()
+        tool.patchset_id = patchset.id
+        tool.key = key
+
+    tool.icon = icon
+    tool.details = details
+    db.session.add(tool)
+    db.session.commit()
+    return {}

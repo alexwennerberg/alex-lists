@@ -62,3 +62,25 @@ class Patchset(Base):
                     if self.superseded_by else None,
             } if not short else {}),
         }
+
+class ToolIcon(Enum):
+    pending = "pending"
+    waiting = "waiting"
+    success = "success"
+    failed = "failed"
+    cancelled = "cancelled"
+
+class PatchsetTool(Base):
+    __tablename__ = 'patchset_tool'
+    id = sa.Column(sa.Integer, primary_key=True)
+    created = sa.Column(sa.DateTime, nullable=False)
+    updated = sa.Column(sa.DateTime, nullable=False)
+
+    patchset_id = sa.Column(sa.Integer,
+            sa.ForeignKey('patchset.id', ondelete='CASCADE'))
+    patchset = sa.orm.relationship('Patchset', backref=sa.orm.backref('tools'))
+
+    icon = sa.Column(sau.ChoiceType(ToolIcon, impl=sa.String()),
+            nullable=False, server_default="pending")
+    details = sa.Column(sa.Unicode, nullable=False)
+    key = sa.Column(sa.Unicode(128), nullable=False, index=True)

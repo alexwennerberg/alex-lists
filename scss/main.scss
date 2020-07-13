@@ -134,3 +134,9 @@ label.status {
   font-size: 0.9rem;
   font-weight: bold;
 }
+
+.tool-status {
+  .name {
+    @extend .text-muted;
+  }
+}
