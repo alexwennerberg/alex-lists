@@ -176,7 +176,8 @@ def patchset(owner_name, list_name, patchset_id):
             return f"mailto:{pa}?{urlencode(params, quote_via=quote)}"
 
     tools = (PatchsetTool.query
-            .filter(PatchsetTool.patchset_id == patchset.id)).all()
+            .filter(PatchsetTool.patchset_id == patchset.id)
+            .order_by(PatchsetToo.id)).all()
 
     tool_details = lambda d: Markup(bleach.sanitizer.Cleaner(
             tags=["code", "a", "strong", "em"],
