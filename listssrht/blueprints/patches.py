@@ -177,7 +177,7 @@ def patchset(owner_name, list_name, patchset_id):
 
     tools = (PatchsetTool.query
             .filter(PatchsetTool.patchset_id == patchset.id)
-            .order_by(PatchsetToo.id)).all()
+            .order_by(PatchsetTool.id)).all()
 
     tool_details = lambda d: Markup(bleach.sanitizer.Cleaner(
             tags=["code", "a", "strong", "em"],
