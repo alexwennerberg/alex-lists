@@ -20,9 +20,12 @@ class Patchset(Base):
     prefix = sa.Column(sa.Unicode)
     version = sa.Column(sa.Integer, nullable=False)
 
+    # These 3 fields are used to help software reply to patchsets in an
+    # automated fashion
     submitter = sa.Column(sa.Unicode)
-    """From header of the submitter"""
-
+    """From header of the last patch"""
+    reply_to = sa.Column(sa.Unicode)
+    """Reply-To header of the last patch"""
     message_id = sa.Column(sa.Unicode)
     """Message ID of the last message in the patchset (for In-Reply-To)"""
 
@@ -53,6 +56,7 @@ class Patchset(Base):
             "version": self.version,
             "status": self.status.value,
             "submitter": self.submitter,
+            "reply_to": self.reply_to,
             "message_id": self.message_id,
             **({
                 "list": self.list.to_dict(short=True),
