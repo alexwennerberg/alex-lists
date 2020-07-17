@@ -85,7 +85,8 @@ def _forward(dest, mail):
             continue
     smtp.quit()
 
-patch_subject = re.compile(r".*\[PATCH( (?P<prefix>[^\]]+))?\] (?P<subject>.*)")
+patch_subject = re.compile(r".*\[(?:RFC )?PATCH"
+    r"( (?P<prefix>[^\]]+))?\] (?P<subject>.*)")
 patch_version = re.compile(r"(v(?P<version>[0-9]+))?"
     r"( ?(?P<index>[0-9]+)/(?P<count>[0-9]+))?$")
 
