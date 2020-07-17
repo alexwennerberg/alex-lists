@@ -206,7 +206,8 @@ def content_GET(owner_name, list_name):
     if ml.owner_id != current_user.id:
         abort(403)
     return render_template("settings-content.html",
-            view="content", ml=ml, owner=owner)
+            view="content", ml=ml, owner=owner,
+            always_reject=list(filter(None, cfg("lists.sr.ht::worker", "reject-mimetypes").split(","))))
 
 @settings.route("/<owner_name>/<list_name>/settings/content", methods=["POST"])
 @loginrequired

@@ -53,7 +53,18 @@
               rel="noopener"
               target="_blank"
             >fnmatch</a> for wildcards.
-            <code>text/html</code> is always rejected.
+            {% if always_reject|length != 0 %}
+              {% for mime_type in always_reject %}
+                <code>{{ mime_type }}</code>
+                {%- if not loop.last %}
+                  {%- if always_reject|length == 2 %} and
+                  {%- elif loop.revindex == 2 %}, and
+                  {%- else %},{% endif %}
+                {% endif %}
+              {% endfor %}
+              {{ "is" if always_reject|length == 1 else "are" }}
+              always rejected.
+            {% endif %}
           </p>
           {{ valid.summary("reject_mimetypes") }}
         </div>
