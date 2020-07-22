@@ -4,6 +4,7 @@ if not hasattr(db, "session"):
     db = DbSession(cfg("lists.sr.ht", "connection-string"))
     import listssrht.types
     db.init()
+from srht.email import start_smtp
 from listssrht.types import Email, List, User, Subscription, ListAccess
 from listssrht.types import Patchset
 
@@ -35,6 +36,7 @@ smtp_password = cfg("mail", "smtp-password", default=None)
 
 policy = email.policy.SMTPUTF8.clone(max_line_length=998)
 
+
 def _prep_mail(dest, mail):
     domain = cfg("lists.sr.ht", "posting-domain")
     list_name = "{}/{}".format(dest.owner.canonical_name, dest.name)
@@ -60,12 +62,7 @@ def _forward(dest, mail):
     mail = _prep_mail(dest, mail)
 
     # TODO: Encrypt emails
-    smtp = smtplib.SMTP(smtp_host, smtp_port)
-    smtp.ehlo()
-    smtp.starttls()
-    if smtp_user and smtp_password:
-        smtp.login(smtp_user, smtp_password)
-
+    smtp = start_smtp()
     froms = mail.get_all('From', [])
     tos = mail.get_all('To', [])
     ccs = mail.get_all('Cc', [])
@@ -320,11 +317,7 @@ Feel free to reply to this email if you have any questions.""".format(
     reply["Date"] = formatdate()
     reply["Message-ID"] = make_msgid()
     print(reply.as_string(unixfrom=True))
-    smtp = smtplib.SMTP(smtp_host, smtp_port)
-    smtp.ehlo()
-    smtp.starttls()
-    if smtp_user and smtp_password:
-        smtp.login(smtp_user, smtp_password)
+    smtp = start_smtp()
     smtp.send_message(reply, smtp_user, [sender[1]])
     smtp.quit()
     db.session.commit()
@@ -372,11 +365,7 @@ Feel free to reply to this email if you have any questions.""".format(
     reply["Date"] = formatdate()
     reply["Message-ID"] = make_msgid()
     print(reply.as_string(unixfrom=True))
-    smtp = smtplib.SMTP(smtp_host, smtp_port)
-    smtp.ehlo()
-    smtp.starttls()
-    if smtp_user and smtp_password:
-        smtp.login(smtp_user, smtp_password)
+    smtp = start_smtp()
     smtp.send_message(reply, smtp_user, [sender[1]])
     smtp.quit()
     db.session.commit()
@@ -415,11 +404,7 @@ def _configure_mirror(ml, mirror, mail):
     reply["Message-ID"] = make_msgid()
     reply["X-Mirroring-To"] = posting_domain
 
-    smtp = smtplib.SMTP(smtp_host, smtp_port)
-    smtp.ehlo()
-    smtp.starttls()
-    if smtp_user and smtp_password:
-        smtp.login(smtp_user, smtp_password)
+    smtp = start_smtp()
     smtp.send_message(reply, smtp_user, [sender[1]])
     smtp.quit()
     db.session.commit()
@@ -516,12 +501,8 @@ def send_error_for(mail, error):
     reply["Message-ID"] = make_msgid()
     reply["Auto-Submitted"] = "auto-replied"
     print(reply.as_string(unixfrom=True))
-    smtp = smtplib.SMTP(smtp_host, smtp_port)
-    smtp.ehlo()
-    smtp.starttls()
+    smtp = start_smtp()
     sender = parseaddr(mail["From"])
-    if smtp_user and smtp_password:
-        smtp.login(smtp_user, smtp_password)
     autosub = mail.get("auto-submitted")
     smtp.send_message(reply, smtp_user, [sender[1]])
     smtp.quit()
@@ -583,12 +564,7 @@ def forward_thread(list_id, thread_id, recipient):
         return
     dest = thread[0].list
 
-    smtp = smtplib.SMTP(smtp_host, smtp_port)
-    smtp.ehlo()
-    smtp.starttls()
-    if smtp_user and smtp_password:
-        smtp.login(smtp_user, smtp_password)
-
+    smtp = start_smtp()
     for message in thread:
         mail = email.message_from_string(message.envelope, policy=policy)
         mail = _prep_mail(dest, mail)
