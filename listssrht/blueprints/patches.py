@@ -195,7 +195,7 @@ def patchset(owner_name, list_name, patchset_id):
             tool_icon_to_class=tool_icon_to_class,
             tool_icon_to_icon=tool_icon_to_icon)
 
-@patches.route("/<owner_name>/<list_name>/patches/<patchset_id>/update",
+@patches.route("/<owner_name>/<list_name>/patches/<int:patchset_id>/update",
         methods=["POST"])
 @loginrequired
 def patchset_update(owner_name, list_name, patchset_id):
@@ -256,7 +256,7 @@ def format_mbox(msgs):
                 policy=email.policy.SMTPUTF8) + b'\r\n'
     return b
 
-@patches.route("/<owner_name>/<list_name>/patches/<patchset_id>/mbox")
+@patches.route("/<owner_name>/<list_name>/patches/<int:patchset_id>/mbox")
 def mbox(owner_name, list_name, patchset_id):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
