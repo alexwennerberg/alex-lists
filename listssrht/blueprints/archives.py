@@ -1,7 +1,8 @@
 from datetime import datetime
 from flask import Blueprint, render_template, abort, request, redirect, url_for
 from flask import Response, session
-from sqlalchemy import String, cast, or_
+from sqlalchemy import String, select, cast, or_
+from sqlalchemy.sql.functions import coalesce
 from srht.config import cfg
 from srht.database import db
 from srht.search import search_by
@@ -67,11 +68,35 @@ def apply_search(query, search):
         header = cast(Email.headers[name], String)
         return header.ilike(f"%{value}%")
 
-    def me_alias(header, value):
+    def user_alias(header, value):
         if current_user and value == "me":
             value = current_user.email
+        elif "@" not in value:
+            # SELECT email.subject, ... FROM "email"  -- from toplevel query
+            # WHERE ...
+            # AND CAST(email.headers -> 'From' AS VARCHAR)
+            #     ILIKE COALESCE((SELECT '%%' || "user".email || '%%' FROM "user"
+            #                             WHERE "user".username = 'zupa'),
+            #                            '%%zupa%%')
+            # AND CAST(email.headers -> 'Cc'   AS VARCHAR)
+            #     ILIKE COALESCE((SELECT '%%' || "user".email || '%%' FROM "user"
+            #                             WHERE "user".username = 'zeta'),
+            #                            '%%zeta%%')
+            # ORDER BY email.updated DESC;
+            #
+            # Try to find a user with the specified name,
+            # or default to fuzzy search if no such user exists
 
-        return header_filter(header, f"%{value}%")
+            username = value
+            if username.startswith("~"):
+                username = username[1:]
+
+            header = cast(Email.headers[header], String)
+            return header.ilike(coalesce(select(['%' + User.email + '%'])
+                    .where(User.username == username).as_scalar(),
+                    f"%{username}%"))
+
+        return header_filter(header, value)
 
     def patchset_status(value):
         status = getattr(PatchsetStatus, value, None)
@@ -87,9 +112,9 @@ def apply_search(query, search):
             "request-pull": Email.is_request_pull,
             "thread": Email.nreplies > 0,
         }.get(v, False),
-        "from": lambda v: me_alias("From", v),
-        "to": lambda v: me_alias("To", v),
-        "cc": lambda v: me_alias("Cc", v),
+        "from": lambda v: user_alias("From", v),
+        "to": lambda v: user_alias("To", v),
+        "cc": lambda v: user_alias("Cc", v),
         "status": patchset_status,
         "prefix": lambda v: Email.patchset.has(Patchset.prefix == v),
         "sender-timestamp": lambda v: (
