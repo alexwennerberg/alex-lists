@@ -184,9 +184,9 @@ def _archive(dest, envelope):
     reply_to = envelope["In-Reply-To"]
     if reply_to:
         reply_to = reply_to.strip()
-    if "(" in reply_to:
-        # Strip out obsolete In-Reply-To syntax used by e.g. gnus
-        reply_to = reply_to.split("(")[0].rstrip()
+        if "(" in reply_to:
+            # Strip out obsolete In-Reply-To syntax used by e.g. gnus
+            reply_to = reply_to.split("(")[0].rstrip()
 
     db.session.add(mail)
     db.session.flush() # obtain an ID for this email
