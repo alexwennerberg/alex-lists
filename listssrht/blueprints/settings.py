@@ -7,7 +7,7 @@ from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from listssrht.blueprints.archives import get_list
 from listssrht.types import Access, Email, List, ListAccess, User
-from listssrht.process import import_mbox
+from listssrht.process import import_mbox, delete_list
 from listssrht.webhooks import ListWebhook
 import base64
 import email
@@ -314,9 +314,6 @@ def delete_POST(owner_name, list_name):
         abort(404)
     if ml.owner_id != current_user.id:
         abort(403)
-    session["notice"] = f"{ml.name} was deleted."
-    ListWebhook.deliver(ListWebhook.Events.list_delete,
-            ml.to_dict(), ListWebhook.Subscription.list_id == ml.id)
-    db.engine.execute(f"DELETE FROM list WHERE id = {ml.id};")
-    db.session.commit()
+    session["notice"] = f"{ml.name} is being deleted. This may take a few minutes."
+    delete_list.delay(ml.id)
     return redirect(url_for("user.index"))
