@@ -25,6 +25,7 @@ from email.mime.text import MIMEText
 from email.utils import parseaddr, getaddresses, formatdate, make_msgid
 from email.utils import parsedate_to_datetime
 from sqlalchemy import or_
+from srht.email import mail_exception
 from urllib.parse import quote
 
 dispatch = Celery("lists.sr.ht", broker=cfg("lists.sr.ht", "redis"))
@@ -35,6 +36,21 @@ smtp_user = cfg("mail", "smtp-user", default=None)
 smtp_password = cfg("mail", "smtp-password", default=None)
 
 policy = email.policy.SMTPUTF8.clone(max_line_length=998)
+
+
+def task(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as ex:
+            mail_exception(ex, context="lists.sr.ht-process")
+            try:
+                db.session.rollback()
+            except:
+                pass
+            return
+    wrapper.__name__ = func.__name__
+    return dispatch.task(wrapper)
 
 
 def _prep_mail(dest, mail):
@@ -440,7 +456,7 @@ def _mirror(ml, mail):
 
     return _archive(ml, mail)
 
-@dispatch.task
+@task
 def dispatch_message(address, list_id, mail):
     address = address[:address.rfind("@")]
     command = "post"
@@ -482,7 +498,7 @@ def dispatch_message(address, list_id, mail):
         db.session.rollback()
         raise
 
-@dispatch.task
+@task
 def send_error_for(mail, error):
     # Instead of letting postfix send an unfriendly bounce message, for some
     # errors we send our own bounce message which is a little easier to
@@ -510,7 +526,7 @@ def send_error_for(mail, error):
     smtp.send_message(reply, smtp_user, [sender[1]])
     smtp.quit()
 
-@dispatch.task
+@task
 def import_mbox(spool, list_id):
     ml = List.query.filter(List.id == list_id).one_or_none()
     if not ml:
@@ -557,7 +573,7 @@ def import_mbox(spool, list_id):
     ml.import_in_progress = False
     db.session.commit()
 
-@dispatch.task
+@task
 def forward_thread(list_id, thread_id, recipient):
     thread = (Email.query
             .filter(or_(Email.thread_id == thread_id, Email.id == thread_id))
@@ -578,7 +594,7 @@ def forward_thread(list_id, thread_id, recipient):
 
     smtp.quit()
 
-@dispatch.task
+@task
 def delete_list(list_id):
     from listssrht.webhooks import ListWebhook
     ml = List.query.filter(List.id == list_id).one_or_none()
