@@ -517,6 +517,8 @@ def send_error_for(mail, error):
     autosub = mail.get("auto-submitted")
     if autosub == "auto-generated" or autosub == "auto-replied":
         return # disregard automatic emails like OOO replies
+    if not mail["From"]:
+        return # not much we can do with this
     reply = MIMEText(error)
     posting_domain = cfg("lists.sr.ht", "posting-domain")
     reply["To"] = mail["From"]
@@ -532,7 +534,6 @@ def send_error_for(mail, error):
     print(reply.as_string(unixfrom=True))
     smtp = start_smtp()
     sender = parseaddr(mail["From"])
-    autosub = mail.get("auto-submitted")
     smtp.send_message(reply, smtp_user, [sender[1]])
     smtp.quit()
 
