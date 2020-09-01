@@ -277,11 +277,21 @@ def _subscribe(dest, mail):
         sub = Subscription.query.filter(
             Subscription.list_id == dest.id,
             Subscription.user_id == user.id).one_or_none()
+        access = (Access.query
+                .filter(Access.list_id == dest.id)
+                .filter(Access.user_id == user.id)).one_or_none()
+        if access:
+            perms = access.permissions
     else:
         perms = dest.nonsubscriber_permissions
         sub = Subscription.query.filter(
             Subscription.list_id == dest.id,
             Subscription.email == sender[1]).one_or_none()
+        access = (Access.query
+                .filter(Access.list_id == dest.id)
+                .filter(Access.email == sender[1])).one_or_none()
+        if access:
+            perms = access.permissions
 
     list_addr = dest.owner.canonical_name + "/" + dest.name
     message = None
