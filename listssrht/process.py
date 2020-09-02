@@ -277,9 +277,9 @@ def _subscribe(dest, mail):
         sub = Subscription.query.filter(
             Subscription.list_id == dest.id,
             Subscription.user_id == user.id).one_or_none()
-        access = (Access.query
-                .filter(Access.list_id == dest.id)
-                .filter(Access.user_id == user.id)).one_or_none()
+        access = (ListAccess.query
+                .filter(ListAccess.list_id == dest.id)
+                .filter(ListAccess.user_id == user.id)).one_or_none()
         if access:
             perms = access.permissions
     else:
@@ -287,9 +287,9 @@ def _subscribe(dest, mail):
         sub = Subscription.query.filter(
             Subscription.list_id == dest.id,
             Subscription.email == sender[1]).one_or_none()
-        access = (Access.query
-                .filter(Access.list_id == dest.id)
-                .filter(Access.email == sender[1])).one_or_none()
+        access = (ListAccess.query
+                .filter(ListAccess.list_id == dest.id)
+                .filter(ListAccess.email == sender[1])).one_or_none()
         if access:
             perms = access.permissions
 
