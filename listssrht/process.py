@@ -94,7 +94,9 @@ def _forward(dest, mail):
         print("Forwarding message to " + to)
         try:
             smtp.send_message(mail, smtp_user, [to])
-        except:
+        except Exception as ex:
+            print(ex)
+            print("(continuing)")
             continue
     smtp.quit()
 
@@ -347,7 +349,11 @@ Feel free to reply to this email if you have any questions.""".format(
     reply["Message-ID"] = make_msgid()
     print(reply.as_string(unixfrom=True))
     smtp = start_smtp()
-    smtp.send_message(reply, smtp_user, [sender[1]])
+    try:
+        smtp.send_message(reply, smtp_user, [sender[1]])
+    except Exception as ex:
+        print(ex)
+        print("(continuing)")
     smtp.quit()
     db.session.commit()
 
@@ -395,7 +401,11 @@ Feel free to reply to this email if you have any questions.""".format(
     reply["Message-ID"] = make_msgid()
     print(reply.as_string(unixfrom=True))
     smtp = start_smtp()
-    smtp.send_message(reply, smtp_user, [sender[1]])
+    try:
+        smtp.send_message(reply, smtp_user, [sender[1]])
+    except Exception as ex:
+        print(ex)
+        print("(continuing)")
     smtp.quit()
     db.session.commit()
 
@@ -434,7 +444,11 @@ def _configure_mirror(ml, mirror, mail):
     reply["X-Mirroring-To"] = posting_domain
 
     smtp = start_smtp()
-    smtp.send_message(reply, smtp_user, [sender[1]])
+    try:
+        smtp.send_message(reply, smtp_user, [sender[1]])
+    except Exception as ex:
+        print(ex)
+        print("(continuing)")
     smtp.quit()
     db.session.commit()
 
@@ -534,7 +548,10 @@ def send_error_for(mail, error):
     print(reply.as_string(unixfrom=True))
     smtp = start_smtp()
     sender = parseaddr(mail["From"])
-    smtp.send_message(reply, smtp_user, [sender[1]])
+    try:
+        smtp.send_message(reply, smtp_user, [sender[1]])
+    except Exception as ex:
+        print(ex)
     smtp.quit()
 
 @task
@@ -600,7 +617,9 @@ def forward_thread(list_id, thread_id, recipient):
         mail = _prep_mail(dest, mail)
         try:
             smtp.send_message(mail, smtp_user, [recipient])
-        except:
+        except Exception as ex:
+            print(ex)
+            print("(continuing)")
             continue
 
     smtp.quit()
