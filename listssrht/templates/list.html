@@ -12,7 +12,7 @@
     <h2>
       <a href="{{
         url_for('user.user_profile', username=owner.username)
-      }}">{{ owner.canonical_name }}</a>/{{ ml.name }}
+      }}">{{ owner.canonical_name }}</a>/<wbr>{{ ml.name }}
       {% if ml.mirror_id %}
       <small class="text-muted">(mirror)</small>
       {% endif %}
