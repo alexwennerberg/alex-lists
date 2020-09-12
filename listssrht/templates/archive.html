@@ -114,18 +114,24 @@
         {% endif %}
       </form>
       {% endif %}
+
       {% if ml.import_in_progress %}
       <div class="alert alert-primary">
         An import operation is currently in progress.
       </div>
       {% endif %}
+
       {% if any(threads) %}
+      {% if view == "archives" %}
+      <div class="event-list">
+      {% elif view == "patches" %}
       <form
         class="event-list"
         method="POST"
         action="{{url_for('patches.patchset_bulk_update',
           owner_name=owner.canonical_name, list_name=ml.name)}}"
       >
+      {% endif %}
         {% for message in threads %}
         <div class="event archive-entry">
           <h4>
@@ -231,7 +237,11 @@
           >Bulk update {{icon('caret-right')}}</button>
         </div>
         {% endif %}
+      {% if view == "archives" %}
+      </div>
+      {% elif view == "patches" %}
       </form>
+      {% endif %}
       {{ pagination() }}
       {% elif ml.mirror_id and not ml.mirror.configured %}
       {% if ml.mirror.configure_attempts >= 2 %}
