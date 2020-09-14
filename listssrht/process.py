@@ -20,7 +20,7 @@ import re
 import smtplib
 import tempfile
 from celery import Celery
-from datetime import datetime
+from datetime import datetime, timezone
 from email.mime.text import MIMEText
 from email.utils import parseaddr, getaddresses, formatdate, make_msgid
 from email.utils import parsedate_to_datetime
@@ -590,7 +590,7 @@ def import_mbox(spool, list_id):
                 date = parsedate_to_datetime(date)
                 if not date:
                     continue
-                date = date.replace(tzinfo=None)
+                date = date.astimezone(timezone.utc)
                 mail.created = date
                 mail.updated = date
                 db.session.commit()
