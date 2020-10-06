@@ -25,8 +25,8 @@
         Delete {{ml.name}} {{icon("caret-right")}}
       </button>
       <a
-        href={{url_for("archives.archive",
-          owner_name=owner.canonical_name, list_name=ml.name)}}""
+        href="{{url_for("archives.archive",
+          owner_name=owner.canonical_name, list_name=ml.name)}}"
         class="btn btn-default"
       >Nevermind</a>
     </form>
