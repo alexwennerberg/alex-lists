@@ -143,6 +143,7 @@ def patchset(owner_name, list_name, patchset_id):
     if not patchset:
         abort(404)
     thread = Email.query.filter(Email.patchset_id == patchset_id).first()
+    assert thread, f"Patchset {patchset_id} found without any corresponding emails"
     thread = thread.thread if thread.thread_id else thread
     patches = (Email.query
             .filter(or_(Email.thread_id == thread.id, Email.id == thread.id))
