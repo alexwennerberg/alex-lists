@@ -7,6 +7,12 @@ from srht.database import Base
 class Email(Base):
     __tablename__ = 'email'
     _no_autoupdate = True
+
+    __table_args__ = (
+        sa.UniqueConstraint("list_id", "message_id",
+            name="uq_email_list_message_id"),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True)
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
