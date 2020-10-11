@@ -199,7 +199,7 @@ def archive(owner_name, list_name):
             parseaddr=email.utils.parseaddr,
             message=message, **pagination)
 
-@archives.route("/<owner_name>/<list_name>/<message_id>")
+@archives.route("/<owner_name>/<list_name>/<path:message_id>")
 def thread(owner_name, list_name, message_id):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
@@ -245,7 +245,7 @@ def thread(owner_name, list_name, message_id):
             reply_to=reply_to,
             user_message=user_message)
 
-@archives.route("/<owner_name>/<list_name>/<message_id>/raw")
+@archives.route("/<owner_name>/<list_name>/<path:message_id>/raw")
 def raw(owner_name, list_name, message_id):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
@@ -267,7 +267,7 @@ def format_mbox(msg):
         b += format_mbox(reply)
     return b
 
-@archives.route("/<owner_name>/<list_name>/<message_id>/mbox")
+@archives.route("/<owner_name>/<list_name>/<path:message_id>/mbox")
 def mbox(owner_name, list_name, message_id):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
@@ -283,7 +283,7 @@ def mbox(owner_name, list_name, message_id):
     mbox = format_mbox(thread)
     return Response(mbox, mimetype='application/mbox')
 
-@archives.route("/<owner_name>/<list_name>/<message_id>/remove", methods=["POST"])
+@archives.route("/<owner_name>/<list_name>/<path:message_id>/remove", methods=["POST"])
 @loginrequired
 def remove_message(owner_name, list_name, message_id):
     owner, ml, access = get_list(owner_name, list_name)
@@ -354,7 +354,7 @@ def unsubscribe(owner_name, list_name):
     return redirect(url_for("archives.archive",
         owner_name=owner_name, list_name=list_name))
 
-@archives.route("/<owner_name>/<list_name>/forward/<message_id>", methods=["POST"])
+@archives.route("/<owner_name>/<list_name>/forward/<path:message_id>", methods=["POST"])
 @loginrequired
 def forward(owner_name, list_name, message_id):
     owner, ml, access = get_list(owner_name, list_name)
