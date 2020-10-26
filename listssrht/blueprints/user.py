@@ -120,7 +120,6 @@ def create_list_POST():
     sub = Subscription()
     sub.user_id = current_user.id
     sub.list_id = ml.id
-    sub.confirmed = True
     db.session.add(sub)
     db.session.commit()
 
