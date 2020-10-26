@@ -1,7 +1,7 @@
 from flask import Blueprint, abort, request
 from listssrht.blueprints.api import get_user, get_list
 from listssrht.blueprints.archives import apply_search
-from listssrht.types import List, Email, ListAccess
+from listssrht.types import List, Email, ListAccess, Subscription
 from listssrht.webhooks import ListWebhook, UserWebhook
 from sqlalchemy import or_
 from srht.api import paginated_response
@@ -36,6 +36,14 @@ def user_lists_POST():
     UserWebhook.deliver(UserWebhook.Events.list_create,
             ml.to_dict(), UserWebhook.Subscription.user_id == ml.owner_id)
     db.session.commit()
+
+    # Auto-subscribe the owner
+    sub = Subscription()
+    sub.user_id = user.id
+    sub.list_id = ml.id
+    db.session.add(sub)
+    db.session.commit()
+
     return ml.to_dict(), 201
 
 @lists.route("/api/user/<username>/lists/<list_name>")
