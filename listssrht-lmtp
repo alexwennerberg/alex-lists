@@ -263,7 +263,7 @@ class MailHandler:
 
         fetch_user_by_email = await self.fetch_user_by_email(conn)
         _from = parseaddr(mail["From"])
-        user_id, user_type = await fetch_user_by_email.fetchval(_from[1])
+        (user_id, user_type) = await fetch_user_by_email.fetchval(_from[1])
         if user_type == "suspended":
             return "500 Rejected. Your account has been suspended. Contact support."
 
