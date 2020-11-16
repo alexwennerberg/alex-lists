@@ -102,7 +102,7 @@ class MailHandler:
 
     async def fetch_user_by_email(self, conn):
         return await conn.prepare(
-                '''SELECT "id", "user_type" FROM "user"
+                '''SELECT "id" FROM "user"
                    WHERE email = $1''')
 
     async def fetch_list(self, conn):
@@ -263,9 +263,7 @@ class MailHandler:
 
         fetch_user_by_email = await self.fetch_user_by_email(conn)
         _from = parseaddr(mail["From"])
-        user_id, user_type = await fetch_user_by_email.fetchval(_from[1])
-        if user_type == "suspended":
-            return "500 Rejected. Your account has been suspended. Contact support."
+        user_id = await fetch_user_by_email.fetchval(_from[1])
 
         fetch_acl_by_user = await self.fetch_acl_by_user(conn)
         fetch_acl_by_email = await self.fetch_acl_by_email(conn)
