@@ -333,10 +333,12 @@ async def create_server():
         def serve():
             return LMTP(handler, enable_SMTPUTF8=True)
     if "/" in sock:
-        sock_gid = getgrnam(cfg("lists.sr.ht::worker", "sock-group")).gr_gid
         await loop.create_unix_server(serve, path=sock)
         os.chmod(sock, 0o775)
-        os.chown(sock, os.getuid(), sock_gid)
+        sock_group = cfg("lists.sr.ht::worker", "sock-group", default=None)
+        if sock_group != None:
+            sock_gid = getgrnam(sock_group).gr_gid
+            os.chown(sock, os.getuid(), sock_gid)
         print("Accepting LMTP connections")
     else:
         host, port = sock.split(":")
