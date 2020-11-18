@@ -179,12 +179,6 @@
   <div class="row">
     <div class="col-md-6 offset-md-6">
       <div class="form-group">
-        {% if thread.patchset_id %}
-        <a class="btn btn-success btn-block" href="{{ url_for('patches.patchset',
-          owner_name=owner.canonical_name, list_name=ml.name,
-          patchset_id=thread.patchset_id) }}"
-        >Review patch {{icon('caret-right')}}</a>
-        {% endif %}
         <a class="btn btn-primary btn-block"
           href="{{reply_to(thread.replies[-1] if thread.replies else thread)}}"
         >Reply to thread {{icon('caret-right')}}</a>
