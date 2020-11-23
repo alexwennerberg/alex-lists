@@ -9,10 +9,11 @@
       </p>
       <form
         method="POST"
-        action="{{url_for("settings.export_POST",
+        action="{{url_for("archives.export_archive",
           owner_name=owner.canonical_name, list_name=ml.name)}}"
       >
         {{csrf_token()}}
+        <input type="hidden" name="days" value="-1" />
         <button class="btn btn-primary">
           Export mail spool {{icon("caret-right")}}
         </button>

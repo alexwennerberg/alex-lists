@@ -11,9 +11,6 @@ from listssrht.process import import_mbox, delete_list
 from listssrht.webhooks import ListWebhook
 import base64
 import email
-import hashlib
-import mailbox
-import os
 
 settings = Blueprint("settings", __name__)
 
@@ -236,36 +233,6 @@ def import_export_GET(owner_name, list_name):
         abort(403)
     return render_template("settings-import-export.html",
             view="import/export", ml=ml, owner=owner)
-
-@settings.route("/<owner_name>/<list_name>/settings/export", methods=["POST"])
-@loginrequired
-def export_POST(owner_name, list_name):
-    owner, ml, access = get_list(owner_name, list_name)
-    if not ml:
-        abort(404)
-    if ml.owner_id != current_user.id:
-        abort(403)
-
-    sha = hashlib.sha256()
-    sha.update(f"{owner_name}/{list_name}".encode())
-    digest = sha.hexdigest()
-    export_dir = cfg('lists.sr.ht', 'export-directory', default='/tmp') 
-    path = f"/{export_dir}/{digest}.mbox"
-
-    mbox = mailbox.mbox(path)
-    for message in (Email.query
-            .filter(Email.list_id == ml.id)
-            .order_by(Email.created)).all():
-        try:
-            mbox.add(message.parsed())
-        except:
-            continue # plow on forward
-    mbox.close()
-
-    f = open(path, "rb")
-    os.unlink(path)
-    return send_file(f, as_attachment=True,
-            attachment_filename=f"{owner.username}-{list_name}.mbox")
 
 @settings.route("/<owner_name>/<list_name>/settings/import", methods=["POST"])
 @loginrequired

@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, render_template, abort, request, redirect, url_for
-from flask import Response, session
+from flask import Response, session, send_file
 from sqlalchemy import String, select, cast, or_
 from sqlalchemy.sql.functions import coalesce
 from srht.config import cfg
@@ -18,6 +18,9 @@ from urllib.parse import quote, urlencode
 import email
 import email.policy
 import email.utils
+import hashlib
+import mailbox
+import os
 
 archives = Blueprint("archives", __name__)
 
@@ -376,3 +379,44 @@ def forward(owner_name, list_name, message_id):
     return redirect(url_for("archives.thread",
             owner_name=owner_name, list_name=list_name,
             message_id=message_id))
+
+@archives.route("/<owner_name>/<list_name>/export", methods=["POST"])
+def export_archive(owner_name, list_name):
+    owner, ml, access = get_list(owner_name, list_name)
+    if not ml:
+        abort(404)
+    if ListAccess.browse not in access:
+        abort(403)
+
+    days = request.form.get("days")
+    if not days:
+        abort(400)
+    try:
+        days = int(days)
+    except:
+        abort(400)
+
+    sha = hashlib.sha256()
+    sha.update(os.urandom(24))
+    digest = sha.hexdigest()
+    export_dir = cfg('lists.sr.ht', 'export-directory', default='/tmp')
+    path = f"/{export_dir}/{digest}.mbox"
+
+    mbox = mailbox.mbox(path)
+    query = (Email.query
+            .filter(Email.list_id == ml.id)
+            .order_by(Email.created))
+    if days > 0:
+        query = query.filter(Email.created >
+                datetime.utcnow() - timedelta(days=days))
+    for message in query.all():
+        try:
+            mbox.add(message.parsed())
+        except:
+            continue # plow on forward
+    mbox.close()
+
+    f = open(path, "rb")
+    os.unlink(path)
+    return send_file(f, as_attachment=True,
+            attachment_filename=f"{owner.username}-{list_name}.mbox")

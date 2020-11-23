@@ -1,75 +1,41 @@
 {% extends "list-full.html" %}
 {% block content %}
 <div class="container-fluid">
-  <div class="row">
+  <div class="row" style="margin-bottom: 1rem">
     {% if view == "archives" %}
-    <div class="col-lg-3">
+    <div class="col-lg-3 sidebar d-flex flex-column">
       {% if ml.description %}
       {{ml.description | md}}
       {% endif %}
-      <p>
-        {% if current_user and not ml.mirror_id %}
 
-        {% if subscription %}
-        <form method="POST" action="{{url_for("archives.unsubscribe",
-              owner_name=owner.canonical_name, list_name=ml.name) }}">
-          {{csrf_token()}}
-          {% if ListAccess.post in access %}
-          <a
-            href="mailto:{{ post_address(ml) }}"
-            class="btn btn-primary btn-block"
-          >New post {{icon("caret-right")}}</a>
-          {% endif %}
-          <button class="btn btn-default btn-block">
-            Unsubscribe {{icon("caret-right")}}
-          </button>
-        </form>
-        {% else %}
-        <form method="POST" action="{{url_for("archives.subscribe",
-              owner_name=owner.canonical_name, list_name=ml.name) }}">
-          {{csrf_token()}}
-          {% if ListAccess.browse in access %}
-          <button class="btn btn-primary btn-block">
-            Subscribe {{icon("caret-right")}}
-          </button>
-          {% endif %}
-          {% if ListAccess.post in access %}
-          <a
-            href="mailto:{{ post_address(ml) }}"
-            class="
-              btn btn-block
-              {% if ListAccess.browse not in access %}
-              btn-primary
-              {% else %}
-              btn-default
-              {% endif %}
-            "
-          >New post {{icon("caret-right")}}</a>
-          {% endif %}
-        </form>
-        {% endif %}
+      {% if current_user and not ml.mirror_id %}
 
-        {% else %}
-        {% set subscribe_address = post_address(ml, suffix="+subscribe") %}
-        {% set posting_address = post_address(ml) %}
-
-        {% if subscribe_address and ListAccess.browse in access %}
+      {% if subscription %}
+      <form method="POST" action="{{url_for("archives.unsubscribe",
+            owner_name=owner.canonical_name, list_name=ml.name) }}">
+        {{csrf_token()}}
+        {% if ListAccess.post in access %}
         <a
-          {% if subscribe_address.startswith("mailto:") %}
-          href="{{subscribe_address}}"
-          {% else %}
-          href="mailto:{{subscribe_address}}"
-          {% endif %}
+          href="mailto:{{ post_address(ml) }}"
           class="btn btn-primary btn-block"
-        >Subscribe {{icon("caret-right")}}</a>
+        >New post {{icon("caret-right")}}</a>
         {% endif %}
-        {% if ListAccess.post in access and posting_address %}
+        <button class="btn btn-default btn-block">
+          Unsubscribe {{icon("caret-right")}}
+        </button>
+      </form>
+      {% else %}
+      <form method="POST" action="{{url_for("archives.subscribe",
+            owner_name=owner.canonical_name, list_name=ml.name) }}">
+        {{csrf_token()}}
+        {% if ListAccess.browse in access %}
+        <button class="btn btn-primary btn-block">
+          Subscribe {{icon("caret-right")}}
+        </button>
+        {% endif %}
+        {% if ListAccess.post in access %}
         <a
-          {% if posting_address.startswith("mailto:") %}
-          href="{{posting_address}}"
-          {% else %}
-          href="mailto:{{posting_address}}"
-          {% endif %}
+          href="mailto:{{ post_address(ml) }}"
           class="
             btn btn-block
             {% if ListAccess.browse not in access %}
@@ -80,17 +46,76 @@
           "
         >New post {{icon("caret-right")}}</a>
         {% endif %}
+      </form>
+      {% endif %}
+
+      {% else %}
+      {% set subscribe_address = post_address(ml, suffix="+subscribe") %}
+      {% set posting_address = post_address(ml) %}
+
+      {% if subscribe_address and ListAccess.browse in access %}
+      <a
+        {% if subscribe_address.startswith("mailto:") %}
+        href="{{subscribe_address}}"
+        {% else %}
+        href="mailto:{{subscribe_address}}"
         {% endif %}
-      </p>
+        class="btn btn-primary btn-block"
+      >Subscribe {{icon("caret-right")}}</a>
+      {% endif %}
+      {% if ListAccess.post in access and posting_address %}
+      <a
+        {% if posting_address.startswith("mailto:") %}
+        href="{{posting_address}}"
+        {% else %}
+        href="mailto:{{posting_address}}"
+        {% endif %}
+        class="
+          btn btn-block
+          {% if ListAccess.browse not in access %}
+          btn-primary
+          {% else %}
+          btn-default
+          {% endif %}
+        "
+      >New post {{icon("caret-right")}}</a>
+      {% endif %}
+      {% endif %}
+
       {% if ListAccess.post in access %}
-      <p class="alert alert-info">
+      <div class="alert alert-info">
         Please review our
         <a href="https://man.sr.ht/lists.sr.ht/etiquette.md">
           mailing list etiquette</a>
         guide and ensure your email client is correctly configured before
         posting. Thanks!
-      </p>
+      </div>
       {% endif %}
+      <form
+        class="mt-auto d-none d-lg-block"
+        method="POST"
+        action="{{url_for("archives.export_archive",
+          owner_name=owner.canonical_name, list_name=ml.name)}}"
+      >
+        {{csrf_token()}}
+        <h4>Download mailing list archive</h4>
+        <button
+          type="submit"
+          name="days"
+          value="30"
+          class="btn btn-block btn-default"
+        >Last 30 days {{icon('caret-right')}}</button>
+        <button
+          type="submit"
+          name="days"
+          value="-1"
+          class="btn btn-block btn-default"
+        >Entire archive {{icon('caret-right')}}</button>
+        <small class="text-muted">
+          Mailing list archives are exported as an mbox file. Individual
+          threads can be exported from their respective pages.
+        </small>
+      </form>
     </div>
     <div class="col-lg-9">
     {% else %}
@@ -123,13 +148,14 @@
 
       {% if any(threads) %}
       {% if view == "archives" %}
-      <div class="event-list">
+      <div class="event-list" style="margin-bottom: 0">
       {% elif view == "patches" %}
       <form
         class="event-list"
         method="POST"
         action="{{url_for('patches.patchset_bulk_update',
           owner_name=owner.canonical_name, list_name=ml.name)}}"
+        style="margin-bottom: 0"
       >
       {% endif %}
         {% for message in threads %}
@@ -242,8 +268,9 @@
       {% elif view == "patches" %}
       </form>
       {% endif %}
-      {{ pagination() }}
+
       {% elif ml.mirror_id and not ml.mirror.configured %}
+
       {% if ml.mirror.configure_attempts >= 2 %}
       <div class="alert alert-danger">
         There was a problem configuring this mirror. Please
@@ -272,6 +299,42 @@
         This list has restricted browsing, you cannot view the archives.
       </div>
       {% endif %}
+    </div>
+  </div>
+  <div class="row">
+    {% if view == "archives" %}
+    <div class="col-lg-3 order-md-2 order-lg-1">
+      <form
+        class="d-lg-none"
+        method="POST"
+        action="{{url_for("archives.export_archive",
+          owner_name=owner.canonical_name, list_name=ml.name)}}"
+      >
+        {{csrf_token()}}
+        <h4>Download mailing list archive</h4>
+        <button
+          type="submit"
+          name="days"
+          value="30"
+          class="btn btn-block btn-default"
+        >Last 30 days {{icon('caret-right')}}</button>
+        <button
+          type="submit"
+          name="days"
+          value="-1"
+          class="btn btn-block btn-default"
+        >Entire archive {{icon('caret-right')}}</button>
+        <small class="text-muted">
+          Mailing list archives are exported as an mbox file. Individual
+          threads can be exported from their respective pages.
+        </small>
+      </form>
+    </div>
+    <div class="col-lg-9 order-lg-2">
+    {% else %}
+    <div class="col-lg-12">
+    {% endif %}
+      {{ pagination() }}
     </div>
   </div>
 </div>
