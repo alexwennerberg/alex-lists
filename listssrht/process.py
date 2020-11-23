@@ -37,7 +37,6 @@ smtp_password = cfg("mail", "smtp-password", default=None)
 
 policy = email.policy.SMTPUTF8.clone(max_line_length=998)
 
-
 def task(func):
     def wrapper(*args, **kwargs):
         try:
@@ -51,7 +50,6 @@ def task(func):
             return
     wrapper.__name__ = func.__name__
     return dispatch.task(wrapper)
-
 
 def _prep_mail(dest, mail):
     domain = cfg("lists.sr.ht", "posting-domain")
@@ -173,6 +171,30 @@ def _import_patch(thread, mail, envelope):
     # TODO: identify patchset that this supersedes, if appropriate
     return patchset
 
+def _update_patchset_status(dest, sender, patchset, status):
+    if isinstance(sender, str):
+        acl = next((acl for acl in dest.acls if acl.email == sender), None)
+    else:
+        acl = next((acl for acl in dest.acls if acl.user_id == sender.id), None)
+
+    if isinstance(sender, User) and sender.id == dest.owner_id:
+        access = ListAccess.all
+    elif acl:
+        access = acl.permissions
+    elif isinstance(sender, User) and (Subscription.query
+            .filter(Subscription.user_id == sender.id)).count():
+        access = dest.subscriber_permissions | dest.account_permissions
+    else:
+        access = (dest.account_permissions
+                if isinstance(sender, User) else dest.nonsubscriber_permissions)
+
+    if ListAccess.moderate not in access:
+        print("Patchset update requested, but user has insufficient permissions")
+        return
+
+    print("Patchset update requested: " + status.value)
+    patchset.status = status
+
 def _archive(dest, envelope):
     mail = Email()
     # TODO: Use message date within a tolerance from now
@@ -257,6 +279,8 @@ def _archive(dest, envelope):
             status = PatchsetStatus.unknown
         else:
             status = patchset.status
+        # TODO: Consider adding another header in _forward which states whether
+        # or not the recipient is allowed to update the patchset
         envelope["X-Sourcehut-Patchset-Status"] = status.value.upper()
 
     # TODO: Enumerate CC's and create SQL relationships for them
@@ -265,6 +289,19 @@ def _archive(dest, envelope):
     sender = User.query.filter(User.email == sender[1]).one_or_none()
     if sender:
         mail.sender_id = sender.id
+    else:
+        sender = parseaddr(envelope["From"])[1]
+
+    if not mail.is_patch and thread.patchset != None:
+        patchset = thread.patchset
+        update = envelope["X-Sourcehut-Patchset-Update"]
+        if update:
+            try:
+                status = PatchsetStatus(update.lower())
+                _update_patchset_status(dest, sender, patchset, status)
+            except:
+                pass
+
     print("Archived {} with ID {}".format(mail.subject, mail.id))
     return mail, envelope
 
