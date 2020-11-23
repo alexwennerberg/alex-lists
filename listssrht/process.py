@@ -6,7 +6,7 @@ if not hasattr(db, "session"):
     db.init()
 from srht.email import start_smtp
 from listssrht.types import Email, List, User, Subscription, ListAccess, Access
-from listssrht.types import Patchset
+from listssrht.types import Patchset, PatchsetStatus
 
 import base64
 import email
@@ -129,9 +129,9 @@ def _import_patch(thread, mail, envelope):
     print(f"Received patch {index}/{count}: {subject}")
     if not all(any(m for m in thread
             if m.patch_index == i) for i in range(1, count+1)):
-        return
+        return None
     if any(m.patchset_id for m in thread):
-        return # TODO: is this a new revision? complicated
+        return None # TODO: is this a new revision? complicated
     print("Complete patchset received")
 
     def is_cover(m):
@@ -150,6 +150,7 @@ def _import_patch(thread, mail, envelope):
     patchset.submitter = envelope["From"]
     patchset.message_id = envelope["Message-ID"].strip()
     patchset.reply_to = envelope["Reply-To"]
+    patchset.status = PatchsetStatus.proposed
 
     subject = cover_letter.subject if cover_letter else thread[0].subject
     match = patch_subject.match(subject)
@@ -251,7 +252,12 @@ def _archive(dest, envelope):
     if not mail in thread_members:
         thread.append(mail)
     if mail.is_patch:
-        _import_patch(thread_members, mail, envelope)
+        patchset = _import_patch(thread_members, mail, envelope)
+        if not patchset:
+            status = PatchsetStatus.unknown
+        else:
+            status = patchset.status
+        envelope["X-Sourcehut-Patchset-Status"] = status.value.upper()
 
     # TODO: Enumerate CC's and create SQL relationships for them
     # TODO: Some users will have many email addresses
@@ -260,7 +266,7 @@ def _archive(dest, envelope):
     if sender:
         mail.sender_id = sender.id
     print("Archived {} with ID {}".format(mail.subject, mail.id))
-    return mail
+    return mail, envelope
 
 def _webhooks(dest, mail):
     from listssrht.webhooks import UserWebhook, ListWebhook
@@ -506,11 +512,11 @@ def dispatch_message(address, list_id, mail):
 
             list_id = mail.get("List-ID")
             if dest.mirror_id or list_id:
-                archived = _mirror(dest, mail)
+                archived, mail = _mirror(dest, mail)
                 _webhooks(dest, archived)
                 db.session.commit()
             else:
-                archived = _archive(dest, mail)
+                archived, mail = _archive(dest, mail)
                 _webhooks(dest, archived)
                 db.session.commit()
                 _forward(dest, mail)
@@ -583,7 +589,7 @@ def import_mbox(spool, list_id):
                         .filter(Email.list_id == ml.id)).count()
                 if existing != 0:
                     continue # Drop messages with a duplicate message ID
-                mail = _archive(ml, msg)
+                mail, _ = _archive(ml, msg)
                 date = msg.get("Date")
                 if not date:
                     continue

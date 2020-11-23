@@ -4,6 +4,7 @@ from enum import Enum
 from srht.database import Base
 
 class PatchsetStatus(Enum):
+    unknown = "unknown"
     proposed = "proposed"
     needs_revision = "needs_revision"
     superseded = "superseded"
