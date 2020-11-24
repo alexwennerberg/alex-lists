@@ -75,7 +75,6 @@ def _prep_mail(dest, mail):
 def _forward(dest, mail):
     mail = _prep_mail(dest, mail)
 
-    # TODO: Encrypt emails
     smtp = start_smtp()
     froms = mail.get_all('From', [])
     tos = mail.get_all('To', [])
@@ -95,6 +94,8 @@ def _forward(dest, mail):
         except Exception as ex:
             print(ex)
             print("(continuing)")
+            smtp.quit()
+            smtp = start_smtp()
             continue
     smtp.quit()
 
