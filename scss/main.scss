@@ -95,18 +95,20 @@ a[href^="mailto:"], .from a {
 }
 
 .message-body {
-  background: $gray-100;
+  @media(prefers-color-scheme: light) {
+    background: $gray-100;
 
-  .text-success {
-    color: color_adjust_contrast_AERT(darken($success, 10), $pre-background) !important;
-  }
+    .text-success {
+      color: color_adjust_contrast_AERT(darken($success, 10), $pre-background) !important;
+    }
 
-  .text-danger {
-    color: color_adjust_contrast_AERT(darken($danger, 10), $pre-background) !important;
-  }
+    .text-danger {
+      color: color_adjust_contrast_AERT(darken($danger, 10), $pre-background) !important;
+    }
 
-  .text-info {
-    color: color_adjust_contrast_AERT(darken($info, 10), $pre-background) !important;
+    .text-info {
+      color: color_adjust_contrast_AERT(darken($info, 10), $pre-background) !important;
+    }
   }
 
   .lineno {
