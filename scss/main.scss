@@ -76,6 +76,10 @@ a[href^="mailto:"], .from a {
       & > div {
         padding-left: 0.5rem;
         background: #f5f5f5;
+
+        @media(prefers-color-scheme: dark) {
+          background: $gray-800;
+        }
       }
 
       form {
