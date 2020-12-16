@@ -283,7 +283,10 @@ def mbox(owner_name, list_name, message_id):
         ).one_or_none()
     if not thread or thread.thread_id != None:
         abort(404)
-    mbox = format_mbox(thread)
+    try:
+        mbox = format_mbox(thread)
+    except UnicodeEncodeError:
+        return Validation(request).error("Encoding error", status=500)
     return Response(mbox, mimetype='application/mbox')
 
 @archives.route("/<owner_name>/<list_name>/<path:message_id>/remove", methods=["POST"])

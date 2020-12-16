@@ -275,5 +275,8 @@ def mbox(owner_name, list_name, patchset_id):
             .filter(or_(Email.thread_id == thread.id, Email.id == thread.id))
             .filter(Email.is_patch)
             .order_by(Email.patch_index, Email.created)).all()
-    mbox = format_mbox(patches)
+    try:
+        mbox = format_mbox(patches)
+    except UnicodeEncodeError:
+        return Validation(request).error("Encoding error", status=500)
     return Response(mbox, mimetype='application/mbox')
