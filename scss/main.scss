@@ -127,6 +127,10 @@ a[href^="mailto:"], .from a {
   margin-bottom: -1rem;
   border-width: 1rem;
   border-color: #e9ecef;
+
+  @media(prefers-color-scheme: dark) {
+    border-color: #131618;
+  }
 }
 
 input.patch-select {
