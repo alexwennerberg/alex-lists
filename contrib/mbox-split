@@ -10,6 +10,7 @@ import sys
 
 if len(sys.argv) != 3:
     print(f"Usage: {sys.argv[0]} <input.mbox> <max size with SI suffix>")
+    sys.exit(1)
 
 suffixes = {
     "KiB": pow(2, 10),
