@@ -104,7 +104,7 @@ patch_subject = re.compile(r".*\[(?:RFC )?PATCH"
 patch_version = re.compile(r"(v(?P<version>[0-9]+))?"
     r"( ?(?P<index>[0-9]+)/(?P<count>[0-9]+))?$")
 
-def _import_patch(thread, mail, envelope):
+def _import_patch(thread, mail, envelope, do_webhooks=True):
     match = patch_subject.match(mail.subject)
     if not match:
         # TODO: figure out a better way of dealing with patches that have weird
@@ -164,11 +164,12 @@ def _import_patch(thread, mail, envelope):
         m.patchset_id = patchset.id
     db.session.commit()
 
-    from listssrht.webhooks import ListWebhook
-    ListWebhook.deliver(ListWebhook.Events.patchset_received,
-            patchset.to_dict(short=False),
-            ListWebhook.Subscription.list_id == mail.list_id)
-    db.session.commit()
+    if do_webooks:
+        from listssrht.webhooks import ListWebhook
+        ListWebhook.deliver(ListWebhook.Events.patchset_received,
+                patchset.to_dict(short=False),
+                ListWebhook.Subscription.list_id == mail.list_id)
+        db.session.commit()
     # TODO: identify patchset that this supersedes, if appropriate
     return patchset
 
@@ -196,7 +197,7 @@ def _update_patchset_status(dest, sender, patchset, status):
     print("Patchset update requested: " + status.value)
     patchset.status = status
 
-def _archive(dest, envelope):
+def _archive(dest, envelope, do_webhooks=True):
     mail = Email()
     # TODO: Use message date within a tolerance from now
     mail.created = datetime.utcnow()
@@ -275,7 +276,7 @@ def _archive(dest, envelope):
     if not mail in thread_members:
         thread.append(mail)
     if mail.is_patch:
-        patchset = _import_patch(thread_members, mail, envelope)
+        patchset = _import_patch(thread_members, mail, envelope, do_webhooks)
         if not patchset:
             status = PatchsetStatus.unknown
         else:
@@ -627,7 +628,7 @@ def import_mbox(spool, list_id):
                         .filter(Email.list_id == ml.id)).count()
                 if existing != 0:
                     continue # Drop messages with a duplicate message ID
-                mail, _ = _archive(ml, msg)
+                mail, _ = _archive(ml, msg, do_webhooks=False)
                 date = msg.get("Date")
                 if not date:
                     continue
