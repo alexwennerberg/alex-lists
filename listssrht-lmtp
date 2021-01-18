@@ -178,6 +178,7 @@ class MailHandler:
 
     def validate(self, mail, permit_mimetypes, reject_mimetypes):
         required_headers = ["From", "Subject", "Message-Id"]
+        prohibited_headers = ["Return-Receipt-To", "Disposition-Notification-To"]
         possible_to_headers = ["To", "Cc"]
         found_to_header = False
         for header in possible_to_headers:
@@ -189,6 +190,9 @@ class MailHandler:
         for header in required_headers:
             if not mail.get(header):
                 return "The {} header is required.".format(header)
+        for header in prohibited_headers:
+            if mail.get(header):
+                return "The {} header is prohibited.".format(header)
         found_textpart = False
         sender = parseaddr(mail["From"])
         sender = sender[0] or sender[1]
