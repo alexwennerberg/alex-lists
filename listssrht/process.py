@@ -164,7 +164,7 @@ def _import_patch(thread, mail, envelope, do_webhooks=True):
         m.patchset_id = patchset.id
     db.session.commit()
 
-    if do_webooks:
+    if do_webhooks:
         from listssrht.webhooks import ListWebhook
         ListWebhook.deliver(ListWebhook.Events.patchset_received,
                 patchset.to_dict(short=False),
