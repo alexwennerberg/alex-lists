@@ -8,7 +8,6 @@ from prometheus_client import Counter, start_http_server
 from srht.config import cfg
 import asyncio
 import asyncpg
-import base64
 import email
 import os
 import signal
@@ -242,12 +241,6 @@ class MailHandler:
     async def handle_DATA_w_conn(self, server, session, envelope, conn):
         address = envelope.rcpt_tos[0]
         print(f"DATA for {address}")
-
-        # Python's email module will refuse to return 8bit data when converting
-        # a message to string. Celery will refuse to transmit bytes, it only
-        # accepts strings. To avoid mutating the message, convert to base64.
-        mail_b64 = base64.b64encode(envelope.content).decode("ascii")
-
         mail = email.message_from_bytes(envelope.content,
                 policy=email.policy.SMTPUTF8.clone(max_line_length=998))
         dest, command = await self.lookup_destination(conn, address)
@@ -257,7 +250,7 @@ class MailHandler:
             print("Rejected, mailing list not found")
             print(envelope)
             user_errors_processed.inc()
-            send_error_for.delay(mail_b64, unknown_mailing_list_error.format(
+            send_error_for.delay(str(mail), unknown_mailing_list_error.format(
                         sender, posting_domain, posting_domain))
             return "250 Mailing list not found, but sending bounce out of band"
         (dest_id, owner_id,
@@ -285,20 +278,20 @@ class MailHandler:
 
         if command != "post":
             print("Command accepted: {}".format(mail.get("Subject")))
-            dispatch_message.delay(address, dest_id, mail_b64)
+            dispatch_message.delay(address, dest_id, str(mail))
             commands_processed.inc()
             return "250 Message accepted for delivery"
 
         err = self.validate(mail, permit_mimetypes, reject_mimetypes)
         if err is not None:
             print("Rejected due to validation errors")
-            send_error_for.delay(mail_b64, err)
+            send_error_for.delay(str(mail), err)
             user_errors_processed.inc()
             return "250 Validation failed, but sending bounce out of band"
 
         if owner_id == user_id:
             print("Message accepted: {}".format(mail.get("Subject")))
-            dispatch_message.delay(address, dest_id, mail_b64)
+            dispatch_message.delay(address, dest_id, str(mail))
             forwards_processed.inc()
             return "250 Message accepted for delivery"
 
@@ -328,7 +321,7 @@ class MailHandler:
 
         forwards_processed.inc()
         print("Message accepted: {}".format(mail.get("Subject")))
-        dispatch_message.delay(address, dest_id, mail_b64)
+        dispatch_message.delay(address, dest_id, str(mail))
         return "250 Message accepted for delivery"
 
 async def create_server():
