@@ -207,10 +207,7 @@ def _archive(dest, envelope, do_webhooks=True):
     mail.headers = {
         key: value for key, value in envelope.items()
     }
-    # Use as_bytes to prevent the stdlib from converting to a different
-    # Content-Transfer-Encoding. We need to convert to a string afterwards to
-    # store the envelope in the DB. Non-UTF-8 messages will be damaged.
-    mail.envelope = envelope.as_bytes(unixfrom=True).decode("utf-8", "replace")
+    mail.envelope = envelope.as_string(unixfrom=True)
     mail.list_id = dest.id
     for part in envelope.walk():
         if part.is_multipart():
