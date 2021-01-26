@@ -207,7 +207,10 @@ def _archive(dest, envelope, do_webhooks=True):
     mail.headers = {
         key: value for key, value in envelope.items()
     }
-    mail.envelope = envelope.as_string(unixfrom=True)
+    # Use as_bytes to prevent the stdlib from converting to a different
+    # Content-Transfer-Encoding. We need to convert to a string afterwards to
+    # store the envelope in the DB. Non-UTF-8 messages will be damaged.
+    mail.envelope = envelope.as_bytes(unixfrom=True).decode("utf-8", "replace")
     mail.list_id = dest.id
     for part in envelope.walk():
         if part.is_multipart():
@@ -526,14 +529,14 @@ def _mirror(ml, mail):
     return _archive(ml, mail)
 
 @task
-def dispatch_message(address, list_id, mail):
+def dispatch_message(address, list_id, mail_b64):
     address = address[:address.rfind("@")]
     command = "post"
     if "+" in address:
         command = address[address.rfind("+") + 1:].lower()
         address = address[:address.rfind("+")]
     dest = List.query.filter(List.id == list_id).one_or_none()
-    mail = email.message_from_string(mail, policy=policy)
+    mail = email.message_from_bytes(base64.b64decode(mail_b64), policy=policy)
 
     autosub = mail.get("auto-submitted")
     if autosub == "auto-generated" or autosub == "auto-replied":
@@ -568,11 +571,11 @@ def dispatch_message(address, list_id, mail):
         raise
 
 @task
-def send_error_for(mail, error):
+def send_error_for(mail_b64, error):
     # Instead of letting postfix send an unfriendly bounce message, for some
     # errors we send our own bounce message which is a little easier to
     # understand.
-    mail = email.message_from_string(mail, policy=email.policy.SMTPUTF8)
+    mail = email.message_from_bytes(base64.b64decode(mail_b64), policy=policy)
     autosub = mail.get("auto-submitted")
     if autosub == "auto-generated" or autosub == "auto-replied":
         return # disregard automatic emails like OOO replies
