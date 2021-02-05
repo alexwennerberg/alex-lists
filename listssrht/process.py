@@ -25,6 +25,7 @@ from email.mime.text import MIMEText
 from email.utils import parseaddr, getaddresses, formatdate, make_msgid
 from email.utils import parsedate_to_datetime
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 from srht.email import mail_exception
 from urllib.parse import quote
 
@@ -234,8 +235,11 @@ def _archive(dest, envelope, do_webhooks=True):
             # Strip out obsolete In-Reply-To syntax used by e.g. gnus
             reply_to = reply_to.split("(")[0].rstrip()
 
-    db.session.add(mail)
-    db.session.flush() # obtain an ID for this email
+    try:
+        db.session.add(mail)
+        db.session.flush() # obtain an ID for this email
+    except IntegrityError:
+        return None, None # Drop duplicate email
 
     # Set parent of this email
     parent = Email.query.filter(Email.message_id == reply_to,
@@ -559,6 +563,8 @@ def dispatch_message(address, list_id, mail_b64):
                 db.session.commit()
             else:
                 archived, mail = _archive(dest, mail)
+                if not archived:
+                    return
                 _webhooks(dest, archived)
                 db.session.commit()
                 _forward(dest, mail)
