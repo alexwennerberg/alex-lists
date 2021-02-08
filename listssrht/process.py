@@ -239,6 +239,7 @@ def _archive(dest, envelope, do_webhooks=True):
         db.session.add(mail)
         db.session.flush() # obtain an ID for this email
     except IntegrityError:
+        db.session.rollback()
         return None, None # Drop duplicate email
 
     # Set parent of this email
