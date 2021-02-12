@@ -234,6 +234,7 @@ def _archive(dest, envelope, do_webhooks=True):
         if "(" in reply_to:
             # Strip out obsolete In-Reply-To syntax used by e.g. gnus
             reply_to = reply_to.split("(")[0].rstrip()
+        mail.in_reply_to = reply_to
 
     try:
         db.session.add(mail)
@@ -248,7 +249,6 @@ def _archive(dest, envelope, do_webhooks=True):
     if parent is not None:
         mail.parent_id = parent.id
         mail.parent = parent
-        mail.in_reply_to = reply_to
 
     thread = mail
     while thread.parent_id:
