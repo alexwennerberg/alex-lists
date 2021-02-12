@@ -142,7 +142,7 @@ def _import_patch(thread, mail, envelope, do_webhooks=True):
             return False
         index = (int(match.group("index").strip())
             if match.group("index") else 1)
-        return None
+        return index == 0
     cover_letter = next((m for m in thread if is_cover(m)), None)
 
     patchset = Patchset()
