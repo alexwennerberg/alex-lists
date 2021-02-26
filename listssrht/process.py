@@ -509,6 +509,8 @@ def _mirror(ml, mail):
     # TODO: disallow mail from any mail server other than the one being mirrored
     # TODO TODO: deal with the mirror's mail server changing addresses
     mirror = ml.mirror
+    if not mirror:
+        return None, None
     sender = parseaddr(mail["From"])
     if not mirror.configured or sender[1] == mirror.mailer_sender:
         return _configure_mirror(ml, mirror, mail)
@@ -560,6 +562,8 @@ def dispatch_message(address, list_id, mail_b64):
             list_id = mail.get("List-ID")
             if dest.mirror_id or list_id:
                 archived, mail = _mirror(dest, mail)
+                if not archived:
+                    return
                 _webhooks(dest, archived)
                 db.session.commit()
             else:
