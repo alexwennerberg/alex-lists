@@ -228,7 +228,7 @@ def thread(owner_name, list_name, message_id):
     def reply_to(msg):
         params = {
             "cc": msg.parsed()['From'],
-            "in-reply-to": msg.message_id.strip('<>'),
+            "in-reply-to": msg.message_id,
             "subject": (f"Re: {msg.subject}"
                 if not msg.subject.lower().startswith("re:")
                 else msg.subject),
