@@ -103,8 +103,8 @@ class Email(Base):
     def parsed(self):
         if hasattr(self, "_parsed"):
             return self._parsed
-        self._parsed = email.message_from_string(
-                self.envelope, policy=email.policy.SMTP)
+        self._parsed = email.message_from_bytes(
+                self.envelope.encode('utf-8'), policy=email.policy.SMTP)
         self._parsed._email = self
         return self._parsed
 
