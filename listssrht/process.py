@@ -587,6 +587,8 @@ def send_error_for(mail_b64, error):
     # errors we send our own bounce message which is a little easier to
     # understand.
     mail = email.message_from_bytes(base64.b64decode(mail_b64), policy=policy)
+    print("Rejecting email:")
+    print(mail.as_string(unixfrom=True))
     autosub = mail.get("auto-submitted")
     if autosub == "auto-generated" or autosub == "auto-replied":
         return # disregard automatic emails like OOO replies
