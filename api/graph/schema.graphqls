@@ -1,0 +1,72 @@
+# This schema definition is available in the public domain, or under the terms
+# of CC-0, at your choice.
+scalar Time   # %Y-%m-%dT%H:%M:%SZ
+scalar Cursor
+
+# Used to provide a human-friendly description of an access scope
+directive @scopehelp(details: String!) on ENUM_VALUE
+
+enum AccessScope {
+  ACLS    @scopehelp(details: "access control lists")
+  EMAILS  @scopehelp(details: "emails")
+  LISTS   @scopehelp(details: "mailing lists")
+  PROFILE @scopehelp(details: "profile information")
+}
+
+enum AccessKind {
+  RO @scopehelp(details: "read")
+  RW @scopehelp(details: "read and write")
+}
+
+# Decorates fields for which access requires a particular OAuth 2.0 scope with
+# read or write access.
+directive @access(scope: AccessScope!, kind: AccessKind!) on FIELD_DEFINITION
+
+# This used to decorate private resolvers which are only accessible to build
+# workers, and are used to faciliate the build process.
+directive @worker on FIELD_DEFINITION
+
+# https://semver.org
+type Version {
+  major: Int!
+  minor: Int!
+  patch: Int!
+
+  # If this API version is scheduled for deprecation, this is the date on which
+  # it will stop working; or null if this API version is not scheduled for
+  # deprecation.
+  deprecationDate: Time
+}
+
+interface Entity {
+  id: Int!
+  created: Time!
+  updated: Time!
+  # The canonical name of this entity. For users, this is their username
+  # prefixed with '~'. Additional entity types will be supported in the future.
+  canonicalName: String!
+}
+
+type User implements Entity {
+  id: Int!
+  created: Time!
+  updated: Time!
+  canonicalName: String!
+  username: String!
+  email: String!
+  url: String
+  location: String
+  bio: String
+}
+
+type Query {
+  # Returns API version information.
+  version: Version!
+
+  # Returns the authenticated user.
+  me: User! @access(scope: PROFILE, kind: RO)
+
+  # Returns a specific user
+  userByID(id: Int!): User @access(scope: PROFILE, kind: RO)
+  userByName(username: String!): User @access(scope: PROFILE, kind: RO)
+}
