@@ -27,12 +27,10 @@
             id="description"
             class="form-control {{valid.cls("description")}}"
             value="{{ description or "" }}"
+            placeholder="Markdown supported"
             rows="5"
             aria-describedby="description-help"
           >{{description or ""}}</textarea>
-          <p id="description-help" class="form-text text-muted">
-            Markdown supported
-          </p>
           {{valid.summary("description")}}
         </div>
         <div class="form-group">

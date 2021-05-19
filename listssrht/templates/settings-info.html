@@ -29,13 +29,10 @@
             name="list_desc"
             id="list_desc"
             class="form-control"
+            placeholder="Markdown supported"
             rows="10"
             aria-describedby="list_desc-help"
           >{{list_desc or ml.description or ""}}</textarea>
-          <p
-            id="tracker_desc-help"
-            class="form-text text-muted"
-          >Markdown supported</p>
           {{ valid.summary("list_desc") }}
         </div>
         {{ valid.summary() }}
