@@ -49,8 +49,8 @@ class List(Base):
         self.description = valid.optional("description")
         if not valid.ok:
             return
-        valid.expect(re.match(r'^[a-z._-][a-z0-9._-]*$', self.name),
-                "Name must match [a-z._-][a-z0-9._-]*", field="name")
+        valid.expect(re.match(r'^[a-z_-][a-z0-9._-]*$', self.name),
+                "Name must match [a-z_-][a-z0-9._-]*", field="name")
         existing = (List.query
                 .filter(List.owner_id == owner.id)
                 .filter(List.name.ilike(self.name))
