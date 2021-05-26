@@ -5,7 +5,7 @@ from sqlalchemy import or_
 from srht.api import paginated_response
 from srht.oauth import oauth, current_token
 
-emails = Blueprint("api.emails", __name__)
+emails = Blueprint("api_emails", __name__)
 
 @emails.route("/api/user/<username>/emails")
 @emails.route("/api/emails", defaults={"username": None})

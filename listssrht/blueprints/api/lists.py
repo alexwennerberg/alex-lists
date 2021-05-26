@@ -9,7 +9,7 @@ from srht.database import db
 from srht.oauth import oauth, current_token
 from srht.validation import Validation
 
-lists = Blueprint("api.lists", __name__)
+lists = Blueprint("api_lists", __name__)
 
 @lists.route("/api/user/<username>/lists")
 @lists.route("/api/lists", defaults={"username": None})

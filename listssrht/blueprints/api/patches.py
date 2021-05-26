@@ -7,7 +7,7 @@ from srht.database import db
 from srht.oauth import oauth, current_token
 from srht.validation import Validation
 
-patches = Blueprint("api.patches", __name__)
+patches = Blueprint("api_patches", __name__)
 
 @patches.route("/api/user/<username>/lists/<list_name>/patchsets")
 @patches.route("/api/lists/<list_name>/patchsets", defaults={"username": None})

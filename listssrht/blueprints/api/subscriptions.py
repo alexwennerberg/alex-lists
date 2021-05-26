@@ -7,7 +7,7 @@ from srht.database import db
 from srht.oauth import oauth, current_token
 from srht.validation import Validation
 
-subs = Blueprint("api.subs", __name__)
+subs = Blueprint("api_subs", __name__)
 
 @subs.route("/api/subscriptions")
 @oauth("subs:read")
