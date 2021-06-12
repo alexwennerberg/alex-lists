@@ -51,7 +51,7 @@ class List(Base):
             return
         valid.expect(re.match(r'^[a-z_-][a-z0-9._-]*$', self.name),
                 "Name must match [a-z_-][a-z0-9._-]*", field="name")
-        valid.expect(name not in [".", ".."],
+        valid.expect(self.name not in [".", ".."],
                 "Name cannot be '.' or '..'", field="name")
         existing = (List.query
                 .filter(List.owner_id == owner.id)
