@@ -7,9 +7,11 @@ import (
 	"context"
 	"fmt"
 
-	model1 "git.sr.ht/~sircmpwn/core-go/model"
+	"git.sr.ht/~sircmpwn/core-go/auth"
+	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
 )
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
@@ -22,18 +24,28 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 }
 
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
-	panic(fmt.Errorf("not implemented"))
+	user := auth.ForContext(ctx)
+	return &model.User{
+		ID:       user.UserID,
+		Created:  user.Created,
+		Updated:  user.Updated,
+		Username: user.Username,
+		Email:    user.Email,
+		URL:      user.URL,
+		Location: user.Location,
+		Bio:      user.Bio,
+	}, nil
 }
 
 func (r *queryResolver) User(ctx context.Context, id int) (*model.User, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).UsersByID.Load(id)
 }
 
 func (r *queryResolver) UserByName(ctx context.Context, username string) (*model.User, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
-func (r *queryResolver) MailingLists(ctx context.Context, cursor *model1.Cursor) (*model.MailingListCursor, error) {
+func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -49,11 +61,23 @@ func (r *queryResolver) MailingListByOwner(ctx context.Context, ownerName string
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Subscriptions(ctx context.Context, cursor *model1.Cursor) (*model.SubscriptionCursor, error) {
+func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cursor) (*model.SubscriptionCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *userResolver) Emails(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.PatchsetCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
+// User returns api.UserResolver implementation.
+func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
+
 type queryResolver struct{ *Resolver }
+type userResolver struct{ *Resolver }
