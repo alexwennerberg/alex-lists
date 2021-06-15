@@ -7,6 +7,7 @@ import (
 	"context"
 	"fmt"
 
+	model1 "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 )
@@ -24,11 +25,31 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) UserByID(ctx context.Context, id int) (*model.User, error) {
+func (r *queryResolver) User(ctx context.Context, id int) (*model.User, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) UserByName(ctx context.Context, username string) (*model.User, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) MailingLists(ctx context.Context, cursor *model1.Cursor) (*model.MailingListCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) MailingList(ctx context.Context, id int) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) MailingListByName(ctx context.Context, name string) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) MailingListByOwner(ctx context.Context, ownerName string, listName string) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) Subscriptions(ctx context.Context, cursor *model1.Cursor) (*model.SubscriptionCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

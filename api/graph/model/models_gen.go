@@ -7,22 +7,147 @@ import (
 	"io"
 	"strconv"
 	"time"
+
+	"git.sr.ht/~sircmpwn/core-go/model"
 )
 
 type Entity interface {
 	IsEntity()
 }
 
+type Subscription interface {
+	IsSubscription()
+}
+
+type Email struct {
+	ID        int          `json:"id"`
+	Sender    Entity       `json:"sender"`
+	Received  time.Time    `json:"received"`
+	Date      time.Time    `json:"date"`
+	Envelope  string       `json:"envelope"`
+	Body      string       `json:"body"`
+	Headers   string       `json:"headers"`
+	Subject   string       `json:"subject"`
+	MessageID string       `json:"message_id"`
+	InReplyTo *Email       `json:"in_reply_to"`
+	Thread    *Thread      `json:"thread"`
+	Patch     *Patch       `json:"patch"`
+	Patchset  *Patchset    `json:"patchset"`
+	List      *MailingList `json:"list"`
+}
+
+type EmailCursor struct {
+	Results []*Email      `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
+}
+
+type Mailbox struct {
+	CanonicalName string          `json:"canonicalName"`
+	Name          string          `json:"name"`
+	Email         string          `json:"email"`
+	Emails        *EmailCursor    `json:"emails"`
+	Patches       *PatchsetCursor `json:"patches"`
+}
+
+func (Mailbox) IsEntity() {}
+
+type MailingList struct {
+	ID          int             `json:"id"`
+	Created     time.Time       `json:"created"`
+	Update      time.Time       `json:"update"`
+	Name        string          `json:"name"`
+	Description *string         `json:"description"`
+	Owner       Entity          `json:"owner"`
+	PermitMime  []string        `json:"permit_mime"`
+	RejectMime  []string        `json:"reject_mime"`
+	Threads     *ThreadCursor   `json:"threads"`
+	Emails      *EmailCursor    `json:"emails"`
+	Patches     *PatchsetCursor `json:"patches"`
+	Importing   bool            `json:"importing"`
+}
+
+type MailingListCursor struct {
+	Results []*MailingList `json:"results"`
+	Cursor  *model.Cursor  `json:"cursor"`
+}
+
+type MailingListSubscription struct {
+	ID      int          `json:"id"`
+	Created time.Time    `json:"created"`
+	List    *MailingList `json:"list"`
+}
+
+type Patch struct {
+	Index   *int    `json:"index"`
+	Count   *int    `json:"count"`
+	Version *int    `json:"version"`
+	Prefix  *string `json:"prefix"`
+	Subject *string `json:"subject"`
+}
+
+type Patchset struct {
+	ID           int             `json:"id"`
+	Created      time.Time       `json:"created"`
+	Updated      time.Time       `json:"updated"`
+	Subject      string          `json:"subject"`
+	Version      int             `json:"version"`
+	Prefix       *string         `json:"prefix"`
+	Status       PatchsetStatus  `json:"status"`
+	CoverLetter  *Email          `json:"cover_letter"`
+	Thread       *Thread         `json:"thread"`
+	SupersededBy *Patchset       `json:"superseded_by"`
+	List         *MailingList    `json:"list"`
+	Patches      *EmailCursor    `json:"patches"`
+	Tools        []*PatchsetTool `json:"tools"`
+	Mbox         string          `json:"mbox"`
+}
+
+type PatchsetCursor struct {
+	Results []*Patchset   `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
+}
+
+type PatchsetTool struct {
+	ID       int       `json:"id"`
+	Created  time.Time `json:"created"`
+	Updated  time.Time `json:"updated"`
+	Icon     ToolIcon  `json:"icon"`
+	Details  string    `json:"details"`
+	Key      string    `json:"key"`
+	Patchset *Patchset `json:"patchset"`
+}
+
+type SubscriptionCursor struct {
+	Results []Subscription `json:"results"`
+	Cursor  *model.Cursor  `json:"cursor"`
+}
+
+type Thread struct {
+	Root         *Email       `json:"root"`
+	Mbox         string       `json:"mbox"`
+	Replies      int          `json:"replies"`
+	Participants int          `json:"participants"`
+	Mailto       string       `json:"mailto"`
+	Descendants  *EmailCursor `json:"descendants"`
+}
+
+type ThreadCursor struct {
+	Results []*Thread     `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
+}
+
 type User struct {
-	ID            int       `json:"id"`
-	Created       time.Time `json:"created"`
-	Updated       time.Time `json:"updated"`
-	CanonicalName string    `json:"canonicalName"`
-	Username      string    `json:"username"`
-	Email         string    `json:"email"`
-	URL           *string   `json:"url"`
-	Location      *string   `json:"location"`
-	Bio           *string   `json:"bio"`
+	ID            int             `json:"id"`
+	Created       time.Time       `json:"created"`
+	Updated       time.Time       `json:"updated"`
+	CanonicalName string          `json:"canonicalName"`
+	Username      string          `json:"username"`
+	Email         string          `json:"email"`
+	URL           *string         `json:"url"`
+	Location      *string         `json:"location"`
+	Bio           *string         `json:"bio"`
+	Emails        *EmailCursor    `json:"emails"`
+	Patches       *PatchsetCursor `json:"patches"`
 }
 
 func (User) IsEntity() {}
@@ -78,22 +203,26 @@ func (e AccessKind) MarshalGQL(w io.Writer) {
 type AccessScope string
 
 const (
-	AccessScopeACLS    AccessScope = "ACLS"
-	AccessScopeEmails  AccessScope = "EMAILS"
-	AccessScopeLists   AccessScope = "LISTS"
-	AccessScopeProfile AccessScope = "PROFILE"
+	AccessScopeACLS          AccessScope = "ACLS"
+	AccessScopeEmails        AccessScope = "EMAILS"
+	AccessScopeLists         AccessScope = "LISTS"
+	AccessScopePatches       AccessScope = "PATCHES"
+	AccessScopeProfile       AccessScope = "PROFILE"
+	AccessScopeSubscriptions AccessScope = "SUBSCRIPTIONS"
 )
 
 var AllAccessScope = []AccessScope{
 	AccessScopeACLS,
 	AccessScopeEmails,
 	AccessScopeLists,
+	AccessScopePatches,
 	AccessScopeProfile,
+	AccessScopeSubscriptions,
 }
 
 func (e AccessScope) IsValid() bool {
 	switch e {
-	case AccessScopeACLS, AccessScopeEmails, AccessScopeLists, AccessScopeProfile:
+	case AccessScopeACLS, AccessScopeEmails, AccessScopeLists, AccessScopePatches, AccessScopeProfile, AccessScopeSubscriptions:
 		return true
 	}
 	return false
@@ -117,5 +246,103 @@ func (e *AccessScope) UnmarshalGQL(v interface{}) error {
 }
 
 func (e AccessScope) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type PatchsetStatus string
+
+const (
+	PatchsetStatusUnknown       PatchsetStatus = "UNKNOWN"
+	PatchsetStatusProposed      PatchsetStatus = "PROPOSED"
+	PatchsetStatusNeedsRevision PatchsetStatus = "NEEDS_REVISION"
+	PatchsetStatusSuperseded    PatchsetStatus = "SUPERSEDED"
+	PatchsetStatusApproved      PatchsetStatus = "APPROVED"
+	PatchsetStatusRejected      PatchsetStatus = "REJECTED"
+	PatchsetStatusApplied       PatchsetStatus = "APPLIED"
+)
+
+var AllPatchsetStatus = []PatchsetStatus{
+	PatchsetStatusUnknown,
+	PatchsetStatusProposed,
+	PatchsetStatusNeedsRevision,
+	PatchsetStatusSuperseded,
+	PatchsetStatusApproved,
+	PatchsetStatusRejected,
+	PatchsetStatusApplied,
+}
+
+func (e PatchsetStatus) IsValid() bool {
+	switch e {
+	case PatchsetStatusUnknown, PatchsetStatusProposed, PatchsetStatusNeedsRevision, PatchsetStatusSuperseded, PatchsetStatusApproved, PatchsetStatusRejected, PatchsetStatusApplied:
+		return true
+	}
+	return false
+}
+
+func (e PatchsetStatus) String() string {
+	return string(e)
+}
+
+func (e *PatchsetStatus) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = PatchsetStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid PatchsetStatus", str)
+	}
+	return nil
+}
+
+func (e PatchsetStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+type ToolIcon string
+
+const (
+	ToolIconPending   ToolIcon = "PENDING"
+	ToolIconWaiting   ToolIcon = "WAITING"
+	ToolIconSuccess   ToolIcon = "SUCCESS"
+	ToolIconFailed    ToolIcon = "FAILED"
+	ToolIconCancelled ToolIcon = "CANCELLED"
+)
+
+var AllToolIcon = []ToolIcon{
+	ToolIconPending,
+	ToolIconWaiting,
+	ToolIconSuccess,
+	ToolIconFailed,
+	ToolIconCancelled,
+}
+
+func (e ToolIcon) IsValid() bool {
+	switch e {
+	case ToolIconPending, ToolIconWaiting, ToolIconSuccess, ToolIconFailed, ToolIconCancelled:
+		return true
+	}
+	return false
+}
+
+func (e ToolIcon) String() string {
+	return string(e)
+}
+
+func (e *ToolIcon) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = ToolIcon(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid ToolIcon", str)
+	}
+	return nil
+}
+
+func (e ToolIcon) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }

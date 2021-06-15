@@ -2,15 +2,18 @@
 # of CC-0, at your choice.
 scalar Time   # %Y-%m-%dT%H:%M:%SZ
 scalar Cursor
+scalar RFC2822
 
 # Used to provide a human-friendly description of an access scope
 directive @scopehelp(details: String!) on ENUM_VALUE
 
 enum AccessScope {
-  ACLS    @scopehelp(details: "access control lists")
-  EMAILS  @scopehelp(details: "emails")
-  LISTS   @scopehelp(details: "mailing lists")
-  PROFILE @scopehelp(details: "profile information")
+  ACLS          @scopehelp(details: "access control lists")
+  EMAILS        @scopehelp(details: "emails")
+  LISTS         @scopehelp(details: "mailing lists")
+  PATCHES       @scopehelp(details: "patches")
+  PROFILE       @scopehelp(details: "profile information")
+  SUBSCRIPTIONS @scopehelp(details: "tracker & ticket subscriptions")
 }
 
 enum AccessKind {
@@ -39,14 +42,13 @@ type Version {
 }
 
 interface Entity {
-  id: Int!
-  created: Time!
-  updated: Time!
-  # The canonical name of this entity. For users, this is their username
-  # prefixed with '~'. Additional entity types will be supported in the future.
   canonicalName: String!
+
+  emails(cursor: Cursor): EmailCursor @access(scope: EMAILS, kind: RO)
+  patches(cursor: Cursor): PatchsetCursor @access(scope: PATCHES, kind: RO)
 }
 
+# A registered user
 type User implements Entity {
   id: Int!
   created: Time!
@@ -57,6 +59,205 @@ type User implements Entity {
   url: String
   location: String
   bio: String
+
+  emails(cursor: Cursor): EmailCursor @access(scope: EMAILS, kind: RO)
+  patches(cursor: Cursor): PatchsetCursor @access(scope: PATCHES, kind: RO)
+}
+
+# A mailbox not associated with a registered user
+type Mailbox implements Entity {
+  canonicalName: String!
+  name: String!
+  email: String!
+
+  emails(cursor: Cursor): EmailCursor @access(scope: EMAILS, kind: RO)
+  patches(cursor: Cursor): PatchsetCursor @access(scope: PATCHES, kind: RO)
+}
+
+type MailingList {
+  id: Int!
+  created: Time!
+  update: Time!
+  name: String!
+  description: String
+  owner: Entity! @access(scope: PROFILE, kind: RO)
+
+  # List of globs for permitted or rejected mimetypes on this list
+  # e.g. text/*
+  permit_mime: [String!]!
+  reject_mime: [String!]!
+
+  # List of threads on this list in order of most recently bumped
+  threads(cursor: Cursor): ThreadCursor! @access(scope: EMAILS, kind: RO)
+  # List of emails received on this list in reverse chronological order
+  emails(cursor: Cursor): EmailCursor! @access(scope: EMAILS, kind: RO)
+  patches(cursor: Cursor): PatchsetCursor! @access(scope: PATCHES, kind: RO)
+
+  # True if an import operation is underway for this list
+  importing: Boolean!
+}
+
+type Thread {
+  root: Email!
+  mbox: String!
+  replies: Int!
+  participants: Int!
+
+  # A mailto: URL for replying to the latest message in this thread
+  mailto: String!
+
+  descendants(cursor: Cursor): EmailCursor!
+}
+
+type Email {
+  id: Int!
+  sender: Entity!
+  # Time we received this email
+  received: Time!
+  # Time specified by Date header (forgable)
+  date: Time!
+  envelope: RFC2822!
+  body: String!
+  headers: RFC2822!
+  subject: String!
+  message_id: String!
+  in_reply_to: Email
+
+  thread: Thread!
+  patch: Patch
+  patchset: Patchset @access(scope: PATCHES, kind: RO)
+  list: MailingList! @access(scope: LISTS, kind: RO)
+}
+
+# Information parsed from the subject line of a patch, such that the following:
+#
+#   [PATCH myproject v2 3/4] Add foo to bar
+#
+# Will produce:
+#
+# index: 3
+# count: 4
+# version: 2
+# prefix: "myproject"
+# subject: "Add foo to bar"
+type Patch {
+  index: Int
+  count: Int
+  version: Int
+  prefix: String
+  subject: String
+}
+
+enum PatchsetStatus {
+  UNKNOWN
+  PROPOSED
+  NEEDS_REVISION
+  SUPERSEDED
+  APPROVED
+  REJECTED
+  APPLIED
+}
+
+type Patchset {
+  id: Int!
+  created: Time!
+  updated: Time!
+  subject: String!
+  version: Int!
+  prefix: String
+  status: PatchsetStatus!
+
+  cover_letter: Email
+  thread: Thread!
+  superseded_by: Patchset
+  list: MailingList! @access(scope: LISTS, kind: RO)
+  patches(cursor: Cursor): EmailCursor!
+  tools: [PatchsetTool!]!
+
+  # mbox containing only patches. For an mbox of the whole thread, see
+  # thread.mbox.
+  mbox: String!
+}
+
+enum ToolIcon {
+  PENDING
+  WAITING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+# Used to add some kind of indicator for a third-party process associated with
+# a patchset, such as a CI service validating the change.
+type PatchsetTool {
+  id: Int!
+  created: Time!
+  updated: Time!
+  icon: ToolIcon!
+  details: String!
+  key: String!
+  patchset: Patchset!
+}
+
+interface Subscription {
+  id: Int!
+  created: Time!
+}
+
+type MailingListSubscription {
+  id: Int!
+  created: Time!
+  list: MailingList! @access(scope: LISTS, kind: RO)
+}
+
+# A cursor for enumerating mailing lists
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type MailingListCursor {
+  results: [MailingList!]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating threads
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type ThreadCursor {
+  results: [Thread!]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating emails
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type EmailCursor {
+  results: [Email!]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating patchsets
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type PatchsetCursor {
+  results: [Patchset!]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating subscriptions
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type SubscriptionCursor {
+  results: [Subscription!]!
+  cursor: Cursor
 }
 
 type Query {
@@ -67,6 +268,17 @@ type Query {
   me: User! @access(scope: PROFILE, kind: RO)
 
   # Returns a specific user
-  userByID(id: Int!): User @access(scope: PROFILE, kind: RO)
+  user(id: Int!): User @access(scope: PROFILE, kind: RO)
   userByName(username: String!): User @access(scope: PROFILE, kind: RO)
+
+  # Returns mailing lists that the authenticated user has access to.
+  mailingLists(cursor: Cursor): MailingListCursor! @access(scope: LISTS, kind: RO)
+
+  # Returns a specific mailing list
+  mailingList(id: Int!): MailingList @access(scope: LISTS, kind: RO)
+  mailingListByName(name: String!): MailingList @access(scope: LISTS, kind: RO)
+  mailingListByOwner(ownerName: String!, listName: String!): MailingList @access(scope: LISTS, kind: RO)
+
+  # List of subscriptions of the authenticated user.
+  subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
 }

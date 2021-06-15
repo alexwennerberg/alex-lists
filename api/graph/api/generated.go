@@ -12,6 +12,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	model1 "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
@@ -47,11 +48,131 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	Email struct {
+		Body      func(childComplexity int) int
+		Date      func(childComplexity int) int
+		Envelope  func(childComplexity int) int
+		Headers   func(childComplexity int) int
+		ID        func(childComplexity int) int
+		InReplyTo func(childComplexity int) int
+		List      func(childComplexity int) int
+		MessageID func(childComplexity int) int
+		Patch     func(childComplexity int) int
+		Patchset  func(childComplexity int) int
+		Received  func(childComplexity int) int
+		Sender    func(childComplexity int) int
+		Subject   func(childComplexity int) int
+		Thread    func(childComplexity int) int
+	}
+
+	EmailCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
+	}
+
+	Mailbox struct {
+		CanonicalName func(childComplexity int) int
+		Email         func(childComplexity int) int
+		Emails        func(childComplexity int, cursor *model1.Cursor) int
+		Name          func(childComplexity int) int
+		Patches       func(childComplexity int, cursor *model1.Cursor) int
+	}
+
+	MailingList struct {
+		Created     func(childComplexity int) int
+		Description func(childComplexity int) int
+		Emails      func(childComplexity int, cursor *model1.Cursor) int
+		ID          func(childComplexity int) int
+		Importing   func(childComplexity int) int
+		Name        func(childComplexity int) int
+		Owner       func(childComplexity int) int
+		Patches     func(childComplexity int, cursor *model1.Cursor) int
+		PermitMime  func(childComplexity int) int
+		RejectMime  func(childComplexity int) int
+		Threads     func(childComplexity int, cursor *model1.Cursor) int
+		Update      func(childComplexity int) int
+	}
+
+	MailingListCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
+	}
+
+	MailingListSubscription struct {
+		Created func(childComplexity int) int
+		ID      func(childComplexity int) int
+		List    func(childComplexity int) int
+	}
+
+	Patch struct {
+		Count   func(childComplexity int) int
+		Index   func(childComplexity int) int
+		Prefix  func(childComplexity int) int
+		Subject func(childComplexity int) int
+		Version func(childComplexity int) int
+	}
+
+	Patchset struct {
+		CoverLetter  func(childComplexity int) int
+		Created      func(childComplexity int) int
+		ID           func(childComplexity int) int
+		List         func(childComplexity int) int
+		Mbox         func(childComplexity int) int
+		Patches      func(childComplexity int, cursor *model1.Cursor) int
+		Prefix       func(childComplexity int) int
+		Status       func(childComplexity int) int
+		Subject      func(childComplexity int) int
+		SupersededBy func(childComplexity int) int
+		Thread       func(childComplexity int) int
+		Tools        func(childComplexity int) int
+		Updated      func(childComplexity int) int
+		Version      func(childComplexity int) int
+	}
+
+	PatchsetCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
+	}
+
+	PatchsetTool struct {
+		Created  func(childComplexity int) int
+		Details  func(childComplexity int) int
+		ID       func(childComplexity int) int
+		Icon     func(childComplexity int) int
+		Key      func(childComplexity int) int
+		Patchset func(childComplexity int) int
+		Updated  func(childComplexity int) int
+	}
+
 	Query struct {
-		Me         func(childComplexity int) int
-		UserByID   func(childComplexity int, id int) int
-		UserByName func(childComplexity int, username string) int
-		Version    func(childComplexity int) int
+		MailingList        func(childComplexity int, id int) int
+		MailingListByName  func(childComplexity int, name string) int
+		MailingListByOwner func(childComplexity int, ownerName string, listName string) int
+		MailingLists       func(childComplexity int, cursor *model1.Cursor) int
+		Me                 func(childComplexity int) int
+		Subscriptions      func(childComplexity int, cursor *model1.Cursor) int
+		User               func(childComplexity int, id int) int
+		UserByName         func(childComplexity int, username string) int
+		Version            func(childComplexity int) int
+	}
+
+	SubscriptionCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
+	}
+
+	Thread struct {
+		Descendants  func(childComplexity int, cursor *model1.Cursor) int
+		Mailto       func(childComplexity int) int
+		Mbox         func(childComplexity int) int
+		Participants func(childComplexity int) int
+		Replies      func(childComplexity int) int
+		Root         func(childComplexity int) int
+	}
+
+	ThreadCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
 	}
 
 	User struct {
@@ -59,8 +180,10 @@ type ComplexityRoot struct {
 		CanonicalName func(childComplexity int) int
 		Created       func(childComplexity int) int
 		Email         func(childComplexity int) int
+		Emails        func(childComplexity int, cursor *model1.Cursor) int
 		ID            func(childComplexity int) int
 		Location      func(childComplexity int) int
+		Patches       func(childComplexity int, cursor *model1.Cursor) int
 		URL           func(childComplexity int) int
 		Updated       func(childComplexity int) int
 		Username      func(childComplexity int) int
@@ -77,8 +200,13 @@ type ComplexityRoot struct {
 type QueryResolver interface {
 	Version(ctx context.Context) (*model.Version, error)
 	Me(ctx context.Context) (*model.User, error)
-	UserByID(ctx context.Context, id int) (*model.User, error)
+	User(ctx context.Context, id int) (*model.User, error)
 	UserByName(ctx context.Context, username string) (*model.User, error)
+	MailingLists(ctx context.Context, cursor *model1.Cursor) (*model.MailingListCursor, error)
+	MailingList(ctx context.Context, id int) (*model.MailingList, error)
+	MailingListByName(ctx context.Context, name string) (*model.MailingList, error)
+	MailingListByOwner(ctx context.Context, ownerName string, listName string) (*model.MailingList, error)
+	Subscriptions(ctx context.Context, cursor *model1.Cursor) (*model.SubscriptionCursor, error)
 }
 
 type executableSchema struct {
@@ -96,6 +224,546 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	_ = ec
 	switch typeName + "." + field {
 
+	case "Email.body":
+		if e.complexity.Email.Body == nil {
+			break
+		}
+
+		return e.complexity.Email.Body(childComplexity), true
+
+	case "Email.date":
+		if e.complexity.Email.Date == nil {
+			break
+		}
+
+		return e.complexity.Email.Date(childComplexity), true
+
+	case "Email.envelope":
+		if e.complexity.Email.Envelope == nil {
+			break
+		}
+
+		return e.complexity.Email.Envelope(childComplexity), true
+
+	case "Email.headers":
+		if e.complexity.Email.Headers == nil {
+			break
+		}
+
+		return e.complexity.Email.Headers(childComplexity), true
+
+	case "Email.id":
+		if e.complexity.Email.ID == nil {
+			break
+		}
+
+		return e.complexity.Email.ID(childComplexity), true
+
+	case "Email.in_reply_to":
+		if e.complexity.Email.InReplyTo == nil {
+			break
+		}
+
+		return e.complexity.Email.InReplyTo(childComplexity), true
+
+	case "Email.list":
+		if e.complexity.Email.List == nil {
+			break
+		}
+
+		return e.complexity.Email.List(childComplexity), true
+
+	case "Email.message_id":
+		if e.complexity.Email.MessageID == nil {
+			break
+		}
+
+		return e.complexity.Email.MessageID(childComplexity), true
+
+	case "Email.patch":
+		if e.complexity.Email.Patch == nil {
+			break
+		}
+
+		return e.complexity.Email.Patch(childComplexity), true
+
+	case "Email.patchset":
+		if e.complexity.Email.Patchset == nil {
+			break
+		}
+
+		return e.complexity.Email.Patchset(childComplexity), true
+
+	case "Email.received":
+		if e.complexity.Email.Received == nil {
+			break
+		}
+
+		return e.complexity.Email.Received(childComplexity), true
+
+	case "Email.sender":
+		if e.complexity.Email.Sender == nil {
+			break
+		}
+
+		return e.complexity.Email.Sender(childComplexity), true
+
+	case "Email.subject":
+		if e.complexity.Email.Subject == nil {
+			break
+		}
+
+		return e.complexity.Email.Subject(childComplexity), true
+
+	case "Email.thread":
+		if e.complexity.Email.Thread == nil {
+			break
+		}
+
+		return e.complexity.Email.Thread(childComplexity), true
+
+	case "EmailCursor.cursor":
+		if e.complexity.EmailCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.EmailCursor.Cursor(childComplexity), true
+
+	case "EmailCursor.results":
+		if e.complexity.EmailCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.EmailCursor.Results(childComplexity), true
+
+	case "Mailbox.canonicalName":
+		if e.complexity.Mailbox.CanonicalName == nil {
+			break
+		}
+
+		return e.complexity.Mailbox.CanonicalName(childComplexity), true
+
+	case "Mailbox.email":
+		if e.complexity.Mailbox.Email == nil {
+			break
+		}
+
+		return e.complexity.Mailbox.Email(childComplexity), true
+
+	case "Mailbox.emails":
+		if e.complexity.Mailbox.Emails == nil {
+			break
+		}
+
+		args, err := ec.field_Mailbox_emails_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mailbox.Emails(childComplexity, args["cursor"].(*model1.Cursor)), true
+
+	case "Mailbox.name":
+		if e.complexity.Mailbox.Name == nil {
+			break
+		}
+
+		return e.complexity.Mailbox.Name(childComplexity), true
+
+	case "Mailbox.patches":
+		if e.complexity.Mailbox.Patches == nil {
+			break
+		}
+
+		args, err := ec.field_Mailbox_patches_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mailbox.Patches(childComplexity, args["cursor"].(*model1.Cursor)), true
+
+	case "MailingList.created":
+		if e.complexity.MailingList.Created == nil {
+			break
+		}
+
+		return e.complexity.MailingList.Created(childComplexity), true
+
+	case "MailingList.description":
+		if e.complexity.MailingList.Description == nil {
+			break
+		}
+
+		return e.complexity.MailingList.Description(childComplexity), true
+
+	case "MailingList.emails":
+		if e.complexity.MailingList.Emails == nil {
+			break
+		}
+
+		args, err := ec.field_MailingList_emails_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.MailingList.Emails(childComplexity, args["cursor"].(*model1.Cursor)), true
+
+	case "MailingList.id":
+		if e.complexity.MailingList.ID == nil {
+			break
+		}
+
+		return e.complexity.MailingList.ID(childComplexity), true
+
+	case "MailingList.importing":
+		if e.complexity.MailingList.Importing == nil {
+			break
+		}
+
+		return e.complexity.MailingList.Importing(childComplexity), true
+
+	case "MailingList.name":
+		if e.complexity.MailingList.Name == nil {
+			break
+		}
+
+		return e.complexity.MailingList.Name(childComplexity), true
+
+	case "MailingList.owner":
+		if e.complexity.MailingList.Owner == nil {
+			break
+		}
+
+		return e.complexity.MailingList.Owner(childComplexity), true
+
+	case "MailingList.patches":
+		if e.complexity.MailingList.Patches == nil {
+			break
+		}
+
+		args, err := ec.field_MailingList_patches_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.MailingList.Patches(childComplexity, args["cursor"].(*model1.Cursor)), true
+
+	case "MailingList.permit_mime":
+		if e.complexity.MailingList.PermitMime == nil {
+			break
+		}
+
+		return e.complexity.MailingList.PermitMime(childComplexity), true
+
+	case "MailingList.reject_mime":
+		if e.complexity.MailingList.RejectMime == nil {
+			break
+		}
+
+		return e.complexity.MailingList.RejectMime(childComplexity), true
+
+	case "MailingList.threads":
+		if e.complexity.MailingList.Threads == nil {
+			break
+		}
+
+		args, err := ec.field_MailingList_threads_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.MailingList.Threads(childComplexity, args["cursor"].(*model1.Cursor)), true
+
+	case "MailingList.update":
+		if e.complexity.MailingList.Update == nil {
+			break
+		}
+
+		return e.complexity.MailingList.Update(childComplexity), true
+
+	case "MailingListCursor.cursor":
+		if e.complexity.MailingListCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.MailingListCursor.Cursor(childComplexity), true
+
+	case "MailingListCursor.results":
+		if e.complexity.MailingListCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.MailingListCursor.Results(childComplexity), true
+
+	case "MailingListSubscription.created":
+		if e.complexity.MailingListSubscription.Created == nil {
+			break
+		}
+
+		return e.complexity.MailingListSubscription.Created(childComplexity), true
+
+	case "MailingListSubscription.id":
+		if e.complexity.MailingListSubscription.ID == nil {
+			break
+		}
+
+		return e.complexity.MailingListSubscription.ID(childComplexity), true
+
+	case "MailingListSubscription.list":
+		if e.complexity.MailingListSubscription.List == nil {
+			break
+		}
+
+		return e.complexity.MailingListSubscription.List(childComplexity), true
+
+	case "Patch.count":
+		if e.complexity.Patch.Count == nil {
+			break
+		}
+
+		return e.complexity.Patch.Count(childComplexity), true
+
+	case "Patch.index":
+		if e.complexity.Patch.Index == nil {
+			break
+		}
+
+		return e.complexity.Patch.Index(childComplexity), true
+
+	case "Patch.prefix":
+		if e.complexity.Patch.Prefix == nil {
+			break
+		}
+
+		return e.complexity.Patch.Prefix(childComplexity), true
+
+	case "Patch.subject":
+		if e.complexity.Patch.Subject == nil {
+			break
+		}
+
+		return e.complexity.Patch.Subject(childComplexity), true
+
+	case "Patch.version":
+		if e.complexity.Patch.Version == nil {
+			break
+		}
+
+		return e.complexity.Patch.Version(childComplexity), true
+
+	case "Patchset.cover_letter":
+		if e.complexity.Patchset.CoverLetter == nil {
+			break
+		}
+
+		return e.complexity.Patchset.CoverLetter(childComplexity), true
+
+	case "Patchset.created":
+		if e.complexity.Patchset.Created == nil {
+			break
+		}
+
+		return e.complexity.Patchset.Created(childComplexity), true
+
+	case "Patchset.id":
+		if e.complexity.Patchset.ID == nil {
+			break
+		}
+
+		return e.complexity.Patchset.ID(childComplexity), true
+
+	case "Patchset.list":
+		if e.complexity.Patchset.List == nil {
+			break
+		}
+
+		return e.complexity.Patchset.List(childComplexity), true
+
+	case "Patchset.mbox":
+		if e.complexity.Patchset.Mbox == nil {
+			break
+		}
+
+		return e.complexity.Patchset.Mbox(childComplexity), true
+
+	case "Patchset.patches":
+		if e.complexity.Patchset.Patches == nil {
+			break
+		}
+
+		args, err := ec.field_Patchset_patches_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Patchset.Patches(childComplexity, args["cursor"].(*model1.Cursor)), true
+
+	case "Patchset.prefix":
+		if e.complexity.Patchset.Prefix == nil {
+			break
+		}
+
+		return e.complexity.Patchset.Prefix(childComplexity), true
+
+	case "Patchset.status":
+		if e.complexity.Patchset.Status == nil {
+			break
+		}
+
+		return e.complexity.Patchset.Status(childComplexity), true
+
+	case "Patchset.subject":
+		if e.complexity.Patchset.Subject == nil {
+			break
+		}
+
+		return e.complexity.Patchset.Subject(childComplexity), true
+
+	case "Patchset.superseded_by":
+		if e.complexity.Patchset.SupersededBy == nil {
+			break
+		}
+
+		return e.complexity.Patchset.SupersededBy(childComplexity), true
+
+	case "Patchset.thread":
+		if e.complexity.Patchset.Thread == nil {
+			break
+		}
+
+		return e.complexity.Patchset.Thread(childComplexity), true
+
+	case "Patchset.tools":
+		if e.complexity.Patchset.Tools == nil {
+			break
+		}
+
+		return e.complexity.Patchset.Tools(childComplexity), true
+
+	case "Patchset.updated":
+		if e.complexity.Patchset.Updated == nil {
+			break
+		}
+
+		return e.complexity.Patchset.Updated(childComplexity), true
+
+	case "Patchset.version":
+		if e.complexity.Patchset.Version == nil {
+			break
+		}
+
+		return e.complexity.Patchset.Version(childComplexity), true
+
+	case "PatchsetCursor.cursor":
+		if e.complexity.PatchsetCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.PatchsetCursor.Cursor(childComplexity), true
+
+	case "PatchsetCursor.results":
+		if e.complexity.PatchsetCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.PatchsetCursor.Results(childComplexity), true
+
+	case "PatchsetTool.created":
+		if e.complexity.PatchsetTool.Created == nil {
+			break
+		}
+
+		return e.complexity.PatchsetTool.Created(childComplexity), true
+
+	case "PatchsetTool.details":
+		if e.complexity.PatchsetTool.Details == nil {
+			break
+		}
+
+		return e.complexity.PatchsetTool.Details(childComplexity), true
+
+	case "PatchsetTool.id":
+		if e.complexity.PatchsetTool.ID == nil {
+			break
+		}
+
+		return e.complexity.PatchsetTool.ID(childComplexity), true
+
+	case "PatchsetTool.icon":
+		if e.complexity.PatchsetTool.Icon == nil {
+			break
+		}
+
+		return e.complexity.PatchsetTool.Icon(childComplexity), true
+
+	case "PatchsetTool.key":
+		if e.complexity.PatchsetTool.Key == nil {
+			break
+		}
+
+		return e.complexity.PatchsetTool.Key(childComplexity), true
+
+	case "PatchsetTool.patchset":
+		if e.complexity.PatchsetTool.Patchset == nil {
+			break
+		}
+
+		return e.complexity.PatchsetTool.Patchset(childComplexity), true
+
+	case "PatchsetTool.updated":
+		if e.complexity.PatchsetTool.Updated == nil {
+			break
+		}
+
+		return e.complexity.PatchsetTool.Updated(childComplexity), true
+
+	case "Query.mailingList":
+		if e.complexity.Query.MailingList == nil {
+			break
+		}
+
+		args, err := ec.field_Query_mailingList_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MailingList(childComplexity, args["id"].(int)), true
+
+	case "Query.mailingListByName":
+		if e.complexity.Query.MailingListByName == nil {
+			break
+		}
+
+		args, err := ec.field_Query_mailingListByName_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MailingListByName(childComplexity, args["name"].(string)), true
+
+	case "Query.mailingListByOwner":
+		if e.complexity.Query.MailingListByOwner == nil {
+			break
+		}
+
+		args, err := ec.field_Query_mailingListByOwner_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MailingListByOwner(childComplexity, args["ownerName"].(string), args["listName"].(string)), true
+
+	case "Query.mailingLists":
+		if e.complexity.Query.MailingLists == nil {
+			break
+		}
+
+		args, err := ec.field_Query_mailingLists_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.MailingLists(childComplexity, args["cursor"].(*model1.Cursor)), true
+
 	case "Query.me":
 		if e.complexity.Query.Me == nil {
 			break
@@ -103,17 +771,29 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Me(childComplexity), true
 
-	case "Query.userByID":
-		if e.complexity.Query.UserByID == nil {
+	case "Query.subscriptions":
+		if e.complexity.Query.Subscriptions == nil {
 			break
 		}
 
-		args, err := ec.field_Query_userByID_args(context.TODO(), rawArgs)
+		args, err := ec.field_Query_subscriptions_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
 
-		return e.complexity.Query.UserByID(childComplexity, args["id"].(int)), true
+		return e.complexity.Query.Subscriptions(childComplexity, args["cursor"].(*model1.Cursor)), true
+
+	case "Query.user":
+		if e.complexity.Query.User == nil {
+			break
+		}
+
+		args, err := ec.field_Query_user_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.User(childComplexity, args["id"].(int)), true
 
 	case "Query.userByName":
 		if e.complexity.Query.UserByName == nil {
@@ -133,6 +813,81 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Version(childComplexity), true
+
+	case "SubscriptionCursor.cursor":
+		if e.complexity.SubscriptionCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.SubscriptionCursor.Cursor(childComplexity), true
+
+	case "SubscriptionCursor.results":
+		if e.complexity.SubscriptionCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.SubscriptionCursor.Results(childComplexity), true
+
+	case "Thread.descendants":
+		if e.complexity.Thread.Descendants == nil {
+			break
+		}
+
+		args, err := ec.field_Thread_descendants_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Thread.Descendants(childComplexity, args["cursor"].(*model1.Cursor)), true
+
+	case "Thread.mailto":
+		if e.complexity.Thread.Mailto == nil {
+			break
+		}
+
+		return e.complexity.Thread.Mailto(childComplexity), true
+
+	case "Thread.mbox":
+		if e.complexity.Thread.Mbox == nil {
+			break
+		}
+
+		return e.complexity.Thread.Mbox(childComplexity), true
+
+	case "Thread.participants":
+		if e.complexity.Thread.Participants == nil {
+			break
+		}
+
+		return e.complexity.Thread.Participants(childComplexity), true
+
+	case "Thread.replies":
+		if e.complexity.Thread.Replies == nil {
+			break
+		}
+
+		return e.complexity.Thread.Replies(childComplexity), true
+
+	case "Thread.root":
+		if e.complexity.Thread.Root == nil {
+			break
+		}
+
+		return e.complexity.Thread.Root(childComplexity), true
+
+	case "ThreadCursor.cursor":
+		if e.complexity.ThreadCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.ThreadCursor.Cursor(childComplexity), true
+
+	case "ThreadCursor.results":
+		if e.complexity.ThreadCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.ThreadCursor.Results(childComplexity), true
 
 	case "User.bio":
 		if e.complexity.User.Bio == nil {
@@ -162,6 +917,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Email(childComplexity), true
 
+	case "User.emails":
+		if e.complexity.User.Emails == nil {
+			break
+		}
+
+		args, err := ec.field_User_emails_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.User.Emails(childComplexity, args["cursor"].(*model1.Cursor)), true
+
 	case "User.id":
 		if e.complexity.User.ID == nil {
 			break
@@ -175,6 +942,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.User.Location(childComplexity), true
+
+	case "User.patches":
+		if e.complexity.User.Patches == nil {
+			break
+		}
+
+		args, err := ec.field_User_patches_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.User.Patches(childComplexity, args["cursor"].(*model1.Cursor)), true
 
 	case "User.url":
 		if e.complexity.User.URL == nil {
@@ -279,15 +1058,18 @@ var sources = []*ast.Source{
 # of CC-0, at your choice.
 scalar Time   # %Y-%m-%dT%H:%M:%SZ
 scalar Cursor
+scalar RFC2822
 
 # Used to provide a human-friendly description of an access scope
 directive @scopehelp(details: String!) on ENUM_VALUE
 
 enum AccessScope {
-  ACLS    @scopehelp(details: "access control lists")
-  EMAILS  @scopehelp(details: "emails")
-  LISTS   @scopehelp(details: "mailing lists")
-  PROFILE @scopehelp(details: "profile information")
+  ACLS          @scopehelp(details: "access control lists")
+  EMAILS        @scopehelp(details: "emails")
+  LISTS         @scopehelp(details: "mailing lists")
+  PATCHES       @scopehelp(details: "patches")
+  PROFILE       @scopehelp(details: "profile information")
+  SUBSCRIPTIONS @scopehelp(details: "tracker & ticket subscriptions")
 }
 
 enum AccessKind {
@@ -316,14 +1098,13 @@ type Version {
 }
 
 interface Entity {
-  id: Int!
-  created: Time!
-  updated: Time!
-  # The canonical name of this entity. For users, this is their username
-  # prefixed with '~'. Additional entity types will be supported in the future.
   canonicalName: String!
+
+  emails(cursor: Cursor): EmailCursor @access(scope: EMAILS, kind: RO)
+  patches(cursor: Cursor): PatchsetCursor @access(scope: PATCHES, kind: RO)
 }
 
+# A registered user
 type User implements Entity {
   id: Int!
   created: Time!
@@ -334,6 +1115,205 @@ type User implements Entity {
   url: String
   location: String
   bio: String
+
+  emails(cursor: Cursor): EmailCursor @access(scope: EMAILS, kind: RO)
+  patches(cursor: Cursor): PatchsetCursor @access(scope: PATCHES, kind: RO)
+}
+
+# A mailbox not associated with a registered user
+type Mailbox implements Entity {
+  canonicalName: String!
+  name: String!
+  email: String!
+
+  emails(cursor: Cursor): EmailCursor @access(scope: EMAILS, kind: RO)
+  patches(cursor: Cursor): PatchsetCursor @access(scope: PATCHES, kind: RO)
+}
+
+type MailingList {
+  id: Int!
+  created: Time!
+  update: Time!
+  name: String!
+  description: String
+  owner: Entity! @access(scope: PROFILE, kind: RO)
+
+  # List of globs for permitted or rejected mimetypes on this list
+  # e.g. text/*
+  permit_mime: [String!]!
+  reject_mime: [String!]!
+
+  # List of threads on this list in order of most recently bumped
+  threads(cursor: Cursor): ThreadCursor! @access(scope: EMAILS, kind: RO)
+  # List of emails received on this list in reverse chronological order
+  emails(cursor: Cursor): EmailCursor! @access(scope: EMAILS, kind: RO)
+  patches(cursor: Cursor): PatchsetCursor! @access(scope: PATCHES, kind: RO)
+
+  # True if an import operation is underway for this list
+  importing: Boolean!
+}
+
+type Thread {
+  root: Email!
+  mbox: String!
+  replies: Int!
+  participants: Int!
+
+  # A mailto: URL for replying to the latest message in this thread
+  mailto: String!
+
+  descendants(cursor: Cursor): EmailCursor!
+}
+
+type Email {
+  id: Int!
+  sender: Entity!
+  # Time we received this email
+  received: Time!
+  # Time specified by Date header (forgable)
+  date: Time!
+  envelope: RFC2822!
+  body: String!
+  headers: RFC2822!
+  subject: String!
+  message_id: String!
+  in_reply_to: Email
+
+  thread: Thread!
+  patch: Patch
+  patchset: Patchset @access(scope: PATCHES, kind: RO)
+  list: MailingList! @access(scope: LISTS, kind: RO)
+}
+
+# Information parsed from the subject line of a patch, such that the following:
+#
+#   [PATCH myproject v2 3/4] Add foo to bar
+#
+# Will produce:
+#
+# index: 3
+# count: 4
+# version: 2
+# prefix: "myproject"
+# subject: "Add foo to bar"
+type Patch {
+  index: Int
+  count: Int
+  version: Int
+  prefix: String
+  subject: String
+}
+
+enum PatchsetStatus {
+  UNKNOWN
+  PROPOSED
+  NEEDS_REVISION
+  SUPERSEDED
+  APPROVED
+  REJECTED
+  APPLIED
+}
+
+type Patchset {
+  id: Int!
+  created: Time!
+  updated: Time!
+  subject: String!
+  version: Int!
+  prefix: String
+  status: PatchsetStatus!
+
+  cover_letter: Email
+  thread: Thread!
+  superseded_by: Patchset
+  list: MailingList! @access(scope: LISTS, kind: RO)
+  patches(cursor: Cursor): EmailCursor!
+  tools: [PatchsetTool!]!
+
+  # mbox containing only patches. For an mbox of the whole thread, see
+  # thread.mbox.
+  mbox: String!
+}
+
+enum ToolIcon {
+  PENDING
+  WAITING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+# Used to add some kind of indicator for a third-party process associated with
+# a patchset, such as a CI service validating the change.
+type PatchsetTool {
+  id: Int!
+  created: Time!
+  updated: Time!
+  icon: ToolIcon!
+  details: String!
+  key: String!
+  patchset: Patchset!
+}
+
+interface Subscription {
+  id: Int!
+  created: Time!
+}
+
+type MailingListSubscription {
+  id: Int!
+  created: Time!
+  list: MailingList! @access(scope: LISTS, kind: RO)
+}
+
+# A cursor for enumerating mailing lists
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type MailingListCursor {
+  results: [MailingList!]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating threads
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type ThreadCursor {
+  results: [Thread!]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating emails
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type EmailCursor {
+  results: [Email!]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating patchsets
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type PatchsetCursor {
+  results: [Patchset!]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating subscriptions
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type SubscriptionCursor {
+  results: [Subscription!]!
+  cursor: Cursor
 }
 
 type Query {
@@ -344,8 +1324,19 @@ type Query {
   me: User! @access(scope: PROFILE, kind: RO)
 
   # Returns a specific user
-  userByID(id: Int!): User @access(scope: PROFILE, kind: RO)
+  user(id: Int!): User @access(scope: PROFILE, kind: RO)
   userByName(username: String!): User @access(scope: PROFILE, kind: RO)
+
+  # Returns mailing lists that the authenticated user has access to.
+  mailingLists(cursor: Cursor): MailingListCursor! @access(scope: LISTS, kind: RO)
+
+  # Returns a specific mailing list
+  mailingList(id: Int!): MailingList @access(scope: LISTS, kind: RO)
+  mailingListByName(name: String!): MailingList @access(scope: LISTS, kind: RO)
+  mailingListByOwner(ownerName: String!, listName: String!): MailingList @access(scope: LISTS, kind: RO)
+
+  # List of subscriptions of the authenticated user.
+  subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 `, BuiltIn: false},
 }
@@ -394,6 +1385,96 @@ func (ec *executionContext) dir_scopehelp_args(ctx context.Context, rawArgs map[
 	return args, nil
 }
 
+func (ec *executionContext) field_Mailbox_emails_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mailbox_patches_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_MailingList_emails_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_MailingList_patches_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_MailingList_threads_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Patchset_patches_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -409,7 +1490,46 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
-func (ec *executionContext) field_Query_userByID_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Query_mailingListByName_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["name"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_mailingListByOwner_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["ownerName"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ownerName"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ownerName"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["listName"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("listName"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["listName"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_mailingList_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
@@ -421,6 +1541,36 @@ func (ec *executionContext) field_Query_userByID_args(ctx context.Context, rawAr
 		}
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_mailingLists_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_subscriptions_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
 	return args, nil
 }
 
@@ -436,6 +1586,66 @@ func (ec *executionContext) field_Query_userByName_args(ctx context.Context, raw
 		}
 	}
 	args["username"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Thread_descendants_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_User_emails_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_User_patches_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
 	return args, nil
 }
 
@@ -476,6 +1686,2587 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _Email_id(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_sender(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Sender, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Entity)
+	fc.Result = res
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_received(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Received, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_date(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Date, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_envelope(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Envelope, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNRFC28222string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_body(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Body, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_headers(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Headers, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNRFC28222string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_subject(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Subject, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_message_id(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.MessageID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_in_reply_to(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.InReplyTo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Email)
+	fc.Result = res
+	return ec.marshalOEmail2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmail(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_thread(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Thread, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Thread)
+	fc.Result = res
+	return ec.marshalNThread2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThread(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_patch(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Patch, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Patch)
+	fc.Result = res
+	return ec.marshalOPatch2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatch(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_patchset(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.Patchset, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PATCHES")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Patchset); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Patchset`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Patchset)
+	fc.Result = res
+	return ec.marshalOPatchset2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchset(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Email_list(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Email",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.List, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "LISTS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.MailingList); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.MailingList`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.MailingList)
+	fc.Result = res
+	return ec.marshalNMailingList2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingList(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _EmailCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.EmailCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "EmailCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Email)
+	fc.Result = res
+	return ec.marshalNEmail2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmailᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _EmailCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.EmailCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "EmailCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model1.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mailbox_canonicalName(ctx context.Context, field graphql.CollectedField, obj *model.Mailbox) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mailbox",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CanonicalName, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mailbox_name(ctx context.Context, field graphql.CollectedField, obj *model.Mailbox) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mailbox",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mailbox_email(ctx context.Context, field graphql.CollectedField, obj *model.Mailbox) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mailbox",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Email, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mailbox_emails(ctx context.Context, field graphql.CollectedField, obj *model.Mailbox) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mailbox",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mailbox_emails_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.Emails, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "EMAILS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.EmailCursor); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.EmailCursor`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.EmailCursor)
+	fc.Result = res
+	return ec.marshalOEmailCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmailCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mailbox_patches(ctx context.Context, field graphql.CollectedField, obj *model.Mailbox) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mailbox",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mailbox_patches_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.Patches, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PATCHES")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.PatchsetCursor); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.PatchsetCursor`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.PatchsetCursor)
+	fc.Result = res
+	return ec.marshalOPatchsetCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_id(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_created(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_update(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Update, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_name(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Name, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_description(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_owner(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.Owner, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PROFILE")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(model.Entity); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Entity`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Entity)
+	fc.Result = res
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_permit_mime(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PermitMime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_reject_mime(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.RejectMime, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]string)
+	fc.Result = res
+	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_threads(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_MailingList_threads_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.Threads, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "EMAILS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.ThreadCursor); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.ThreadCursor`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.ThreadCursor)
+	fc.Result = res
+	return ec.marshalNThreadCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThreadCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_emails(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_MailingList_emails_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.Emails, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "EMAILS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.EmailCursor); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.EmailCursor`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.EmailCursor)
+	fc.Result = res
+	return ec.marshalNEmailCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmailCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_patches(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_MailingList_patches_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.Patches, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PATCHES")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.PatchsetCursor); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.PatchsetCursor`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.PatchsetCursor)
+	fc.Result = res
+	return ec.marshalNPatchsetCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_importing(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Importing, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.MailingListCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.MailingList)
+	fc.Result = res
+	return ec.marshalNMailingList2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.MailingListCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model1.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListSubscription_id(ctx context.Context, field graphql.CollectedField, obj *model.MailingListSubscription) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListSubscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListSubscription_created(ctx context.Context, field graphql.CollectedField, obj *model.MailingListSubscription) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListSubscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListSubscription_list(ctx context.Context, field graphql.CollectedField, obj *model.MailingListSubscription) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListSubscription",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.List, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "LISTS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.MailingList); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.MailingList`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.MailingList)
+	fc.Result = res
+	return ec.marshalNMailingList2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingList(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patch_index(ctx context.Context, field graphql.CollectedField, obj *model.Patch) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patch",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Index, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patch_count(ctx context.Context, field graphql.CollectedField, obj *model.Patch) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patch",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Count, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patch_version(ctx context.Context, field graphql.CollectedField, obj *model.Patch) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patch",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Version, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*int)
+	fc.Result = res
+	return ec.marshalOInt2ᚖint(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patch_prefix(ctx context.Context, field graphql.CollectedField, obj *model.Patch) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patch",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Prefix, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patch_subject(ctx context.Context, field graphql.CollectedField, obj *model.Patch) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patch",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Subject, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_id(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_created(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_updated(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Updated, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_subject(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Subject, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_version(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Version, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_prefix(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Prefix, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_status(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Status, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.PatchsetStatus)
+	fc.Result = res
+	return ec.marshalNPatchsetStatus2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_cover_letter(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CoverLetter, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Email)
+	fc.Result = res
+	return ec.marshalOEmail2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmail(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_thread(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Thread, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Thread)
+	fc.Result = res
+	return ec.marshalNThread2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThread(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_superseded_by(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.SupersededBy, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Patchset)
+	fc.Result = res
+	return ec.marshalOPatchset2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchset(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_list(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.List, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "LISTS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.MailingList); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.MailingList`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.MailingList)
+	fc.Result = res
+	return ec.marshalNMailingList2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingList(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_patches(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Patchset_patches_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Patches, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.EmailCursor)
+	fc.Result = res
+	return ec.marshalNEmailCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmailCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_tools(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Tools, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.PatchsetTool)
+	fc.Result = res
+	return ec.marshalNPatchsetTool2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetToolᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_mbox(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Mbox, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PatchsetCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.PatchsetCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PatchsetCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Patchset)
+	fc.Result = res
+	return ec.marshalNPatchset2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PatchsetCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.PatchsetCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PatchsetCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model1.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PatchsetTool_id(ctx context.Context, field graphql.CollectedField, obj *model.PatchsetTool) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PatchsetTool",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PatchsetTool_created(ctx context.Context, field graphql.CollectedField, obj *model.PatchsetTool) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PatchsetTool",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PatchsetTool_updated(ctx context.Context, field graphql.CollectedField, obj *model.PatchsetTool) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PatchsetTool",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Updated, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PatchsetTool_icon(ctx context.Context, field graphql.CollectedField, obj *model.PatchsetTool) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PatchsetTool",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Icon, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ToolIcon)
+	fc.Result = res
+	return ec.marshalNToolIcon2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐToolIcon(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PatchsetTool_details(ctx context.Context, field graphql.CollectedField, obj *model.PatchsetTool) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PatchsetTool",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Details, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PatchsetTool_key(ctx context.Context, field graphql.CollectedField, obj *model.PatchsetTool) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PatchsetTool",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Key, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _PatchsetTool_patchset(ctx context.Context, field graphql.CollectedField, obj *model.PatchsetTool) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "PatchsetTool",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Patchset, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Patchset)
+	fc.Result = res
+	return ec.marshalNPatchset2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchset(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _Query_version(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
@@ -575,7 +4366,7 @@ func (ec *executionContext) _Query_me(ctx context.Context, field graphql.Collect
 	return ec.marshalNUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Query_userByID(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+func (ec *executionContext) _Query_user(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -592,7 +4383,7 @@ func (ec *executionContext) _Query_userByID(ctx context.Context, field graphql.C
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Query_userByID_args(ctx, rawArgs)
+	args, err := ec.field_Query_user_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -601,7 +4392,7 @@ func (ec *executionContext) _Query_userByID(ctx context.Context, field graphql.C
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Query().UserByID(rctx, args["id"].(int))
+			return ec.resolvers.Query().User(rctx, args["id"].(int))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PROFILE")
@@ -709,6 +4500,344 @@ func (ec *executionContext) _Query_userByName(ctx context.Context, field graphql
 	return ec.marshalOUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_mailingLists(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_mailingLists_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().MailingLists(rctx, args["cursor"].(*model1.Cursor))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "LISTS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, nil, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.MailingListCursor); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.MailingListCursor`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.MailingListCursor)
+	fc.Result = res
+	return ec.marshalNMailingListCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_mailingList(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_mailingList_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().MailingList(rctx, args["id"].(int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "LISTS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, nil, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.MailingList); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.MailingList`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.MailingList)
+	fc.Result = res
+	return ec.marshalOMailingList2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingList(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_mailingListByName(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_mailingListByName_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().MailingListByName(rctx, args["name"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "LISTS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, nil, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.MailingList); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.MailingList`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.MailingList)
+	fc.Result = res
+	return ec.marshalOMailingList2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingList(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_mailingListByOwner(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_mailingListByOwner_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().MailingListByOwner(rctx, args["ownerName"].(string), args["listName"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "LISTS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, nil, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.MailingList); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.MailingList`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.MailingList)
+	fc.Result = res
+	return ec.marshalOMailingList2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingList(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_subscriptions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_subscriptions_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Subscriptions(rctx, args["cursor"].(*model1.Cursor))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "SUBSCRIPTIONS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, nil, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.SubscriptionCursor); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.SubscriptionCursor`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.SubscriptionCursor)
+	fc.Result = res
+	return ec.marshalOSubscriptionCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionCursor(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -778,6 +4907,357 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SubscriptionCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SubscriptionCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.Subscription)
+	fc.Result = res
+	return ec.marshalNSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _SubscriptionCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "SubscriptionCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model1.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Thread_root(ctx context.Context, field graphql.CollectedField, obj *model.Thread) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Thread",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Root, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Email)
+	fc.Result = res
+	return ec.marshalNEmail2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmail(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Thread_mbox(ctx context.Context, field graphql.CollectedField, obj *model.Thread) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Thread",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Mbox, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Thread_replies(ctx context.Context, field graphql.CollectedField, obj *model.Thread) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Thread",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Replies, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Thread_participants(ctx context.Context, field graphql.CollectedField, obj *model.Thread) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Thread",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Participants, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Thread_mailto(ctx context.Context, field graphql.CollectedField, obj *model.Thread) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Thread",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Mailto, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Thread_descendants(ctx context.Context, field graphql.CollectedField, obj *model.Thread) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Thread",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Thread_descendants_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Descendants, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.EmailCursor)
+	fc.Result = res
+	return ec.marshalNEmailCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmailCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ThreadCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.ThreadCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ThreadCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*model.Thread)
+	fc.Result = res
+	return ec.marshalNThread2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThreadᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ThreadCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.ThreadCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ThreadCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model1.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _User_id(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
@@ -1084,6 +5564,140 @@ func (ec *executionContext) _User_bio(ctx context.Context, field graphql.Collect
 	res := resTmp.(*string)
 	fc.Result = res
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_emails(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_User_emails_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.Emails, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "EMAILS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.EmailCursor); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.EmailCursor`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.EmailCursor)
+	fc.Result = res
+	return ec.marshalOEmailCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmailCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _User_patches(ctx context.Context, field graphql.CollectedField, obj *model.User) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "User",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_User_patches_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.Patches, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PATCHES")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.PatchsetCursor); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.PatchsetCursor`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.PatchsetCursor)
+	fc.Result = res
+	return ec.marshalOPatchsetCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Version_major(ctx context.Context, field graphql.CollectedField, obj *model.Version) (ret graphql.Marshaler) {
@@ -2325,6 +6939,22 @@ func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet, o
 			return graphql.Null
 		}
 		return ec._User(ctx, sel, obj)
+	case model.Mailbox:
+		return ec._Mailbox(ctx, sel, &obj)
+	case *model.Mailbox:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Mailbox(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
+func (ec *executionContext) _Subscription(ctx context.Context, sel ast.SelectionSet, obj model.Subscription) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -2333,6 +6963,505 @@ func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet, o
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var emailImplementors = []string{"Email"}
+
+func (ec *executionContext) _Email(ctx context.Context, sel ast.SelectionSet, obj *model.Email) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, emailImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Email")
+		case "id":
+			out.Values[i] = ec._Email_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "sender":
+			out.Values[i] = ec._Email_sender(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "received":
+			out.Values[i] = ec._Email_received(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "date":
+			out.Values[i] = ec._Email_date(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "envelope":
+			out.Values[i] = ec._Email_envelope(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "body":
+			out.Values[i] = ec._Email_body(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "headers":
+			out.Values[i] = ec._Email_headers(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "subject":
+			out.Values[i] = ec._Email_subject(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "message_id":
+			out.Values[i] = ec._Email_message_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "in_reply_to":
+			out.Values[i] = ec._Email_in_reply_to(ctx, field, obj)
+		case "thread":
+			out.Values[i] = ec._Email_thread(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "patch":
+			out.Values[i] = ec._Email_patch(ctx, field, obj)
+		case "patchset":
+			out.Values[i] = ec._Email_patchset(ctx, field, obj)
+		case "list":
+			out.Values[i] = ec._Email_list(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var emailCursorImplementors = []string{"EmailCursor"}
+
+func (ec *executionContext) _EmailCursor(ctx context.Context, sel ast.SelectionSet, obj *model.EmailCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, emailCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("EmailCursor")
+		case "results":
+			out.Values[i] = ec._EmailCursor_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._EmailCursor_cursor(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var mailboxImplementors = []string{"Mailbox", "Entity"}
+
+func (ec *executionContext) _Mailbox(ctx context.Context, sel ast.SelectionSet, obj *model.Mailbox) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mailboxImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Mailbox")
+		case "canonicalName":
+			out.Values[i] = ec._Mailbox_canonicalName(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._Mailbox_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "email":
+			out.Values[i] = ec._Mailbox_email(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "emails":
+			out.Values[i] = ec._Mailbox_emails(ctx, field, obj)
+		case "patches":
+			out.Values[i] = ec._Mailbox_patches(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var mailingListImplementors = []string{"MailingList"}
+
+func (ec *executionContext) _MailingList(ctx context.Context, sel ast.SelectionSet, obj *model.MailingList) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mailingListImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("MailingList")
+		case "id":
+			out.Values[i] = ec._MailingList_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "created":
+			out.Values[i] = ec._MailingList_created(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "update":
+			out.Values[i] = ec._MailingList_update(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "name":
+			out.Values[i] = ec._MailingList_name(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "description":
+			out.Values[i] = ec._MailingList_description(ctx, field, obj)
+		case "owner":
+			out.Values[i] = ec._MailingList_owner(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "permit_mime":
+			out.Values[i] = ec._MailingList_permit_mime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "reject_mime":
+			out.Values[i] = ec._MailingList_reject_mime(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "threads":
+			out.Values[i] = ec._MailingList_threads(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "emails":
+			out.Values[i] = ec._MailingList_emails(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "patches":
+			out.Values[i] = ec._MailingList_patches(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "importing":
+			out.Values[i] = ec._MailingList_importing(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var mailingListCursorImplementors = []string{"MailingListCursor"}
+
+func (ec *executionContext) _MailingListCursor(ctx context.Context, sel ast.SelectionSet, obj *model.MailingListCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mailingListCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("MailingListCursor")
+		case "results":
+			out.Values[i] = ec._MailingListCursor_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._MailingListCursor_cursor(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var mailingListSubscriptionImplementors = []string{"MailingListSubscription"}
+
+func (ec *executionContext) _MailingListSubscription(ctx context.Context, sel ast.SelectionSet, obj *model.MailingListSubscription) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mailingListSubscriptionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("MailingListSubscription")
+		case "id":
+			out.Values[i] = ec._MailingListSubscription_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "created":
+			out.Values[i] = ec._MailingListSubscription_created(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "list":
+			out.Values[i] = ec._MailingListSubscription_list(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var patchImplementors = []string{"Patch"}
+
+func (ec *executionContext) _Patch(ctx context.Context, sel ast.SelectionSet, obj *model.Patch) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, patchImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Patch")
+		case "index":
+			out.Values[i] = ec._Patch_index(ctx, field, obj)
+		case "count":
+			out.Values[i] = ec._Patch_count(ctx, field, obj)
+		case "version":
+			out.Values[i] = ec._Patch_version(ctx, field, obj)
+		case "prefix":
+			out.Values[i] = ec._Patch_prefix(ctx, field, obj)
+		case "subject":
+			out.Values[i] = ec._Patch_subject(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var patchsetImplementors = []string{"Patchset"}
+
+func (ec *executionContext) _Patchset(ctx context.Context, sel ast.SelectionSet, obj *model.Patchset) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, patchsetImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Patchset")
+		case "id":
+			out.Values[i] = ec._Patchset_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "created":
+			out.Values[i] = ec._Patchset_created(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updated":
+			out.Values[i] = ec._Patchset_updated(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "subject":
+			out.Values[i] = ec._Patchset_subject(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "version":
+			out.Values[i] = ec._Patchset_version(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "prefix":
+			out.Values[i] = ec._Patchset_prefix(ctx, field, obj)
+		case "status":
+			out.Values[i] = ec._Patchset_status(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cover_letter":
+			out.Values[i] = ec._Patchset_cover_letter(ctx, field, obj)
+		case "thread":
+			out.Values[i] = ec._Patchset_thread(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "superseded_by":
+			out.Values[i] = ec._Patchset_superseded_by(ctx, field, obj)
+		case "list":
+			out.Values[i] = ec._Patchset_list(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "patches":
+			out.Values[i] = ec._Patchset_patches(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "tools":
+			out.Values[i] = ec._Patchset_tools(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "mbox":
+			out.Values[i] = ec._Patchset_mbox(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var patchsetCursorImplementors = []string{"PatchsetCursor"}
+
+func (ec *executionContext) _PatchsetCursor(ctx context.Context, sel ast.SelectionSet, obj *model.PatchsetCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, patchsetCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PatchsetCursor")
+		case "results":
+			out.Values[i] = ec._PatchsetCursor_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._PatchsetCursor_cursor(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var patchsetToolImplementors = []string{"PatchsetTool"}
+
+func (ec *executionContext) _PatchsetTool(ctx context.Context, sel ast.SelectionSet, obj *model.PatchsetTool) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, patchsetToolImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PatchsetTool")
+		case "id":
+			out.Values[i] = ec._PatchsetTool_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "created":
+			out.Values[i] = ec._PatchsetTool_created(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "updated":
+			out.Values[i] = ec._PatchsetTool_updated(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "icon":
+			out.Values[i] = ec._PatchsetTool_icon(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "details":
+			out.Values[i] = ec._PatchsetTool_details(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "key":
+			out.Values[i] = ec._PatchsetTool_key(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "patchset":
+			out.Values[i] = ec._PatchsetTool_patchset(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
 
 var queryImplementors = []string{"Query"}
 
@@ -2377,7 +7506,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				}
 				return res
 			})
-		case "userByID":
+		case "user":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -2385,7 +7514,7 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Query_userByID(ctx, field)
+				res = ec._Query_user(ctx, field)
 				return res
 			})
 		case "userByName":
@@ -2399,10 +7528,178 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 				res = ec._Query_userByName(ctx, field)
 				return res
 			})
+		case "mailingLists":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_mailingLists(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "mailingList":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_mailingList(ctx, field)
+				return res
+			})
+		case "mailingListByName":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_mailingListByName(ctx, field)
+				return res
+			})
+		case "mailingListByOwner":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_mailingListByOwner(ctx, field)
+				return res
+			})
+		case "subscriptions":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_subscriptions(ctx, field)
+				return res
+			})
 		case "__type":
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
 			out.Values[i] = ec._Query___schema(ctx, field)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var subscriptionCursorImplementors = []string{"SubscriptionCursor"}
+
+func (ec *executionContext) _SubscriptionCursor(ctx context.Context, sel ast.SelectionSet, obj *model.SubscriptionCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, subscriptionCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("SubscriptionCursor")
+		case "results":
+			out.Values[i] = ec._SubscriptionCursor_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._SubscriptionCursor_cursor(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var threadImplementors = []string{"Thread"}
+
+func (ec *executionContext) _Thread(ctx context.Context, sel ast.SelectionSet, obj *model.Thread) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, threadImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Thread")
+		case "root":
+			out.Values[i] = ec._Thread_root(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "mbox":
+			out.Values[i] = ec._Thread_mbox(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "replies":
+			out.Values[i] = ec._Thread_replies(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "participants":
+			out.Values[i] = ec._Thread_participants(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "mailto":
+			out.Values[i] = ec._Thread_mailto(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "descendants":
+			out.Values[i] = ec._Thread_descendants(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var threadCursorImplementors = []string{"ThreadCursor"}
+
+func (ec *executionContext) _ThreadCursor(ctx context.Context, sel ast.SelectionSet, obj *model.ThreadCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, threadCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ThreadCursor")
+		case "results":
+			out.Values[i] = ec._ThreadCursor_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._ThreadCursor_cursor(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2461,6 +7758,10 @@ func (ec *executionContext) _User(ctx context.Context, sel ast.SelectionSet, obj
 			out.Values[i] = ec._User_location(ctx, field, obj)
 		case "bio":
 			out.Values[i] = ec._User_bio(ctx, field, obj)
+		case "emails":
+			out.Values[i] = ec._User_emails(ctx, field, obj)
+		case "patches":
+			out.Values[i] = ec._User_patches(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -2791,6 +8092,73 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNEmail2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmailᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Email) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNEmail2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmail(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNEmail2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmail(ctx context.Context, sel ast.SelectionSet, v *model.Email) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Email(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNEmailCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmailCursor(ctx context.Context, sel ast.SelectionSet, v *model.EmailCursor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._EmailCursor(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx context.Context, sel ast.SelectionSet, v model.Entity) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Entity(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {
 	res, err := graphql.UnmarshalInt(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -2798,6 +8166,196 @@ func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}
 
 func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.SelectionSet, v int) graphql.Marshaler {
 	res := graphql.MarshalInt(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+	}
+	return res
+}
+
+func (ec *executionContext) marshalNMailingList2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.MailingList) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNMailingList2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingList(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNMailingList2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingList(ctx context.Context, sel ast.SelectionSet, v *model.MailingList) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._MailingList(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNMailingListCursor2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListCursor(ctx context.Context, sel ast.SelectionSet, v model.MailingListCursor) graphql.Marshaler {
+	return ec._MailingListCursor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNMailingListCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListCursor(ctx context.Context, sel ast.SelectionSet, v *model.MailingListCursor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._MailingListCursor(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPatchset2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Patchset) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPatchset2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchset(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNPatchset2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchset(ctx context.Context, sel ast.SelectionSet, v *model.Patchset) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Patchset(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPatchsetCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetCursor(ctx context.Context, sel ast.SelectionSet, v *model.PatchsetCursor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._PatchsetCursor(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNPatchsetStatus2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetStatus(ctx context.Context, v interface{}) (model.PatchsetStatus, error) {
+	var res model.PatchsetStatus
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNPatchsetStatus2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetStatus(ctx context.Context, sel ast.SelectionSet, v model.PatchsetStatus) graphql.Marshaler {
+	return v
+}
+
+func (ec *executionContext) marshalNPatchsetTool2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetToolᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PatchsetTool) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNPatchsetTool2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetTool(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNPatchsetTool2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetTool(ctx context.Context, sel ast.SelectionSet, v *model.PatchsetTool) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._PatchsetTool(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNRFC28222string(ctx context.Context, v interface{}) (string, error) {
+	res, err := graphql.UnmarshalString(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNRFC28222string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
+	res := graphql.MarshalString(v)
 	if res == graphql.Null {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "must not be null")
@@ -2821,6 +8379,140 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
+func (ec *executionContext) unmarshalNString2ᚕstringᚄ(ctx context.Context, v interface{}) ([]string, error) {
+	var vSlice []interface{}
+	if v != nil {
+		if tmp1, ok := v.([]interface{}); ok {
+			vSlice = tmp1
+		} else {
+			vSlice = []interface{}{v}
+		}
+	}
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx context.Context, sel ast.SelectionSet, v model.Subscription) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Subscription(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Subscription) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNThread2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThreadᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Thread) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNThread2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThread(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
+func (ec *executionContext) marshalNThread2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThread(ctx context.Context, sel ast.SelectionSet, v *model.Thread) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Thread(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNThreadCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThreadCursor(ctx context.Context, sel ast.SelectionSet, v *model.ThreadCursor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ThreadCursor(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNTime2timeᚐTime(ctx context.Context, v interface{}) (time.Time, error) {
 	res, err := graphql.UnmarshalTime(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -2834,6 +8526,16 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNToolIcon2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐToolIcon(ctx context.Context, v interface{}) (model.ToolIcon, error) {
+	var res model.ToolIcon
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNToolIcon2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐToolIcon(ctx context.Context, sel ast.SelectionSet, v model.ToolIcon) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNUser2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
@@ -3117,6 +8819,79 @@ func (ec *executionContext) marshalOBoolean2ᚖbool(ctx context.Context, sel ast
 	return graphql.MarshalBoolean(*v)
 }
 
+func (ec *executionContext) unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx context.Context, v interface{}) (*model1.Cursor, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model1.Cursor)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx context.Context, sel ast.SelectionSet, v *model1.Cursor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
+}
+
+func (ec *executionContext) marshalOEmail2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmail(ctx context.Context, sel ast.SelectionSet, v *model.Email) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Email(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOEmailCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmailCursor(ctx context.Context, sel ast.SelectionSet, v *model.EmailCursor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._EmailCursor(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v interface{}) (*int, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalInt(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.SelectionSet, v *int) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return graphql.MarshalInt(*v)
+}
+
+func (ec *executionContext) marshalOMailingList2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingList(ctx context.Context, sel ast.SelectionSet, v *model.MailingList) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._MailingList(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOPatch2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatch(ctx context.Context, sel ast.SelectionSet, v *model.Patch) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Patch(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOPatchset2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchset(ctx context.Context, sel ast.SelectionSet, v *model.Patchset) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Patchset(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOPatchsetCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetCursor(ctx context.Context, sel ast.SelectionSet, v *model.PatchsetCursor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._PatchsetCursor(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOString2string(ctx context.Context, v interface{}) (string, error) {
 	res, err := graphql.UnmarshalString(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -3139,6 +8914,13 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
+}
+
+func (ec *executionContext) marshalOSubscriptionCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionCursor(ctx context.Context, sel ast.SelectionSet, v *model.SubscriptionCursor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._SubscriptionCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
