@@ -168,6 +168,7 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		Mailbox            func(childComplexity int, address string) int
 		MailingList        func(childComplexity int, id int) int
 		MailingListByName  func(childComplexity int, name string) int
 		MailingListByOwner func(childComplexity int, ownerName string, listName string) int
@@ -242,6 +243,7 @@ type QueryResolver interface {
 	Me(ctx context.Context) (*model.User, error)
 	User(ctx context.Context, id int) (*model.User, error)
 	UserByName(ctx context.Context, username string) (*model.User, error)
+	Mailbox(ctx context.Context, address string) (*model.Mailbox, error)
 	MailingLists(ctx context.Context, cursor *model1.Cursor) (*model.MailingListCursor, error)
 	MailingList(ctx context.Context, id int) (*model.MailingList, error)
 	MailingListByName(ctx context.Context, name string) (*model.MailingList, error)
@@ -860,6 +862,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PatchsetTool.Updated(childComplexity), true
 
+	case "Query.mailbox":
+		if e.complexity.Query.Mailbox == nil {
+			break
+		}
+
+		args, err := ec.field_Query_mailbox_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Mailbox(childComplexity, args["address"].(string)), true
+
 	case "Query.mailingList":
 		if e.complexity.Query.MailingList == nil {
 			break
@@ -1317,8 +1331,10 @@ type MailingList {
   created: Time!
   updated: Time!
   name: String!
-  description: String
   owner: Entity! @access(scope: PROFILE, kind: RO)
+
+  # Markdown
+  description: String
 
   # List of globs for permitted or rejected mimetypes on this list
   # e.g. text/*
@@ -1552,6 +1568,7 @@ type Query {
   # Returns a specific user
   user(id: Int!): User @access(scope: PROFILE, kind: RO)
   userByName(username: String!): User @access(scope: PROFILE, kind: RO)
+  mailbox(address: String!): Mailbox @access(scope: PROFILE, kind: RO)
 
   # Returns mailing lists that the authenticated user has access to.
   mailingLists(cursor: Cursor): MailingListCursor! @access(scope: LISTS, kind: RO)
@@ -1713,6 +1730,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 		}
 	}
 	args["name"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_mailbox_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["address"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["address"] = arg0
 	return args, nil
 }
 
@@ -3066,38 +3098,6 @@ func (ec *executionContext) _MailingList_name(ctx context.Context, field graphql
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _MailingList_description(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "MailingList",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Description, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*string)
-	fc.Result = res
-	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _MailingList_owner(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3159,6 +3159,38 @@ func (ec *executionContext) _MailingList_owner(ctx context.Context, field graphq
 	res := resTmp.(model.Entity)
 	fc.Result = res
 	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_description(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Description, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _MailingList_permit_mime(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
@@ -5297,6 +5329,73 @@ func (ec *executionContext) _Query_userByName(ctx context.Context, field graphql
 	res := resTmp.(*model.User)
 	fc.Result = res
 	return ec.marshalOUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_mailbox(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_mailbox_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Mailbox(rctx, args["address"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PROFILE")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, nil, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Mailbox); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Mailbox`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Mailbox)
+	fc.Result = res
+	return ec.marshalOMailbox2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailbox(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query_mailingLists(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -8209,8 +8308,6 @@ func (ec *executionContext) _MailingList(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "description":
-			out.Values[i] = ec._MailingList_description(ctx, field, obj)
 		case "owner":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -8225,6 +8322,8 @@ func (ec *executionContext) _MailingList(ctx context.Context, sel ast.SelectionS
 				}
 				return res
 			})
+		case "description":
+			out.Values[i] = ec._MailingList_description(ctx, field, obj)
 		case "permit_mime":
 			out.Values[i] = ec._MailingList_permit_mime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -8728,6 +8827,17 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_userByName(ctx, field)
+				return res
+			})
+		case "mailbox":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_mailbox(ctx, field)
 				return res
 			})
 		case "mailingLists":
@@ -10130,6 +10240,13 @@ func (ec *executionContext) marshalOInt2ᚖint(ctx context.Context, sel ast.Sele
 		return graphql.Null
 	}
 	return graphql.MarshalInt(*v)
+}
+
+func (ec *executionContext) marshalOMailbox2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailbox(ctx context.Context, sel ast.SelectionSet, v *model.Mailbox) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Mailbox(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOMailingList2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingList(ctx context.Context, sel ast.SelectionSet, v *model.MailingList) graphql.Marshaler {

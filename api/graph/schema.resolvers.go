@@ -77,6 +77,10 @@ func (r *queryResolver) UserByName(ctx context.Context, username string) (*model
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
+func (r *queryResolver) Mailbox(ctx context.Context, address string) (*model.Mailbox, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }

@@ -86,8 +86,10 @@ type MailingList {
   created: Time!
   updated: Time!
   name: String!
-  description: String
   owner: Entity! @access(scope: PROFILE, kind: RO)
+
+  # Markdown
+  description: String
 
   # List of globs for permitted or rejected mimetypes on this list
   # e.g. text/*
@@ -312,24 +314,33 @@ type SubscriptionCursor {
 }
 
 type Query {
-  # Returns API version information.
+  # Returns API version information
   version: Version!
 
-  # Returns the authenticated user.
+  # Returns the authenticated user
   me: User! @access(scope: PROFILE, kind: RO)
 
-  # Returns a specific user
+  # Looks up a specific user
   user(id: Int!): User @access(scope: PROFILE, kind: RO)
   userByName(username: String!): User @access(scope: PROFILE, kind: RO)
+  mailbox(address: String!): Mailbox @access(scope: PROFILE, kind: RO)
 
-  # Returns mailing lists that the authenticated user has access to.
+  # List of mailing lists that the authenticated user has access to
   mailingLists(cursor: Cursor): MailingListCursor! @access(scope: LISTS, kind: RO)
 
-  # Returns a specific mailing list
+  # Looks up a specific mailing list
   mailingList(id: Int!): MailingList @access(scope: LISTS, kind: RO)
   mailingListByName(name: String!): MailingList @access(scope: LISTS, kind: RO)
   mailingListByOwner(ownerName: String!, listName: String!): MailingList @access(scope: LISTS, kind: RO)
 
-  # List of subscriptions of the authenticated user.
+  # Looks up a specific email by its ID
+  email(id: Int!): Email @access(scope: EMAILS, kind: RO)
+  # Looks up a specific email by its Message-ID header
+  message(messageID: String!): Email @access(scope: EMAILS, kind: RO)
+
+  # Looks up a patchset by ID
+  patchset(id: Int!): Patchset @access(scope: EMAILS, kind: RO)
+
+  # List of subscriptions of the authenticated user
   subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
 }
