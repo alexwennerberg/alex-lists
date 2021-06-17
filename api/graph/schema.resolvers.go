@@ -15,7 +15,7 @@ import (
 )
 
 func (r *mailingListResolver) Owner(ctx context.Context, obj *model.MailingList) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
 func (r *mailingListResolver) Threads(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.ThreadCursor, error) {
@@ -94,6 +94,18 @@ func (r *queryResolver) MailingListByName(ctx context.Context, name string) (*mo
 }
 
 func (r *queryResolver) MailingListByOwner(ctx context.Context, ownerName string, listName string) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) Email(ctx context.Context, id int) (*model.Email, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) Message(ctx context.Context, messageID string) (*model.Email, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) Patchset(ctx context.Context, id int) (*model.Patchset, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

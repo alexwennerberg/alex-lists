@@ -168,12 +168,15 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
+		Email              func(childComplexity int, id int) int
 		Mailbox            func(childComplexity int, address string) int
 		MailingList        func(childComplexity int, id int) int
 		MailingListByName  func(childComplexity int, name string) int
 		MailingListByOwner func(childComplexity int, ownerName string, listName string) int
 		MailingLists       func(childComplexity int, cursor *model1.Cursor) int
 		Me                 func(childComplexity int) int
+		Message            func(childComplexity int, messageID string) int
+		Patchset           func(childComplexity int, id int) int
 		Subscriptions      func(childComplexity int, cursor *model1.Cursor) int
 		User               func(childComplexity int, id int) int
 		UserByName         func(childComplexity int, username string) int
@@ -248,6 +251,9 @@ type QueryResolver interface {
 	MailingList(ctx context.Context, id int) (*model.MailingList, error)
 	MailingListByName(ctx context.Context, name string) (*model.MailingList, error)
 	MailingListByOwner(ctx context.Context, ownerName string, listName string) (*model.MailingList, error)
+	Email(ctx context.Context, id int) (*model.Email, error)
+	Message(ctx context.Context, messageID string) (*model.Email, error)
+	Patchset(ctx context.Context, id int) (*model.Patchset, error)
 	Subscriptions(ctx context.Context, cursor *model1.Cursor) (*model.SubscriptionCursor, error)
 }
 type UserResolver interface {
@@ -862,6 +868,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.PatchsetTool.Updated(childComplexity), true
 
+	case "Query.email":
+		if e.complexity.Query.Email == nil {
+			break
+		}
+
+		args, err := ec.field_Query_email_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Email(childComplexity, args["id"].(int)), true
+
 	case "Query.mailbox":
 		if e.complexity.Query.Mailbox == nil {
 			break
@@ -928,6 +946,30 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Query.Me(childComplexity), true
+
+	case "Query.message":
+		if e.complexity.Query.Message == nil {
+			break
+		}
+
+		args, err := ec.field_Query_message_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Message(childComplexity, args["messageID"].(string)), true
+
+	case "Query.patchset":
+		if e.complexity.Query.Patchset == nil {
+			break
+		}
+
+		args, err := ec.field_Query_patchset_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Query.Patchset(childComplexity, args["id"].(int)), true
 
 	case "Query.subscriptions":
 		if e.complexity.Query.Subscriptions == nil {
@@ -1559,26 +1601,34 @@ type SubscriptionCursor {
 }
 
 type Query {
-  # Returns API version information.
+  # Returns API version information
   version: Version!
 
-  # Returns the authenticated user.
+  # Returns the authenticated user
   me: User! @access(scope: PROFILE, kind: RO)
 
-  # Returns a specific user
+  # Looks up a specific user
   user(id: Int!): User @access(scope: PROFILE, kind: RO)
   userByName(username: String!): User @access(scope: PROFILE, kind: RO)
   mailbox(address: String!): Mailbox @access(scope: PROFILE, kind: RO)
 
-  # Returns mailing lists that the authenticated user has access to.
+  # List of mailing lists that the authenticated user has access to
   mailingLists(cursor: Cursor): MailingListCursor! @access(scope: LISTS, kind: RO)
 
-  # Returns a specific mailing list
+  # Looks up a specific mailing list
   mailingList(id: Int!): MailingList @access(scope: LISTS, kind: RO)
   mailingListByName(name: String!): MailingList @access(scope: LISTS, kind: RO)
   mailingListByOwner(ownerName: String!, listName: String!): MailingList @access(scope: LISTS, kind: RO)
 
-  # List of subscriptions of the authenticated user.
+  # Looks up a specific email by its ID
+  email(id: Int!): Email @access(scope: EMAILS, kind: RO)
+  # Looks up a specific email by its Message-ID header
+  message(messageID: String!): Email @access(scope: EMAILS, kind: RO)
+
+  # Looks up a patchset by ID
+  patchset(id: Int!): Patchset @access(scope: EMAILS, kind: RO)
+
+  # List of subscriptions of the authenticated user
   subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 `, BuiltIn: false},
@@ -1733,6 +1783,21 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_email_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_mailbox_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
@@ -1814,6 +1879,36 @@ func (ec *executionContext) field_Query_mailingLists_args(ctx context.Context, r
 		}
 	}
 	args["cursor"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_message_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 string
+	if tmp, ok := rawArgs["messageID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("messageID"))
+		arg0, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["messageID"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_patchset_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -5669,6 +5764,207 @@ func (ec *executionContext) _Query_mailingListByOwner(ctx context.Context, field
 	return ec.marshalOMailingList2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingList(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Query_email(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_email_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Email(rctx, args["id"].(int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "EMAILS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, nil, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Email); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Email`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Email)
+	fc.Result = res
+	return ec.marshalOEmail2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmail(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_message(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_message_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Message(rctx, args["messageID"].(string))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "EMAILS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, nil, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Email); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Email`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Email)
+	fc.Result = res
+	return ec.marshalOEmail2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmail(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Query_patchset(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Query_patchset_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Query().Patchset(rctx, args["id"].(int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "EMAILS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, nil, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Patchset); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Patchset`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Patchset)
+	fc.Result = res
+	return ec.marshalOPatchset2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchset(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Query_subscriptions(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -8885,6 +9181,39 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_mailingListByOwner(ctx, field)
+				return res
+			})
+		case "email":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_email(ctx, field)
+				return res
+			})
+		case "message":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_message(ctx, field)
+				return res
+			})
+		case "patchset":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_patchset(ctx, field)
 				return res
 			})
 		case "subscriptions":
