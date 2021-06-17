@@ -38,6 +38,14 @@ func (r *mailingListResolver) Subscription(ctx context.Context, obj *model.Maili
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *mailingListACLResolver) List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mailingListACLResolver) Entity(ctx context.Context, obj *model.MailingListACL) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	return &model.Version{
 		Major:           0,
@@ -100,6 +108,9 @@ func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *cor
 // MailingList returns api.MailingListResolver implementation.
 func (r *Resolver) MailingList() api.MailingListResolver { return &mailingListResolver{r} }
 
+// MailingListACL returns api.MailingListACLResolver implementation.
+func (r *Resolver) MailingListACL() api.MailingListACLResolver { return &mailingListACLResolver{r} }
+
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
@@ -107,5 +118,6 @@ func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 
 type mailingListResolver struct{ *Resolver }
+type mailingListACLResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }

@@ -27,8 +27,10 @@ type MailingList struct {
 	OwnerID        int
 	RawPermitMime  string
 	RawRejectMime  string
-	Access         int
-	SubscriptionID int
+
+	Permissions    int
+	AccessID       *int
+	SubscriptionID *int
 
 	alias  string
 	fields *database.ModelFields

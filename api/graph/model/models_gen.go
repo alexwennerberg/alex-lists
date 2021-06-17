@@ -45,15 +45,6 @@ type EmailCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
-type GeneralACL struct {
-	Browse   bool `json:"browse"`
-	Reply    bool `json:"reply"`
-	Post     bool `json:"post"`
-	Moderate bool `json:"moderate"`
-}
-
-func (GeneralACL) IsACL() {}
-
 type Mailbox struct {
 	CanonicalName string          `json:"canonicalName"`
 	Name          string          `json:"name"`
@@ -63,19 +54,6 @@ type Mailbox struct {
 }
 
 func (Mailbox) IsEntity() {}
-
-type MailingListACL struct {
-	ID       int          `json:"id"`
-	Created  time.Time    `json:"created"`
-	List     *MailingList `json:"list"`
-	Entity   Entity       `json:"entity"`
-	Browse   bool         `json:"browse"`
-	Reply    bool         `json:"reply"`
-	Post     bool         `json:"post"`
-	Moderate bool         `json:"moderate"`
-}
-
-func (MailingListACL) IsACL() {}
 
 type MailingListCursor struct {
 	Results []*MailingList `json:"results"`

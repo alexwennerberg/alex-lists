@@ -149,6 +149,7 @@ func fetchMailingListsByID(ctx context.Context) func(ids []int) ([]*model.Mailin
 					END,
 					list.nonsubscriber_permissions | list.account_permissions)`,
 					user.UserID, model.ACCESS_ALL).
+				Column(`access.id`).
 				Column(`sub.id`).
 				Where(sq.And{
 					sq.Expr(`list.id = ANY(?)`, pq.Array(ids)),
@@ -186,7 +187,8 @@ func fetchMailingListsByID(ctx context.Context) func(ids []int) ([]*model.Mailin
 				list := model.MailingList{}
 				if err := rows.Scan(append(
 						database.Scan(ctx, &list),
-						&list.Access,
+						&list.Permissions,
+						&list.AccessID,
 						&list.SubscriptionID,
 					)...); err != nil {
 					panic(err)
