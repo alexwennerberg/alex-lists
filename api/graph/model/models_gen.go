@@ -23,23 +23,6 @@ type Subscription interface {
 	IsSubscription()
 }
 
-type Email struct {
-	ID        int          `json:"id"`
-	Sender    Entity       `json:"sender"`
-	Received  time.Time    `json:"received"`
-	Date      time.Time    `json:"date"`
-	Envelope  Mail         `json:"envelope"`
-	Body      string       `json:"body"`
-	Headers   Mail         `json:"headers"`
-	Subject   string       `json:"subject"`
-	MessageID string       `json:"message_id"`
-	InReplyTo *Email       `json:"in_reply_to"`
-	Thread    *Thread      `json:"thread"`
-	Patch     *Patch       `json:"patch"`
-	Patchset  *Patchset    `json:"patchset"`
-	List      *MailingList `json:"list"`
-}
-
 type EmailCursor struct {
 	Results []*Email      `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`

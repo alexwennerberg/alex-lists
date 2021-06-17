@@ -5,14 +5,32 @@ package graph
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
+	"git.sr.ht/~sircmpwn/core-go/database"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
 )
+
+func (r *emailResolver) InReplyTo(ctx context.Context, obj *model.Email) (*model.Email, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *emailResolver) Thread(ctx context.Context, obj *model.Email) (*model.Thread, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *emailResolver) Patchset(ctx context.Context, obj *model.Email) (*model.Patchset, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *emailResolver) List(ctx context.Context, obj *model.Email) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
 
 func (r *mailingListResolver) Owner(ctx context.Context, obj *model.MailingList) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
@@ -23,7 +41,27 @@ func (r *mailingListResolver) Threads(ctx context.Context, obj *model.MailingLis
 }
 
 func (r *mailingListResolver) Emails(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var emails []*model.Email
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		email := (&model.Email{}).As(`email`)
+		query := database.
+			Select(ctx, email).
+			From(`email`).
+			Where(`email.list_id = ?`, obj.ID)
+		emails, cursor = email.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.EmailCursor{emails, cursor}, nil
 }
 
 func (r *mailingListResolver) Patches(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.PatchsetCursor, error) {
@@ -129,6 +167,9 @@ func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *cor
 	panic(fmt.Errorf("not implemented"))
 }
 
+// Email returns api.EmailResolver implementation.
+func (r *Resolver) Email() api.EmailResolver { return &emailResolver{r} }
+
 // MailingList returns api.MailingListResolver implementation.
 func (r *Resolver) MailingList() api.MailingListResolver { return &mailingListResolver{r} }
 
@@ -141,6 +182,7 @@ func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 // User returns api.UserResolver implementation.
 func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 
+type emailResolver struct{ *Resolver }
 type mailingListResolver struct{ *Resolver }
 type mailingListACLResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
