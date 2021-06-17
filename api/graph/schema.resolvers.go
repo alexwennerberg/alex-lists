@@ -97,7 +97,15 @@ func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cur
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *userResolver) Lists(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *userResolver) Emails(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *userResolver) Threads(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.ThreadCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

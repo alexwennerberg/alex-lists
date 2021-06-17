@@ -116,8 +116,9 @@ type Thread struct {
 	Mbox         string       `json:"mbox"`
 	Replies      int          `json:"replies"`
 	Participants int          `json:"participants"`
-	Mailto       string       `json:"mailto"`
+	List         *MailingList `json:"list"`
 	Descendants  *EmailCursor `json:"descendants"`
+	Mailto       string       `json:"mailto"`
 }
 
 type ThreadCursor struct {

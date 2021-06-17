@@ -24,9 +24,9 @@ type MailingList struct {
 	Description *string   `json:"description"`
 	Importing   bool      `json:"importing"`
 
-	OwnerID        int
-	RawPermitMime  string
-	RawRejectMime  string
+	OwnerID       int
+	RawPermitMime string
+	RawRejectMime string
 
 	Permissions    int
 	AccessID       *int
