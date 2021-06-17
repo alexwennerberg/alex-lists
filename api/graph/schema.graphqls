@@ -1,8 +1,13 @@
 # This schema definition is available in the public domain, or under the terms
 # of CC-0, at your choice.
-scalar Time   # %Y-%m-%dT%H:%M:%SZ
+
+# String of the format %Y-%m-%dT%H:%M:%SZ
+scalar Time
+# Opaque string
 scalar Cursor
-scalar RFC2822
+# String of base64-encoded binary data representing an email, including headers
+# and body. See RFC 5322 (Internet Message Format) for details.
+scalar Mail
 
 # Used to provide a human-friendly description of an access scope
 directive @scopehelp(details: String!) on ENUM_VALUE
@@ -77,7 +82,7 @@ type Mailbox implements Entity {
 type MailingList {
   id: Int!
   created: Time!
-  update: Time!
+  updated: Time!
   name: String!
   description: String
   owner: Entity! @access(scope: PROFILE, kind: RO)
@@ -95,6 +100,46 @@ type MailingList {
 
   # True if an import operation is underway for this list
   importing: Boolean!
+
+  # The access that applies to this user for this list
+  access: ACL!
+
+  # The user's subscription for this list, if any
+  subscription: Subscription
+}
+
+interface ACL {
+  # Permission to browse or subscribe to emails
+  browse: Boolean!
+  # Permission to reply to existing threads
+  reply: Boolean!
+  # Permission to start new threads
+  post: Boolean!
+  # Permission to moderate the list
+  moderate: Boolean!
+}
+
+# These ACLs are configured for specific entities, and may be used to expand or
+# constrain the rights of a participant.
+type MailingListACL implements ACL {
+  id: Int!
+  created: Time!
+  list: MailingList! @access(scope: LISTS, kind: RO)
+  entity: Entity! @access(scope: PROFILE, kind: RO)
+
+  browse: Boolean!
+  reply: Boolean!
+  post: Boolean!
+  moderate: Boolean!
+}
+
+# An ACL entry that applies "generally", for example the rights which apply to
+# all subscribers to a list.
+type GeneralACL implements ACL {
+  browse: Boolean!
+  reply: Boolean!
+  post: Boolean!
+  moderate: Boolean!
 }
 
 type Thread {
@@ -116,9 +161,9 @@ type Email {
   received: Time!
   # Time specified by Date header (forgable)
   date: Time!
-  envelope: RFC2822!
+  envelope: Mail!
   body: String!
-  headers: RFC2822!
+  headers: Mail!
   subject: String!
   message_id: String!
   in_reply_to: Email

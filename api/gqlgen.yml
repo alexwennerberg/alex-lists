@@ -57,6 +57,6 @@ models:
   Cursor:
     model:
       - git.sr.ht/~sircmpwn/core-go/model.Cursor
-  Filter:
+  Mail:
     model:
-      - git.sr.ht/~sircmpwn/core-go/model.Filter
+      - git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Mail

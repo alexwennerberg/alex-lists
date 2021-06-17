@@ -38,6 +38,7 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	MailingList() MailingListResolver
 	Query() QueryResolver
 	User() UserResolver
 }
@@ -71,6 +72,13 @@ type ComplexityRoot struct {
 		Results func(childComplexity int) int
 	}
 
+	GeneralACL struct {
+		Browse   func(childComplexity int) int
+		Moderate func(childComplexity int) int
+		Post     func(childComplexity int) int
+		Reply    func(childComplexity int) int
+	}
+
 	Mailbox struct {
 		CanonicalName func(childComplexity int) int
 		Email         func(childComplexity int) int
@@ -80,18 +88,31 @@ type ComplexityRoot struct {
 	}
 
 	MailingList struct {
-		Created     func(childComplexity int) int
-		Description func(childComplexity int) int
-		Emails      func(childComplexity int, cursor *model1.Cursor) int
-		ID          func(childComplexity int) int
-		Importing   func(childComplexity int) int
-		Name        func(childComplexity int) int
-		Owner       func(childComplexity int) int
-		Patches     func(childComplexity int, cursor *model1.Cursor) int
-		PermitMime  func(childComplexity int) int
-		RejectMime  func(childComplexity int) int
-		Threads     func(childComplexity int, cursor *model1.Cursor) int
-		Update      func(childComplexity int) int
+		Access       func(childComplexity int) int
+		Created      func(childComplexity int) int
+		Description  func(childComplexity int) int
+		Emails       func(childComplexity int, cursor *model1.Cursor) int
+		ID           func(childComplexity int) int
+		Importing    func(childComplexity int) int
+		Name         func(childComplexity int) int
+		Owner        func(childComplexity int) int
+		Patches      func(childComplexity int, cursor *model1.Cursor) int
+		PermitMime   func(childComplexity int) int
+		RejectMime   func(childComplexity int) int
+		Subscription func(childComplexity int) int
+		Threads      func(childComplexity int, cursor *model1.Cursor) int
+		Updated      func(childComplexity int) int
+	}
+
+	MailingListACL struct {
+		Browse   func(childComplexity int) int
+		Created  func(childComplexity int) int
+		Entity   func(childComplexity int) int
+		ID       func(childComplexity int) int
+		List     func(childComplexity int) int
+		Moderate func(childComplexity int) int
+		Post     func(childComplexity int) int
+		Reply    func(childComplexity int) int
 	}
 
 	MailingListCursor struct {
@@ -198,6 +219,16 @@ type ComplexityRoot struct {
 	}
 }
 
+type MailingListResolver interface {
+	Owner(ctx context.Context, obj *model.MailingList) (model.Entity, error)
+
+	Threads(ctx context.Context, obj *model.MailingList, cursor *model1.Cursor) (*model.ThreadCursor, error)
+	Emails(ctx context.Context, obj *model.MailingList, cursor *model1.Cursor) (*model.EmailCursor, error)
+	Patches(ctx context.Context, obj *model.MailingList, cursor *model1.Cursor) (*model.PatchsetCursor, error)
+
+	Access(ctx context.Context, obj *model.MailingList) (model.ACL, error)
+	Subscription(ctx context.Context, obj *model.MailingList) (model.Subscription, error)
+}
 type QueryResolver interface {
 	Version(ctx context.Context) (*model.Version, error)
 	Me(ctx context.Context) (*model.User, error)
@@ -341,6 +372,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.EmailCursor.Results(childComplexity), true
 
+	case "GeneralACL.browse":
+		if e.complexity.GeneralACL.Browse == nil {
+			break
+		}
+
+		return e.complexity.GeneralACL.Browse(childComplexity), true
+
+	case "GeneralACL.moderate":
+		if e.complexity.GeneralACL.Moderate == nil {
+			break
+		}
+
+		return e.complexity.GeneralACL.Moderate(childComplexity), true
+
+	case "GeneralACL.post":
+		if e.complexity.GeneralACL.Post == nil {
+			break
+		}
+
+		return e.complexity.GeneralACL.Post(childComplexity), true
+
+	case "GeneralACL.reply":
+		if e.complexity.GeneralACL.Reply == nil {
+			break
+		}
+
+		return e.complexity.GeneralACL.Reply(childComplexity), true
+
 	case "Mailbox.canonicalName":
 		if e.complexity.Mailbox.CanonicalName == nil {
 			break
@@ -385,6 +444,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mailbox.Patches(childComplexity, args["cursor"].(*model1.Cursor)), true
+
+	case "MailingList.access":
+		if e.complexity.MailingList.Access == nil {
+			break
+		}
+
+		return e.complexity.MailingList.Access(childComplexity), true
 
 	case "MailingList.created":
 		if e.complexity.MailingList.Created == nil {
@@ -466,6 +532,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.MailingList.RejectMime(childComplexity), true
 
+	case "MailingList.subscription":
+		if e.complexity.MailingList.Subscription == nil {
+			break
+		}
+
+		return e.complexity.MailingList.Subscription(childComplexity), true
+
 	case "MailingList.threads":
 		if e.complexity.MailingList.Threads == nil {
 			break
@@ -478,12 +551,68 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.MailingList.Threads(childComplexity, args["cursor"].(*model1.Cursor)), true
 
-	case "MailingList.update":
-		if e.complexity.MailingList.Update == nil {
+	case "MailingList.updated":
+		if e.complexity.MailingList.Updated == nil {
 			break
 		}
 
-		return e.complexity.MailingList.Update(childComplexity), true
+		return e.complexity.MailingList.Updated(childComplexity), true
+
+	case "MailingListACL.browse":
+		if e.complexity.MailingListACL.Browse == nil {
+			break
+		}
+
+		return e.complexity.MailingListACL.Browse(childComplexity), true
+
+	case "MailingListACL.created":
+		if e.complexity.MailingListACL.Created == nil {
+			break
+		}
+
+		return e.complexity.MailingListACL.Created(childComplexity), true
+
+	case "MailingListACL.entity":
+		if e.complexity.MailingListACL.Entity == nil {
+			break
+		}
+
+		return e.complexity.MailingListACL.Entity(childComplexity), true
+
+	case "MailingListACL.id":
+		if e.complexity.MailingListACL.ID == nil {
+			break
+		}
+
+		return e.complexity.MailingListACL.ID(childComplexity), true
+
+	case "MailingListACL.list":
+		if e.complexity.MailingListACL.List == nil {
+			break
+		}
+
+		return e.complexity.MailingListACL.List(childComplexity), true
+
+	case "MailingListACL.moderate":
+		if e.complexity.MailingListACL.Moderate == nil {
+			break
+		}
+
+		return e.complexity.MailingListACL.Moderate(childComplexity), true
+
+	case "MailingListACL.post":
+		if e.complexity.MailingListACL.Post == nil {
+			break
+		}
+
+		return e.complexity.MailingListACL.Post(childComplexity), true
+
+	case "MailingListACL.reply":
+		if e.complexity.MailingListACL.Reply == nil {
+			break
+		}
+
+		return e.complexity.MailingListACL.Reply(childComplexity), true
 
 	case "MailingListCursor.cursor":
 		if e.complexity.MailingListCursor.Cursor == nil {
@@ -1061,9 +1190,14 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 var sources = []*ast.Source{
 	{Name: "graph/schema.graphqls", Input: `# This schema definition is available in the public domain, or under the terms
 # of CC-0, at your choice.
-scalar Time   # %Y-%m-%dT%H:%M:%SZ
+
+# String of the format %Y-%m-%dT%H:%M:%SZ
+scalar Time
+# Opaque string
 scalar Cursor
-scalar RFC2822
+# String of base64-encoded binary data representing an email, including headers
+# and body. See RFC 5322 (Internet Message Format) for details.
+scalar Mail
 
 # Used to provide a human-friendly description of an access scope
 directive @scopehelp(details: String!) on ENUM_VALUE
@@ -1138,7 +1272,7 @@ type Mailbox implements Entity {
 type MailingList {
   id: Int!
   created: Time!
-  update: Time!
+  updated: Time!
   name: String!
   description: String
   owner: Entity! @access(scope: PROFILE, kind: RO)
@@ -1156,6 +1290,46 @@ type MailingList {
 
   # True if an import operation is underway for this list
   importing: Boolean!
+
+  # The access that applies to this user for this list
+  access: ACL!
+
+  # The user's subscription for this list, if any
+  subscription: Subscription
+}
+
+interface ACL {
+  # Permission to browse or subscribe to emails
+  browse: Boolean!
+  # Permission to reply to existing threads
+  reply: Boolean!
+  # Permission to start new threads
+  post: Boolean!
+  # Permission to moderate the list
+  moderate: Boolean!
+}
+
+# These ACLs are configured for specific entities, and may be used to expand or
+# constrain the rights of a participant.
+type MailingListACL implements ACL {
+  id: Int!
+  created: Time!
+  list: MailingList! @access(scope: LISTS, kind: RO)
+  entity: Entity! @access(scope: PROFILE, kind: RO)
+
+  browse: Boolean!
+  reply: Boolean!
+  post: Boolean!
+  moderate: Boolean!
+}
+
+# An ACL entry that applies "generally", for example the rights which apply to
+# all subscribers to a list.
+type GeneralACL implements ACL {
+  browse: Boolean!
+  reply: Boolean!
+  post: Boolean!
+  moderate: Boolean!
 }
 
 type Thread {
@@ -1177,9 +1351,9 @@ type Email {
   received: Time!
   # Time specified by Date header (forgable)
   date: Time!
-  envelope: RFC2822!
+  envelope: Mail!
   body: String!
-  headers: RFC2822!
+  headers: Mail!
   subject: String!
   message_id: String!
   in_reply_to: Email
@@ -1862,9 +2036,9 @@ func (ec *executionContext) _Email_envelope(ctx context.Context, field graphql.C
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Mail)
 	fc.Result = res
-	return ec.marshalNRFC28222string(ctx, field.Selections, res)
+	return ec.marshalNMail2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMail(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Email_body(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
@@ -1932,9 +2106,9 @@ func (ec *executionContext) _Email_headers(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(model.Mail)
 	fc.Result = res
-	return ec.marshalNRFC28222string(ctx, field.Selections, res)
+	return ec.marshalNMail2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMail(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Email_subject(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
@@ -2296,6 +2470,146 @@ func (ec *executionContext) _EmailCursor_cursor(ctx context.Context, field graph
 	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _GeneralACL_browse(ctx context.Context, field graphql.CollectedField, obj *model.GeneralACL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GeneralACL",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Browse, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _GeneralACL_reply(ctx context.Context, field graphql.CollectedField, obj *model.GeneralACL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GeneralACL",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Reply, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _GeneralACL_post(ctx context.Context, field graphql.CollectedField, obj *model.GeneralACL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GeneralACL",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Post, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _GeneralACL_moderate(ctx context.Context, field graphql.CollectedField, obj *model.GeneralACL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "GeneralACL",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Moderate, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mailbox_canonicalName(ctx context.Context, field graphql.CollectedField, obj *model.Mailbox) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2605,7 +2919,7 @@ func (ec *executionContext) _MailingList_created(ctx context.Context, field grap
 	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _MailingList_update(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+func (ec *executionContext) _MailingList_updated(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2623,7 +2937,7 @@ func (ec *executionContext) _MailingList_update(ctx context.Context, field graph
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Update, nil
+		return obj.Updated, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2718,15 +3032,15 @@ func (ec *executionContext) _MailingList_owner(ctx context.Context, field graphq
 		Object:     "MailingList",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Owner, nil
+			return ec.resolvers.MailingList().Owner(rctx, obj)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PROFILE")
@@ -2781,14 +3095,14 @@ func (ec *executionContext) _MailingList_permit_mime(ctx context.Context, field 
 		Object:     "MailingList",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.PermitMime, nil
+		return obj.PermitMime(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2816,14 +3130,14 @@ func (ec *executionContext) _MailingList_reject_mime(ctx context.Context, field 
 		Object:     "MailingList",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.RejectMime, nil
+		return obj.RejectMime(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2851,8 +3165,8 @@ func (ec *executionContext) _MailingList_threads(ctx context.Context, field grap
 		Object:     "MailingList",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2866,7 +3180,7 @@ func (ec *executionContext) _MailingList_threads(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Threads, nil
+			return ec.resolvers.MailingList().Threads(rctx, obj, args["cursor"].(*model1.Cursor))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "EMAILS")
@@ -2921,8 +3235,8 @@ func (ec *executionContext) _MailingList_emails(ctx context.Context, field graph
 		Object:     "MailingList",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -2936,7 +3250,7 @@ func (ec *executionContext) _MailingList_emails(ctx context.Context, field graph
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Emails, nil
+			return ec.resolvers.MailingList().Emails(rctx, obj, args["cursor"].(*model1.Cursor))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "EMAILS")
@@ -2991,8 +3305,8 @@ func (ec *executionContext) _MailingList_patches(ctx context.Context, field grap
 		Object:     "MailingList",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3006,7 +3320,7 @@ func (ec *executionContext) _MailingList_patches(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Patches, nil
+			return ec.resolvers.MailingList().Patches(rctx, obj, args["cursor"].(*model1.Cursor))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PATCHES")
@@ -3069,6 +3383,409 @@ func (ec *executionContext) _MailingList_importing(ctx context.Context, field gr
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Importing, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_access(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.MailingList().Access(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.ACL)
+	fc.Result = res
+	return ec.marshalNACL2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_subscription(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.MailingList().Subscription(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(model.Subscription)
+	fc.Result = res
+	return ec.marshalOSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListACL_id(ctx context.Context, field graphql.CollectedField, obj *model.MailingListACL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListACL",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListACL_created(ctx context.Context, field graphql.CollectedField, obj *model.MailingListACL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListACL",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Created, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(time.Time)
+	fc.Result = res
+	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListACL_list(ctx context.Context, field graphql.CollectedField, obj *model.MailingListACL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListACL",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.List, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "LISTS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.MailingList); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.MailingList`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.MailingList)
+	fc.Result = res
+	return ec.marshalNMailingList2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingList(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListACL_entity(ctx context.Context, field graphql.CollectedField, obj *model.MailingListACL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListACL",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return obj.Entity, nil
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PROFILE")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(model.Entity); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Entity`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Entity)
+	fc.Result = res
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListACL_browse(ctx context.Context, field graphql.CollectedField, obj *model.MailingListACL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListACL",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Browse, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListACL_reply(ctx context.Context, field graphql.CollectedField, obj *model.MailingListACL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListACL",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Reply, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListACL_post(ctx context.Context, field graphql.CollectedField, obj *model.MailingListACL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListACL",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Post, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingListACL_moderate(ctx context.Context, field graphql.CollectedField, obj *model.MailingListACL) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingListACL",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Moderate, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6933,6 +7650,29 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 // region    ************************** interface.gotpl ***************************
 
+func (ec *executionContext) _ACL(ctx context.Context, sel ast.SelectionSet, obj model.ACL) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.MailingListACL:
+		return ec._MailingListACL(ctx, sel, &obj)
+	case *model.MailingListACL:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._MailingListACL(ctx, sel, obj)
+	case model.GeneralACL:
+		return ec._GeneralACL(ctx, sel, &obj)
+	case *model.GeneralACL:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._GeneralACL(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet, obj model.Entity) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -7081,6 +7821,48 @@ func (ec *executionContext) _EmailCursor(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var generalACLImplementors = []string{"GeneralACL", "ACL"}
+
+func (ec *executionContext) _GeneralACL(ctx context.Context, sel ast.SelectionSet, obj *model.GeneralACL) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, generalACLImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("GeneralACL")
+		case "browse":
+			out.Values[i] = ec._GeneralACL_browse(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "reply":
+			out.Values[i] = ec._GeneralACL_reply(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "post":
+			out.Values[i] = ec._GeneralACL_post(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "moderate":
+			out.Values[i] = ec._GeneralACL_moderate(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
 var mailboxImplementors = []string{"Mailbox", "Entity"}
 
 func (ec *executionContext) _Mailbox(ctx context.Context, sel ast.SelectionSet, obj *model.Mailbox) graphql.Marshaler {
@@ -7136,57 +7918,180 @@ func (ec *executionContext) _MailingList(ctx context.Context, sel ast.SelectionS
 		case "id":
 			out.Values[i] = ec._MailingList_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "created":
 			out.Values[i] = ec._MailingList_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
-		case "update":
-			out.Values[i] = ec._MailingList_update(ctx, field, obj)
+		case "updated":
+			out.Values[i] = ec._MailingList_updated(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._MailingList_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "description":
 			out.Values[i] = ec._MailingList_description(ctx, field, obj)
 		case "owner":
-			out.Values[i] = ec._MailingList_owner(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._MailingList_owner(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "permit_mime":
 			out.Values[i] = ec._MailingList_permit_mime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "reject_mime":
 			out.Values[i] = ec._MailingList_reject_mime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "threads":
-			out.Values[i] = ec._MailingList_threads(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._MailingList_threads(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "emails":
-			out.Values[i] = ec._MailingList_emails(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._MailingList_emails(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "patches":
-			out.Values[i] = ec._MailingList_patches(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._MailingList_patches(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "importing":
 			out.Values[i] = ec._MailingList_importing(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "access":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._MailingList_access(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "subscription":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._MailingList_subscription(ctx, field, obj)
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var mailingListACLImplementors = []string{"MailingListACL", "ACL"}
+
+func (ec *executionContext) _MailingListACL(ctx context.Context, sel ast.SelectionSet, obj *model.MailingListACL) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, mailingListACLImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("MailingListACL")
+		case "id":
+			out.Values[i] = ec._MailingListACL_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "created":
+			out.Values[i] = ec._MailingListACL_created(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "list":
+			out.Values[i] = ec._MailingListACL_list(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "entity":
+			out.Values[i] = ec._MailingListACL_entity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "browse":
+			out.Values[i] = ec._MailingListACL_browse(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "reply":
+			out.Values[i] = ec._MailingListACL_reply(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "post":
+			out.Values[i] = ec._MailingListACL_post(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "moderate":
+			out.Values[i] = ec._MailingListACL_moderate(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -8080,6 +8985,16 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 
 // region    ***************************** type.gotpl *****************************
 
+func (ec *executionContext) marshalNACL2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v model.ACL) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ACL(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx context.Context, v interface{}) (model.AccessKind, error) {
 	var res model.AccessKind
 	err := res.UnmarshalGQL(v)
@@ -8162,6 +9077,10 @@ func (ec *executionContext) marshalNEmail2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlists�
 	return ec._Email(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNEmailCursor2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmailCursor(ctx context.Context, sel ast.SelectionSet, v model.EmailCursor) graphql.Marshaler {
+	return ec._EmailCursor(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNEmailCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmailCursor(ctx context.Context, sel ast.SelectionSet, v *model.EmailCursor) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -8195,6 +9114,16 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNMail2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMail(ctx context.Context, v interface{}) (model.Mail, error) {
+	var res model.Mail
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNMail2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMail(ctx context.Context, sel ast.SelectionSet, v model.Mail) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalNMailingList2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.MailingList) graphql.Marshaler {
@@ -8305,6 +9234,10 @@ func (ec *executionContext) marshalNPatchset2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlis
 	return ec._Patchset(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNPatchsetCursor2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetCursor(ctx context.Context, sel ast.SelectionSet, v model.PatchsetCursor) graphql.Marshaler {
+	return ec._PatchsetCursor(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNPatchsetCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetCursor(ctx context.Context, sel ast.SelectionSet, v *model.PatchsetCursor) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -8370,21 +9303,6 @@ func (ec *executionContext) marshalNPatchsetTool2ᚖgitᚗsrᚗhtᚋאsircmpwn�
 		return graphql.Null
 	}
 	return ec._PatchsetTool(ctx, sel, v)
-}
-
-func (ec *executionContext) unmarshalNRFC28222string(ctx context.Context, v interface{}) (string, error) {
-	res, err := graphql.UnmarshalString(v)
-	return res, graphql.ErrorOnPath(ctx, err)
-}
-
-func (ec *executionContext) marshalNRFC28222string(ctx context.Context, sel ast.SelectionSet, v string) graphql.Marshaler {
-	res := graphql.MarshalString(v)
-	if res == graphql.Null {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-	}
-	return res
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v interface{}) (string, error) {
@@ -8524,6 +9442,10 @@ func (ec *executionContext) marshalNThread2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlists
 		return graphql.Null
 	}
 	return ec._Thread(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNThreadCursor2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThreadCursor(ctx context.Context, sel ast.SelectionSet, v model.ThreadCursor) graphql.Marshaler {
+	return ec._ThreadCursor(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNThreadCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThreadCursor(ctx context.Context, sel ast.SelectionSet, v *model.ThreadCursor) graphql.Marshaler {
@@ -8937,6 +9859,13 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
+}
+
+func (ec *executionContext) marshalOSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx context.Context, sel ast.SelectionSet, v model.Subscription) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._Subscription(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOSubscriptionCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionCursor(ctx context.Context, sel ast.SelectionSet, v *model.SubscriptionCursor) graphql.Marshaler {

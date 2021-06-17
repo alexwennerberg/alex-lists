@@ -2,6 +2,7 @@ package loaders
 
 //go:generate ./gen UsersByIDLoader int api/graph/model.User
 //go:generate ./gen UsersByNameLoader string api/graph/model.User
+//go:generate ./gen MailingListsByIDLoader int api/graph/model.MailingList
 
 import (
 	"context"
@@ -13,6 +14,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 
+	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 )
@@ -24,8 +26,9 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	UsersByID   UsersByIDLoader
-	UsersByName UsersByNameLoader
+	UsersByID        UsersByIDLoader
+	UsersByName      UsersByNameLoader
+	MailingListsByID MailingListsByIDLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -114,6 +117,97 @@ func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, 
 	}
 }
 
+func fetchMailingListsByID(ctx context.Context) func(ids []int) ([]*model.MailingList, []error) {
+	return func(ids []int) ([]*model.MailingList, []error) {
+		lists := make([]*model.MailingList, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			// TODO: Test these auth bits
+			user := auth.ForContext(ctx)
+			query := database.
+				Select(ctx, (&model.MailingList{}).As(`list`)).
+				From(`list`).
+				// XXX: We could fetch the rest of the ACL and subscription
+				// details here and cache them to return via
+				// MailingList { access, subscription }
+				// if we were so inclined.
+				LeftJoin(`access ON access.list_id = list.id`).
+				LeftJoin(`subscription sub ON sub.list_id = list.id`).
+				Column(`COALESCE(
+					access.permissions,
+					CASE WHEN list.owner_id = ?
+					THEN ?
+					ELSE CASE WHEN sub.id IS NOT NULL
+						THEN list.subscriber_permissions
+						ELSE null END
+					END,
+					list.nonsubscriber_permissions | list.account_permissions)`,
+					user.UserID, model.ACCESS_ALL).
+				Column(`sub.id`).
+				Where(sq.And{
+					sq.Expr(`list.id = ANY(?)`, pq.Array(ids)),
+					sq.Or{
+						// List owner, or
+						sq.Expr(`list.owner_id = ?`, user.UserID),
+						// ACL entry exists, or
+						sq.And{
+							sq.Expr(`access.id IS NOT NULL`),
+							sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+						},
+						// Subscribers, or
+						sq.And{
+							sq.Expr(`access.id IS NULL`),
+							sq.Expr(`sub.id IS NULL`),
+							sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
+						},
+						// Or:
+						sq.And{
+							sq.Expr(`access.id IS NULL`),
+							sq.Expr(`
+								(list.subscriber_permissions | list.account_permissions) & ? > 0`,
+								model.ACCESS_BROWSE,
+							),
+						},
+					},
+				})
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				panic(err)
+			}
+			defer rows.Close()
+
+			listsByID := map[int]*model.MailingList{}
+			for rows.Next() {
+				list := model.MailingList{}
+				if err := rows.Scan(append(
+						database.Scan(ctx, &list),
+						&list.Access,
+						&list.SubscriptionID,
+					)...); err != nil {
+					panic(err)
+				}
+				listsByID[list.ID] = &list
+			}
+			if err = rows.Err(); err != nil {
+				panic(err)
+			}
+
+			for i, id := range ids {
+				lists[i] = listsByID[id]
+			}
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+		return lists, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
@@ -126,6 +220,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchUsersByName(r.Context()),
+			},
+			MailingListsByID: MailingListsByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchMailingListsByID(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)

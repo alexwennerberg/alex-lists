@@ -14,6 +14,30 @@ import (
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
 )
 
+func (r *mailingListResolver) Owner(ctx context.Context, obj *model.MailingList) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mailingListResolver) Threads(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.ThreadCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mailingListResolver) Emails(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mailingListResolver) Patches(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.PatchsetCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mailingListResolver) Access(ctx context.Context, obj *model.MailingList) (model.ACL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mailingListResolver) Subscription(ctx context.Context, obj *model.MailingList) (model.Subscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	return &model.Version{
 		Major:           0,
@@ -50,7 +74,7 @@ func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Curs
 }
 
 func (r *queryResolver) MailingList(ctx context.Context, id int) (*model.MailingList, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).MailingListsByID.Load(id)
 }
 
 func (r *queryResolver) MailingListByName(ctx context.Context, name string) (*model.MailingList, error) {
@@ -73,11 +97,15 @@ func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *cor
 	panic(fmt.Errorf("not implemented"))
 }
 
+// MailingList returns api.MailingListResolver implementation.
+func (r *Resolver) MailingList() api.MailingListResolver { return &mailingListResolver{r} }
+
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
 // User returns api.UserResolver implementation.
 func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 
+type mailingListResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }

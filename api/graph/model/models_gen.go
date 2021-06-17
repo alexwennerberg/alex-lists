@@ -11,6 +11,10 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/model"
 )
 
+type ACL interface {
+	IsACL()
+}
+
 type Entity interface {
 	IsEntity()
 }
@@ -24,9 +28,9 @@ type Email struct {
 	Sender    Entity       `json:"sender"`
 	Received  time.Time    `json:"received"`
 	Date      time.Time    `json:"date"`
-	Envelope  string       `json:"envelope"`
+	Envelope  Mail         `json:"envelope"`
 	Body      string       `json:"body"`
-	Headers   string       `json:"headers"`
+	Headers   Mail         `json:"headers"`
 	Subject   string       `json:"subject"`
 	MessageID string       `json:"message_id"`
 	InReplyTo *Email       `json:"in_reply_to"`
@@ -41,6 +45,15 @@ type EmailCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+type GeneralACL struct {
+	Browse   bool `json:"browse"`
+	Reply    bool `json:"reply"`
+	Post     bool `json:"post"`
+	Moderate bool `json:"moderate"`
+}
+
+func (GeneralACL) IsACL() {}
+
 type Mailbox struct {
 	CanonicalName string          `json:"canonicalName"`
 	Name          string          `json:"name"`
@@ -51,20 +64,18 @@ type Mailbox struct {
 
 func (Mailbox) IsEntity() {}
 
-type MailingList struct {
-	ID          int             `json:"id"`
-	Created     time.Time       `json:"created"`
-	Update      time.Time       `json:"update"`
-	Name        string          `json:"name"`
-	Description *string         `json:"description"`
-	Owner       Entity          `json:"owner"`
-	PermitMime  []string        `json:"permit_mime"`
-	RejectMime  []string        `json:"reject_mime"`
-	Threads     *ThreadCursor   `json:"threads"`
-	Emails      *EmailCursor    `json:"emails"`
-	Patches     *PatchsetCursor `json:"patches"`
-	Importing   bool            `json:"importing"`
+type MailingListACL struct {
+	ID       int          `json:"id"`
+	Created  time.Time    `json:"created"`
+	List     *MailingList `json:"list"`
+	Entity   Entity       `json:"entity"`
+	Browse   bool         `json:"browse"`
+	Reply    bool         `json:"reply"`
+	Post     bool         `json:"post"`
+	Moderate bool         `json:"moderate"`
 }
+
+func (MailingListACL) IsACL() {}
 
 type MailingListCursor struct {
 	Results []*MailingList `json:"results"`
