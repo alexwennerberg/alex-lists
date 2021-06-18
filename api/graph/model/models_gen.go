@@ -71,7 +71,7 @@ type Patchset struct {
 	List         *MailingList    `json:"list"`
 	Patches      *EmailCursor    `json:"patches"`
 	Tools        []*PatchsetTool `json:"tools"`
-	Mbox         string          `json:"mbox"`
+	Mbox         URL             `json:"mbox"`
 }
 
 type PatchsetCursor struct {
@@ -96,12 +96,12 @@ type SubscriptionCursor struct {
 
 type Thread struct {
 	Root         *Email       `json:"root"`
-	Mbox         string       `json:"mbox"`
 	Replies      int          `json:"replies"`
 	Participants int          `json:"participants"`
 	List         *MailingList `json:"list"`
 	Descendants  *EmailCursor `json:"descendants"`
 	Mailto       string       `json:"mailto"`
+	Mbox         URL          `json:"mbox"`
 }
 
 type ThreadCursor struct {

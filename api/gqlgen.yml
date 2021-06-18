@@ -57,6 +57,6 @@ models:
   Cursor:
     model:
       - git.sr.ht/~sircmpwn/core-go/model.Cursor
-  Mail:
+  URL:
     model:
-      - git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Mail
+      - git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.URL

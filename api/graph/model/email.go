@@ -1,11 +1,15 @@
 package model
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
-	"time"
+	"log"
 	"strconv"
+	"time"
 
+	"github.com/emersion/go-message/mail"
+	_ "github.com/emersion/go-message/charset"
 	sq "github.com/Masterminds/squirrel"
 
 	"git.sr.ht/~sircmpwn/core-go/database"
@@ -17,21 +21,19 @@ type Email struct {
 	Sender    Entity    `json:"sender"`
 	Received  time.Time `json:"received"`
 	Date      time.Time `json:"date"`
-	Envelope  Mail      `json:"envelope"`
 	Body      string    `json:"body"`
-	Headers   Mail      `json:"headers"`
 	Subject   string    `json:"subject"`
 	MessageID string    `json:"message_id"`
-	// TODO: Populate
-	// - Date
-	// - Envelope
-	// - Headers
+	InReplyTo *string   `json:"in_reply_to"`
 
 	MailingListID int
 	PatchsetID    *int
 	ThreadID      *int
 	ParentID      *int
 	SenderID      *int
+
+	RawEnvelope []byte
+	RawHeader   mail.Header
 
 	alias  string
 	fields *database.ModelFields
@@ -93,6 +95,7 @@ func (email *Email) QueryWithCursor(ctx context.Context,
 		q = q.Where(database.WithAlias(email.alias, "created") + "<= ?", updated)
 	}
 	q = q.
+		Column(database.WithAlias(email.alias, "envelope")).
 		OrderBy(database.WithAlias(email.alias, "created") + " DESC").
 		Limit(uint64(cur.Count + 1))
 
@@ -103,10 +106,37 @@ func (email *Email) QueryWithCursor(ctx context.Context,
 
 	var emails []*Email
 	for rows.Next() {
-		var email Email
-		if err := rows.Scan(database.Scan(ctx, &email)...); err != nil {
+		var (
+			email Email
+			data  string
+		)
+		if err := rows.Scan(append(
+			database.Scan(ctx, &email),
+			&data)...); err != nil {
 			panic(err)
 		}
+		email.RawEnvelope = []byte(data)
+
+		reader, err := mail.CreateReader(bytes.NewBuffer(email.RawEnvelope))
+		if err != nil {
+			emails = append(emails, &email)
+			continue
+		}
+		email.RawHeader = reader.Header
+		if msgId, err := email.RawHeader.MessageID(); err != nil {
+			log.Printf("Invalid message ID for email %d: %e", email.ID, err)
+		} else {
+			email.MessageID = msgId
+		}
+		if ids, _ := email.RawHeader.MsgIDList("In-Reply-To"); ids != nil {
+			if len(ids) != 1 {
+				log.Printf("Multiple In-Reply-To IDs for email %d", email.ID)
+			}
+			indir := ids[0]
+			email.InReplyTo = &indir
+		}
+		reader.Close()
+
 		emails = append(emails, &email)
 	}
 

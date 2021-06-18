@@ -16,11 +16,23 @@ import (
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
 )
 
-func (r *emailResolver) InReplyTo(ctx context.Context, obj *model.Email) (*model.Email, error) {
+func (r *emailResolver) Header(ctx context.Context, obj *model.Email, want string) ([]string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *emailResolver) AddressList(ctx context.Context, obj *model.Email, want string) ([]*model.Mailbox, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *emailResolver) Envelope(ctx context.Context, obj *model.Email) (*model.URL, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *emailResolver) Thread(ctx context.Context, obj *model.Email) (*model.Thread, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *emailResolver) Parent(ctx context.Context, obj *model.Email) (*model.Email, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -73,6 +85,14 @@ func (r *mailingListResolver) Access(ctx context.Context, obj *model.MailingList
 }
 
 func (r *mailingListResolver) Subscription(ctx context.Context, obj *model.MailingList) (model.Subscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mailingListResolver) Archive(ctx context.Context, obj *model.MailingList) (*model.URL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mailingListResolver) Last30days(ctx context.Context, obj *model.MailingList) (*model.URL, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -187,3 +207,13 @@ type mailingListResolver struct{ *Resolver }
 type mailingListACLResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *emailResolver) InReplyTo(ctx context.Context, obj *model.Email) (*string, error) {
+	panic(fmt.Errorf("not implemented"))
+}

@@ -5,9 +5,8 @@
 scalar Time
 # Opaque string
 scalar Cursor
-# String of base64-encoded binary data representing an email, including headers
-# and body. See RFC 5322 (Internet Message Format) for details.
-scalar Mail
+# URL from which some secondary data may be retrieved.
+scalar URL
 
 # Used to provide a human-friendly description of an access scope
 directive @scopehelp(details: String!) on ENUM_VALUE
@@ -31,7 +30,7 @@ enum AccessKind {
 directive @access(scope: AccessScope!, kind: AccessKind!) on FIELD_DEFINITION
 
 # This used to decorate private resolvers which are only accessible to build
-# workers, and are used to faciliate the build process.
+# workers, and are used to facilitate the build process.
 directive @worker on FIELD_DEFINITION
 
 # https://semver.org
@@ -111,6 +110,10 @@ type MailingList {
 
   # The user's subscription for this list, if any
   subscription: Subscription
+
+  # URLs to application/mbox archives for this mailing list
+  archive: URL!
+  last30days: URL!
 }
 
 interface ACL {
@@ -149,7 +152,6 @@ type GeneralACL implements ACL {
 
 type Thread {
   root: Email!
-  mbox: String!
   replies: Int!
   participants: Int!
 
@@ -160,24 +162,43 @@ type Thread {
 
   # A mailto: URL for replying to the latest message in this thread
   mailto: String!
+
+  # URL to an application/mbox archive of this thread
+  mbox: URL!
 }
 
 type Email {
   id: Int!
+
+  # The entity which sent this email. Will be a User if it can be associated
+  # with an account, or a Mailbox otherwise.
   sender: Entity!
-  # Time we received this email
+  # Time we received this email (non-forgable).
   received: Time!
-  # Time specified by Date header (forgable)
+  # Time given by Date header (forgable).
   date: Time!
-  envelope: Mail!
-  body: String!
-  headers: Mail!
+  # The Subject header.
   subject: String!
+  # The Message-ID header, without angle brackets.
   message_id: String!
-  in_reply_to: Email
+  # The In-Reply-To header, if present, without angle brackets.
+  in_reply_to: String
+
+  # Provides the value (or values) of a specific header from this email. Note
+  # that the returned value is coerced to UTF-8 and may be lossy under certain
+  # circumstances.
+  header(want: String!): [String!]!
+  # Retrieves the value of an address list header, such as To or Cc.
+  address_list(want: String!): [Mailbox!]!
+  # The decoded text/plain message part of the email, i.e. email body.
+  body: String!
+  # A URL from which the full raw message envelope may be downloaded.
+  envelope: URL!
 
   thread: Thread!
+  parent: Email
   patch: Patch
+
   patchset: Patchset @access(scope: PATCHES, kind: RO)
   list: MailingList! @access(scope: LISTS, kind: RO)
 }
@@ -227,9 +248,8 @@ type Patchset {
   patches(cursor: Cursor): EmailCursor!
   tools: [PatchsetTool!]!
 
-  # mbox containing only patches. For an mbox of the whole thread, see
-  # thread.mbox.
-  mbox: String!
+  # URL to an application/mbox archive of only the patches in this thread
+  mbox: URL!
 }
 
 enum ToolIcon {
