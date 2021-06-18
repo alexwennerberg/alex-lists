@@ -28,16 +28,6 @@ type EmailCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
-type Mailbox struct {
-	CanonicalName string          `json:"canonicalName"`
-	Name          string          `json:"name"`
-	Email         string          `json:"email"`
-	Emails        *EmailCursor    `json:"emails"`
-	Patches       *PatchsetCursor `json:"patches"`
-}
-
-func (Mailbox) IsEntity() {}
-
 type MailingListCursor struct {
 	Results []*MailingList `json:"results"`
 	Cursor  *model.Cursor  `json:"cursor"`

@@ -39,6 +39,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	Email() EmailResolver
+	Mailbox() MailboxResolver
 	MailingList() MailingListResolver
 	MailingListACL() MailingListACLResolver
 	Query() QueryResolver
@@ -84,8 +85,8 @@ type ComplexityRoot struct {
 	}
 
 	Mailbox struct {
+		Address       func(childComplexity int) int
 		CanonicalName func(childComplexity int) int
-		Email         func(childComplexity int) int
 		Emails        func(childComplexity int, cursor *model1.Cursor) int
 		Name          func(childComplexity int) int
 		Patches       func(childComplexity int, cursor *model1.Cursor) int
@@ -242,6 +243,10 @@ type EmailResolver interface {
 
 	Patchset(ctx context.Context, obj *model.Email) (*model.Patchset, error)
 	List(ctx context.Context, obj *model.Email) (*model.MailingList, error)
+}
+type MailboxResolver interface {
+	Emails(ctx context.Context, obj *model.Mailbox, cursor *model1.Cursor) (*model.EmailCursor, error)
+	Patches(ctx context.Context, obj *model.Mailbox, cursor *model1.Cursor) (*model.PatchsetCursor, error)
 }
 type MailingListResolver interface {
 	Owner(ctx context.Context, obj *model.MailingList) (model.Entity, error)
@@ -460,19 +465,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.GeneralACL.Reply(childComplexity), true
 
+	case "Mailbox.address":
+		if e.complexity.Mailbox.Address == nil {
+			break
+		}
+
+		return e.complexity.Mailbox.Address(childComplexity), true
+
 	case "Mailbox.canonicalName":
 		if e.complexity.Mailbox.CanonicalName == nil {
 			break
 		}
 
 		return e.complexity.Mailbox.CanonicalName(childComplexity), true
-
-	case "Mailbox.email":
-		if e.complexity.Mailbox.Email == nil {
-			break
-		}
-
-		return e.complexity.Mailbox.Email(childComplexity), true
 
 	case "Mailbox.emails":
 		if e.complexity.Mailbox.Emails == nil {
@@ -1417,7 +1422,7 @@ type User implements Entity {
 type Mailbox implements Entity {
   canonicalName: String!
   name: String!
-  email: String!
+  address: String!
 
   emails(cursor: Cursor): EmailCursor @access(scope: EMAILS, kind: RO)
   patches(cursor: Cursor): PatchsetCursor @access(scope: PATCHES, kind: RO)
@@ -3012,14 +3017,14 @@ func (ec *executionContext) _Mailbox_canonicalName(ctx context.Context, field gr
 		Object:     "Mailbox",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.CanonicalName, nil
+		return obj.CanonicalName(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3071,7 +3076,7 @@ func (ec *executionContext) _Mailbox_name(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mailbox_email(ctx context.Context, field graphql.CollectedField, obj *model.Mailbox) (ret graphql.Marshaler) {
+func (ec *executionContext) _Mailbox_address(ctx context.Context, field graphql.CollectedField, obj *model.Mailbox) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3089,7 +3094,7 @@ func (ec *executionContext) _Mailbox_email(ctx context.Context, field graphql.Co
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Email, nil
+		return obj.Address, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3117,8 +3122,8 @@ func (ec *executionContext) _Mailbox_emails(ctx context.Context, field graphql.C
 		Object:     "Mailbox",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3132,7 +3137,7 @@ func (ec *executionContext) _Mailbox_emails(ctx context.Context, field graphql.C
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Emails, nil
+			return ec.resolvers.Mailbox().Emails(rctx, obj, args["cursor"].(*model1.Cursor))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "EMAILS")
@@ -3184,8 +3189,8 @@ func (ec *executionContext) _Mailbox_patches(ctx context.Context, field graphql.
 		Object:     "Mailbox",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3199,7 +3204,7 @@ func (ec *executionContext) _Mailbox_patches(ctx context.Context, field graphql.
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Patches, nil
+			return ec.resolvers.Mailbox().Patches(rctx, obj, args["cursor"].(*model1.Cursor))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PATCHES")
@@ -8873,22 +8878,40 @@ func (ec *executionContext) _Mailbox(ctx context.Context, sel ast.SelectionSet, 
 		case "canonicalName":
 			out.Values[i] = ec._Mailbox_canonicalName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._Mailbox_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
-		case "email":
-			out.Values[i] = ec._Mailbox_email(ctx, field, obj)
+		case "address":
+			out.Values[i] = ec._Mailbox_address(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "emails":
-			out.Values[i] = ec._Mailbox_emails(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Mailbox_emails(ctx, field, obj)
+				return res
+			})
 		case "patches":
-			out.Values[i] = ec._Mailbox_patches(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Mailbox_patches(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

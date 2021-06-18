@@ -74,7 +74,7 @@ type User implements Entity {
 type Mailbox implements Entity {
   canonicalName: String!
   name: String!
-  email: String!
+  address: String!
 
   emails(cursor: Cursor): EmailCursor @access(scope: EMAILS, kind: RO)
   patches(cursor: Cursor): PatchsetCursor @access(scope: PATCHES, kind: RO)

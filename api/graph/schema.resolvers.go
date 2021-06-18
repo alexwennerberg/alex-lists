@@ -17,11 +17,31 @@ import (
 )
 
 func (r *emailResolver) Header(ctx context.Context, obj *model.Email, want string) ([]string, error) {
-	panic(fmt.Errorf("not implemented"))
+	var values []string
+	iter := obj.RawHeader.FieldsByKey(want)
+	for iter.Next() {
+		text, err := iter.Text()
+		if err != nil {
+			return nil, err
+		}
+		values = append(values, text)
+	}
+	return values, nil
 }
 
 func (r *emailResolver) AddressList(ctx context.Context, obj *model.Email, want string) ([]*model.Mailbox, error) {
-	panic(fmt.Errorf("not implemented"))
+	list, err := obj.RawHeader.AddressList(want)
+	if err != nil {
+		return nil, err
+	}
+	var addrs []*model.Mailbox
+	for _, item := range list {
+		addrs = append(addrs, &model.Mailbox{
+			Name:    item.Name,
+			Address: item.Address,
+		})
+	}
+	return addrs, nil
 }
 
 func (r *emailResolver) Envelope(ctx context.Context, obj *model.Email) (*model.URL, error) {
@@ -41,6 +61,14 @@ func (r *emailResolver) Patchset(ctx context.Context, obj *model.Email) (*model.
 }
 
 func (r *emailResolver) List(ctx context.Context, obj *model.Email) (*model.MailingList, error) {
+	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)
+}
+
+func (r *mailboxResolver) Emails(ctx context.Context, obj *model.Mailbox, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mailboxResolver) Patches(ctx context.Context, obj *model.Mailbox, cursor *coremodel.Cursor) (*model.PatchsetCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -190,6 +218,9 @@ func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *cor
 // Email returns api.EmailResolver implementation.
 func (r *Resolver) Email() api.EmailResolver { return &emailResolver{r} }
 
+// Mailbox returns api.MailboxResolver implementation.
+func (r *Resolver) Mailbox() api.MailboxResolver { return &mailboxResolver{r} }
+
 // MailingList returns api.MailingListResolver implementation.
 func (r *Resolver) MailingList() api.MailingListResolver { return &mailingListResolver{r} }
 
@@ -203,17 +234,8 @@ func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 
 type emailResolver struct{ *Resolver }
+type mailboxResolver struct{ *Resolver }
 type mailingListResolver struct{ *Resolver }
 type mailingListACLResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-func (r *emailResolver) InReplyTo(ctx context.Context, obj *model.Email) (*string, error) {
-	panic(fmt.Errorf("not implemented"))
-}
