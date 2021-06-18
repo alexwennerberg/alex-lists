@@ -160,7 +160,7 @@ type Thread {
   # Replies to this thread, in chronological order
   descendants(cursor: Cursor): EmailCursor!
 
-  # A mailto: URL for replying to the latest message in this thread
+  # A mailto: URI for replying to the latest message in this thread
   mailto: String!
 
   # URL to an application/mbox archive of this thread

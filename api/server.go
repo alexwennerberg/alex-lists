@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net/http"
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/email"
@@ -31,13 +32,38 @@ func main() {
 	}
 
 	mail := email.NewQueue()
-	server.NewServer("lists.sr.ht", appConfig).
+	gsrv := server.NewServer("lists.sr.ht", appConfig).
 		WithDefaultMiddleware().
 		WithMiddleware(
 			loaders.Middleware,
 			email.Middleware(mail),
 		).
 		WithSchema(schema, scopes).
-		WithQueues(mail).
-		Run()
+		WithQueues(mail)
+
+	gsrv.Router().Get("/query/email/{id}", func(w http.ResponseWriter, r *http.Request) {
+		// TODO
+		w.WriteHeader(200)
+		w.Write([]byte("200 OK"))
+	})
+
+	gsrv.Router().Get("/query/thread/{id}.mbox", func(w http.ResponseWriter, r *http.Request) {
+		// TODO
+		w.WriteHeader(200)
+		w.Write([]byte("200 OK"))
+	})
+
+	gsrv.Router().Get("/query/patchset/{id}.mbox", func(w http.ResponseWriter, r *http.Request) {
+		// TODO
+		w.WriteHeader(200)
+		w.Write([]byte("200 OK"))
+	})
+
+	gsrv.Router().Get("/query/list/{id}.mbox", func(w http.ResponseWriter, r *http.Request) {
+		// TODO
+		w.WriteHeader(200)
+		w.Write([]byte("200 OK"))
+	})
+
+	gsrv.Run()
 }
