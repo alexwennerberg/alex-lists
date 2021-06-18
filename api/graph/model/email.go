@@ -20,7 +20,6 @@ type Email struct {
 	ID        int       `json:"id"`
 	Sender    Entity    `json:"sender"`
 	Received  time.Time `json:"received"`
-	Date      time.Time `json:"date"`
 	Body      string    `json:"body"`
 	Subject   string    `json:"subject"`
 	MessageID string    `json:"message_id"`
@@ -64,7 +63,6 @@ func (email *Email) Fields() *database.ModelFields {
 		Fields: []*database.FieldMap{
 			{ "id", "id", &email.ID },
 			{ "created", "received", &email.Received },
-			{ "message_date", "date", &email.Date },
 			{ "body", "body", &email.Body },
 			{ "subject", "subject", &email.Subject },
 			{ "message_id", "message_id", &email.MessageID },
@@ -79,6 +77,28 @@ func (email *Email) Fields() *database.ModelFields {
 		},
 	}
 	return email.fields
+}
+
+func (email *Email) Populate(envelope string) {
+	email.RawEnvelope = []byte(envelope)
+	reader, err := mail.CreateReader(bytes.NewBuffer(email.RawEnvelope))
+	if err != nil {
+		return
+	}
+	email.RawHeader = reader.Header
+	if msgId, err := email.RawHeader.MessageID(); err != nil {
+		log.Printf("Invalid message ID for email %d: %e", email.ID, err)
+	} else {
+		email.MessageID = msgId
+	}
+	if ids, _ := email.RawHeader.MsgIDList("In-Reply-To"); ids != nil {
+		if len(ids) != 1 {
+			log.Printf("Multiple In-Reply-To IDs for email %d", email.ID)
+		}
+		indir := ids[0]
+		email.InReplyTo = &indir
+	}
+	reader.Close()
 }
 
 func (email *Email) QueryWithCursor(ctx context.Context,
@@ -115,28 +135,7 @@ func (email *Email) QueryWithCursor(ctx context.Context,
 			&data)...); err != nil {
 			panic(err)
 		}
-		email.RawEnvelope = []byte(data)
-
-		reader, err := mail.CreateReader(bytes.NewBuffer(email.RawEnvelope))
-		if err != nil {
-			emails = append(emails, &email)
-			continue
-		}
-		email.RawHeader = reader.Header
-		if msgId, err := email.RawHeader.MessageID(); err != nil {
-			log.Printf("Invalid message ID for email %d: %e", email.ID, err)
-		} else {
-			email.MessageID = msgId
-		}
-		if ids, _ := email.RawHeader.MsgIDList("In-Reply-To"); ids != nil {
-			if len(ids) != 1 {
-				log.Printf("Multiple In-Reply-To IDs for email %d", email.ID)
-			}
-			indir := ids[0]
-			email.InReplyTo = &indir
-		}
-		reader.Close()
-
+		email.Populate(data)
 		emails = append(emails, &email)
 	}
 

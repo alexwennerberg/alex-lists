@@ -234,6 +234,8 @@ type ComplexityRoot struct {
 }
 
 type EmailResolver interface {
+	Date(ctx context.Context, obj *model.Email) (*time.Time, error)
+
 	Header(ctx context.Context, obj *model.Email, want string) ([]string, error)
 	AddressList(ctx context.Context, obj *model.Email, want string) ([]*model.Mailbox, error)
 
@@ -1508,7 +1510,7 @@ type Thread {
   # Replies to this thread, in chronological order
   descendants(cursor: Cursor): EmailCursor!
 
-  # A mailto: URL for replying to the latest message in this thread
+  # A mailto: URI for replying to the latest message in this thread
   mailto: String!
 
   # URL to an application/mbox archive of this thread
@@ -1524,7 +1526,7 @@ type Email {
   # Time we received this email (non-forgable).
   received: Time!
   # Time given by Date header (forgable).
-  date: Time!
+  date: Time
   # The Subject header.
   subject: String!
   # The Message-ID header, without angle brackets.
@@ -2297,28 +2299,25 @@ func (ec *executionContext) _Email_date(ctx context.Context, field graphql.Colle
 		Object:     "Email",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Date, nil
+		return ec.resolvers.Email().Date(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(time.Time)
+	res := resTmp.(*time.Time)
 	fc.Result = res
-	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
+	return ec.marshalOTime2ᚖtimeᚐTime(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Email_subject(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
@@ -8667,10 +8666,16 @@ func (ec *executionContext) _Email(ctx context.Context, sel ast.SelectionSet, ob
 				atomic.AddUint32(&invalids, 1)
 			}
 		case "date":
-			out.Values[i] = ec._Email_date(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Email_date(ctx, field, obj)
+				return res
+			})
 		case "subject":
 			out.Values[i] = ec._Email_subject(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

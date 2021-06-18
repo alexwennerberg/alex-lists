@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/database"
@@ -15,6 +16,14 @@ import (
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
 )
+
+func (r *emailResolver) Date(ctx context.Context, obj *model.Email) (*time.Time, error) {
+	date, err := obj.RawHeader.Date()
+	if err != nil {
+		return nil, nil
+	}
+	return &date, nil
+}
 
 func (r *emailResolver) Header(ctx context.Context, obj *model.Email, want string) ([]string, error) {
 	var values []string
@@ -184,7 +193,7 @@ func (r *queryResolver) MailingListByOwner(ctx context.Context, ownerName string
 }
 
 func (r *queryResolver) Email(ctx context.Context, id int) (*model.Email, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).EmailByID.Load(id)
 }
 
 func (r *queryResolver) Message(ctx context.Context, messageID string) (*model.Email, error) {

@@ -41,6 +41,7 @@ func main() {
 		WithSchema(schema, scopes).
 		WithQueues(mail)
 
+	// Bulk transfer endpoints
 	gsrv.Router().Get("/query/email/{id}", func(w http.ResponseWriter, r *http.Request) {
 		// TODO
 		w.WriteHeader(200)

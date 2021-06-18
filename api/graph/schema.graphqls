@@ -176,7 +176,7 @@ type Email {
   # Time we received this email (non-forgable).
   received: Time!
   # Time given by Date header (forgable).
-  date: Time!
+  date: Time
   # The Subject header.
   subject: String!
   # The Message-ID header, without angle brackets.
