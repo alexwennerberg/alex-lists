@@ -18,7 +18,6 @@ import (
 
 type Email struct {
 	ID        int       `json:"id"`
-	Sender    Entity    `json:"sender"`
 	Received  time.Time `json:"received"`
 	Body      string    `json:"body"`
 	Subject   string    `json:"subject"`

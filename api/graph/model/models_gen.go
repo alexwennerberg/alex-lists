@@ -84,16 +84,6 @@ type SubscriptionCursor struct {
 	Cursor  *model.Cursor  `json:"cursor"`
 }
 
-type Thread struct {
-	Root         *Email       `json:"root"`
-	Replies      int          `json:"replies"`
-	Participants int          `json:"participants"`
-	List         *MailingList `json:"list"`
-	Descendants  *EmailCursor `json:"descendants"`
-	Mailto       string       `json:"mailto"`
-	Mbox         URL          `json:"mbox"`
-}
-
 type ThreadCursor struct {
 	Results []*Thread     `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`

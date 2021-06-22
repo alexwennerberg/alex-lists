@@ -153,9 +153,14 @@ type GeneralACL implements ACL {
 }
 
 type Thread {
-  root: Email!
+  created: Time!
+  updated: Time!
+  subject: String!
   replies: Int!
   participants: Int!
+  sender: Entity!
+
+  root: Email!
 
   list: MailingList! @access(scope: LISTS, kind: RO)
 

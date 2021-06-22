@@ -19,6 +19,10 @@ import (
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
 )
 
+func (r *emailResolver) Sender(ctx context.Context, obj *model.Email) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *emailResolver) Date(ctx context.Context, obj *model.Email) (*time.Time, error) {
 	date, err := obj.RawHeader.Date()
 	if err != nil {
@@ -94,7 +98,28 @@ func (r *mailingListResolver) Owner(ctx context.Context, obj *model.MailingList)
 }
 
 func (r *mailingListResolver) Threads(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.ThreadCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var threads []*model.Thread
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		thread := (&model.Thread{}).As(`thread`)
+		query := database.
+			Select(ctx, thread).
+			From(`email thread`).
+			Where(`thread.list_id = ?`, obj.ID).
+			Where(`thread.thread_id IS NULL`)
+		threads, cursor = thread.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.ThreadCursor{threads, cursor}, nil
 }
 
 func (r *mailingListResolver) Emails(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
@@ -216,6 +241,30 @@ func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cur
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *threadResolver) Sender(ctx context.Context, obj *model.Thread) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *threadResolver) Root(ctx context.Context, obj *model.Thread) (*model.Email, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *threadResolver) List(ctx context.Context, obj *model.Thread) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *threadResolver) Descendants(ctx context.Context, obj *model.Thread, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *threadResolver) Mbox(ctx context.Context, obj *model.Thread) (*model.URL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *userResolver) Lists(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
@@ -247,6 +296,9 @@ func (r *Resolver) MailingListACL() api.MailingListACLResolver { return &mailing
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
+// Thread returns api.ThreadResolver implementation.
+func (r *Resolver) Thread() api.ThreadResolver { return &threadResolver{r} }
+
 // User returns api.UserResolver implementation.
 func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 
@@ -255,4 +307,5 @@ type mailboxResolver struct{ *Resolver }
 type mailingListResolver struct{ *Resolver }
 type mailingListACLResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type threadResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
