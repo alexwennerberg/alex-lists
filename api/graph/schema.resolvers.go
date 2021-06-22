@@ -246,7 +246,7 @@ func (r *threadResolver) Sender(ctx context.Context, obj *model.Thread) (model.E
 }
 
 func (r *threadResolver) Root(ctx context.Context, obj *model.Thread) (*model.Email, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).EmailByID.Load(obj.ID)
 }
 
 func (r *threadResolver) List(ctx context.Context, obj *model.Thread) (*model.MailingList, error) {
