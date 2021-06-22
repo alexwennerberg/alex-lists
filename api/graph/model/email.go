@@ -115,7 +115,6 @@ func (email *Email) QueryWithCursor(ctx context.Context,
 	}
 	q = q.
 		Column(database.WithAlias(email.alias, "envelope")).
-		OrderBy(database.WithAlias(email.alias, "created") + " DESC").
 		Limit(uint64(cur.Count + 1))
 
 	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {

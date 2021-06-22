@@ -136,7 +136,8 @@ func (r *mailingListResolver) Emails(ctx context.Context, obj *model.MailingList
 		query := database.
 			Select(ctx, email).
 			From(`email`).
-			Where(`email.list_id = ?`, obj.ID)
+			Where(`email.list_id = ?`, obj.ID).
+			OrderBy("email.created DESC")
 		emails, cursor = email.QueryWithCursor(ctx, tx, query, cursor)
 		return nil
 	}); err != nil {
@@ -254,7 +255,28 @@ func (r *threadResolver) List(ctx context.Context, obj *model.Thread) (*model.Ma
 }
 
 func (r *threadResolver) Descendants(ctx context.Context, obj *model.Thread, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var emails []*model.Email
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		email := (&model.Email{}).As(`email`)
+		query := database.
+			Select(ctx, email).
+			From(`email`).
+			Where(`email.thread_id = ?`, obj.ID).
+			OrderBy("email.created")
+		emails, cursor = email.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.EmailCursor{emails, cursor}, nil
 }
 
 func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string, error) {
