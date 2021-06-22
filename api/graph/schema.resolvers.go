@@ -226,7 +226,7 @@ func (r *queryResolver) MailingListByOwner(ctx context.Context, ownerName string
 }
 
 func (r *queryResolver) Email(ctx context.Context, id int) (*model.Email, error) {
-	return loaders.ForContext(ctx).EmailByID.Load(id)
+	return loaders.ForContext(ctx).EmailsByID.Load(id)
 }
 
 func (r *queryResolver) Message(ctx context.Context, messageID string) (*model.Email, error) {
@@ -246,11 +246,11 @@ func (r *threadResolver) Sender(ctx context.Context, obj *model.Thread) (model.E
 }
 
 func (r *threadResolver) Root(ctx context.Context, obj *model.Thread) (*model.Email, error) {
-	return loaders.ForContext(ctx).EmailByID.Load(obj.ID)
+	return loaders.ForContext(ctx).EmailsByID.Load(obj.ID)
 }
 
 func (r *threadResolver) List(ctx context.Context, obj *model.Thread) (*model.MailingList, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)
 }
 
 func (r *threadResolver) Descendants(ctx context.Context, obj *model.Thread, cursor *coremodel.Cursor) (*model.EmailCursor, error) {

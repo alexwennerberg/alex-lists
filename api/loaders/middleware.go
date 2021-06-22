@@ -3,7 +3,7 @@ package loaders
 //go:generate ./gen UsersByIDLoader int api/graph/model.User
 //go:generate ./gen UsersByNameLoader string api/graph/model.User
 //go:generate ./gen MailingListsByIDLoader int api/graph/model.MailingList
-//go:generate ./gen EmailByIDLoader int api/graph/model.Email
+//go:generate ./gen EmailsByIDLoader int api/graph/model.Email
 
 import (
 	"context"
@@ -30,7 +30,7 @@ type Loaders struct {
 	UsersByID        UsersByIDLoader
 	UsersByName      UsersByNameLoader
 	MailingListsByID MailingListsByIDLoader
-	EmailByID        EmailByIDLoader
+	EmailsByID       EmailsByIDLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -212,7 +212,7 @@ func fetchMailingListsByID(ctx context.Context) func(ids []int) ([]*model.Mailin
 	}
 }
 
-func fetchEmailByID(ctx context.Context) func(ids []int) ([]*model.Email, []error) {
+func fetchEmailsByID(ctx context.Context) func(ids []int) ([]*model.Email, []error) {
 	return func(ids []int) ([]*model.Email, []error) {
 		emails := make([]*model.Email, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
@@ -311,10 +311,10 @@ func Middleware(next http.Handler) http.Handler {
 				wait:     1 * time.Millisecond,
 				fetch:    fetchMailingListsByID(r.Context()),
 			},
-			EmailByID: EmailByIDLoader{
+			EmailsByID: EmailsByIDLoader{
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
-				fetch:    fetchEmailByID(r.Context()),
+				fetch:    fetchEmailsByID(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)

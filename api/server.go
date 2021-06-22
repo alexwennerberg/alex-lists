@@ -51,7 +51,7 @@ func main() {
 			w.Write([]byte("Invalid mail ID"))
 			return
 		}
-		mail, err := loaders.ForContext(r.Context()).EmailByID.Load(id)
+		mail, err := loaders.ForContext(r.Context()).EmailsByID.Load(id)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			w.Write([]byte("Unknown email"))
