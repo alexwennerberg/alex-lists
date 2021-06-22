@@ -7,9 +7,11 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"net/url"
 	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
+	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
@@ -54,7 +56,13 @@ func (r *emailResolver) AddressList(ctx context.Context, obj *model.Email, want 
 }
 
 func (r *emailResolver) Envelope(ctx context.Context, obj *model.Email) (*model.URL, error) {
-	panic(fmt.Errorf("not implemented"))
+	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
+	uri := fmt.Sprintf("%s/query/email/%d", origin, obj.ID)
+	url, err := url.Parse(uri)
+	if err != nil {
+		panic(err)
+	}
+	return &model.URL{url}, nil
 }
 
 func (r *emailResolver) Thread(ctx context.Context, obj *model.Email) (*model.Thread, error) {

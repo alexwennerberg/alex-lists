@@ -3,11 +3,13 @@ package main
 import (
 	"context"
 	"net/http"
+	"strconv"
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/email"
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/go-chi/chi"
 
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
@@ -43,9 +45,20 @@ func main() {
 
 	// Bulk transfer endpoints
 	gsrv.Router().Get("/query/email/{id}", func(w http.ResponseWriter, r *http.Request) {
-		// TODO
-		w.WriteHeader(200)
-		w.Write([]byte("200 OK"))
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Invalid mail ID"))
+			return
+		}
+		mail, err := loaders.ForContext(r.Context()).EmailByID.Load(id)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("Unknown email"))
+			return
+		}
+		w.Header().Add("Content-Type", "message/rfc822")
+		w.Write([]byte(mail.RawEnvelope))
 	})
 
 	gsrv.Router().Get("/query/thread/{id}.mbox", func(w http.ResponseWriter, r *http.Request) {

@@ -9,7 +9,7 @@ import (
 
 // XXX: gqlgen bug prevents us from using type URL *url.URL
 type URL struct {
-	url *url.URL
+	Url *url.URL
 }
 
 func (u *URL) UnmarshalGQL(v interface{}) error {
@@ -21,12 +21,12 @@ func (u *URL) UnmarshalGQL(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	u.url = parsed
+	u.Url = parsed
 	return nil
 }
 
 func (u URL) MarshalGQL(w io.Writer) {
-	data, err := json.Marshal(u.url.String())
+	data, err := json.Marshal(u.Url.String())
 	if err != nil {
 		panic(err)
 	}

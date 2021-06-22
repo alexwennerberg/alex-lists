@@ -5,7 +5,9 @@
 scalar Time
 # Opaque string
 scalar Cursor
-# URL from which some secondary data may be retrieved.
+# URL from which some secondary data may be retrieved. You must provide the
+# same Authentication header to this address as you did to the GraphQL resolver
+# which provided it.
 scalar URL
 
 # Used to provide a human-friendly description of an access scope
