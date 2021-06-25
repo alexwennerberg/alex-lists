@@ -5,6 +5,7 @@ package loaders
 //go:generate ./gen MailingListsByIDLoader int api/graph/model.MailingList
 //go:generate ./gen EmailsByIDLoader int api/graph/model.Email
 //go:generate ./gen EmailsByIDUnsafeLoader int api/graph/model.Email
+//go:generate ./gen EmailsByMessageIDLoader string api/graph/model.Email
 //go:generate ./gen ThreadsByIDUnsafeLoader int api/graph/model.Thread
 
 import (
@@ -33,6 +34,7 @@ type Loaders struct {
 	UsersByName       UsersByNameLoader
 	MailingListsByID  MailingListsByIDLoader
 	EmailsByID        EmailsByIDLoader
+	EmailsByMessageID EmailsByMessageIDLoader
 	EmailsByIDUnsafe  EmailsByIDUnsafeLoader
 	ThreadsByIDUnsafe ThreadsByIDUnsafeLoader
 }
@@ -297,6 +299,88 @@ func fetchEmailsByID(ctx context.Context) func(ids []int) ([]*model.Email, []err
 	}
 }
 
+func fetchEmailsByMessageID(ctx context.Context) func(ids []string) ([]*model.Email, []error) {
+	return func(ids []string) ([]*model.Email, []error) {
+		emails := make([]*model.Email, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			// TODO: Test these auth bits
+			user := auth.ForContext(ctx)
+			query := database.
+				Select(ctx, (&model.Email{}).As(`email`)).
+				From(`email`).
+				LeftJoin(`list ON email.list_id = list.id`).
+				LeftJoin(`access ON access.list_id = list.id`).
+				LeftJoin(`subscription sub ON sub.list_id = list.id`).
+				Column("envelope").
+				Where(sq.And{
+					sq.Expr(`email.message_id = ANY(?)`, pq.Array(ids)),
+					sq.Or{
+						// List owner, or
+						sq.Expr(`list.owner_id = ?`, user.UserID),
+						// ACL entry exists, or
+						sq.And{
+							sq.Expr(`access.id IS NOT NULL`),
+							sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+						},
+						// Subscribers, or
+						sq.And{
+							sq.Expr(`access.id IS NULL`),
+							sq.Expr(`sub.id IS NULL`),
+							sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
+						},
+						// Or:
+						sq.And{
+							sq.Expr(`access.id IS NULL`),
+							sq.Expr(`
+								(list.subscriber_permissions | list.account_permissions) & ? > 0`,
+								model.ACCESS_BROWSE,
+							),
+						},
+					},
+				})
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				panic(err)
+			}
+			defer rows.Close()
+
+			emailsByMessageID := map[string]*model.Email{}
+			for rows.Next() {
+				var (
+					email model.Email
+					data  string
+				)
+				if err := rows.Scan(append(
+						database.Scan(ctx, &email),
+						&data,
+					)...); err != nil {
+					panic(err)
+				}
+				email.Populate(data)
+				// TODO: Make the database consistent with the parsed header
+				emailsByMessageID["<" + email.MessageID + ">"] = &email
+			}
+			if err = rows.Err(); err != nil {
+				panic(err)
+			}
+
+			for i, id := range ids {
+				emails[i] = emailsByMessageID[id]
+			}
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+		return emails, nil
+	}
+}
+
 func fetchEmailsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Email, []error) {
 	return func(ids []int) ([]*model.Email, []error) {
 		emails := make([]*model.Email, len(ids))
@@ -413,6 +497,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchEmailsByID(r.Context()),
+			},
+			EmailsByMessageID: EmailsByMessageIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchEmailsByMessageID(r.Context()),
 			},
 			EmailsByIDUnsafe: EmailsByIDUnsafeLoader{
 				maxBatch: 100,

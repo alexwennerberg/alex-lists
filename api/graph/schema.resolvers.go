@@ -221,6 +221,30 @@ func (r *queryResolver) UserByName(ctx context.Context, username string) (*model
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
+func (r *queryResolver) MailingList(ctx context.Context, id int) (*model.MailingList, error) {
+	return loaders.ForContext(ctx).MailingListsByID.Load(id)
+}
+
+func (r *queryResolver) MailingListByName(ctx context.Context, name string) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) MailingListByOwner(ctx context.Context, ownerName string, listName string) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *queryResolver) Email(ctx context.Context, id int) (*model.Email, error) {
+	return loaders.ForContext(ctx).EmailsByID.Load(id)
+}
+
+func (r *queryResolver) Message(ctx context.Context, messageID string) (*model.Email, error) {
+	return loaders.ForContext(ctx).EmailsByMessageID.Load(messageID)
+}
+
+func (r *queryResolver) Patchset(ctx context.Context, id int) (*model.Patchset, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -243,30 +267,6 @@ func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Curs
 	}
 
 	return &model.MailingListCursor{lists, cursor}, nil
-}
-
-func (r *queryResolver) MailingList(ctx context.Context, id int) (*model.MailingList, error) {
-	return loaders.ForContext(ctx).MailingListsByID.Load(id)
-}
-
-func (r *queryResolver) MailingListByName(ctx context.Context, name string) (*model.MailingList, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *queryResolver) MailingListByOwner(ctx context.Context, ownerName string, listName string) (*model.MailingList, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *queryResolver) Email(ctx context.Context, id int) (*model.Email, error) {
-	return loaders.ForContext(ctx).EmailsByID.Load(id)
-}
-
-func (r *queryResolver) Message(ctx context.Context, messageID string) (*model.Email, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *queryResolver) Patchset(ctx context.Context, id int) (*model.Patchset, error) {
-	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cursor) (*model.SubscriptionCursor, error) {
