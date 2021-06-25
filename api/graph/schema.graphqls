@@ -49,9 +49,6 @@ type Version {
 
 interface Entity {
   canonicalName: String!
-
-  emails(cursor: Cursor): EmailCursor @access(scope: EMAILS, kind: RO)
-  patches(cursor: Cursor): PatchsetCursor @access(scope: PATCHES, kind: RO)
 }
 
 # A registered user
@@ -77,9 +74,6 @@ type Mailbox implements Entity {
   canonicalName: String!
   name: String!
   address: String!
-
-  emails(cursor: Cursor): EmailCursor @access(scope: EMAILS, kind: RO)
-  patches(cursor: Cursor): PatchsetCursor @access(scope: PATCHES, kind: RO)
 }
 
 type MailingList {
@@ -350,7 +344,6 @@ type Query {
   # Looks up a specific user
   user(id: Int!): User @access(scope: PROFILE, kind: RO)
   userByName(username: String!): User @access(scope: PROFILE, kind: RO)
-  mailbox(address: String!): Mailbox @access(scope: PROFILE, kind: RO)
 
   # List of mailing lists that the authenticated user has access to
   mailingLists(cursor: Cursor): MailingListCursor! @access(scope: LISTS, kind: RO)

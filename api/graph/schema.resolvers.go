@@ -108,14 +108,6 @@ func (r *emailResolver) List(ctx context.Context, obj *model.Email) (*model.Mail
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)
 }
 
-func (r *mailboxResolver) Emails(ctx context.Context, obj *model.Mailbox, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *mailboxResolver) Patches(ctx context.Context, obj *model.Mailbox, cursor *coremodel.Cursor) (*model.PatchsetCursor, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *mailingListResolver) Owner(ctx context.Context, obj *model.MailingList) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
@@ -229,10 +221,6 @@ func (r *queryResolver) UserByName(ctx context.Context, username string) (*model
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
-func (r *queryResolver) Mailbox(ctx context.Context, address string) (*model.Mailbox, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
@@ -329,9 +317,6 @@ func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *cor
 // Email returns api.EmailResolver implementation.
 func (r *Resolver) Email() api.EmailResolver { return &emailResolver{r} }
 
-// Mailbox returns api.MailboxResolver implementation.
-func (r *Resolver) Mailbox() api.MailboxResolver { return &mailboxResolver{r} }
-
 // MailingList returns api.MailingListResolver implementation.
 func (r *Resolver) MailingList() api.MailingListResolver { return &mailingListResolver{r} }
 
@@ -348,7 +333,6 @@ func (r *Resolver) Thread() api.ThreadResolver { return &threadResolver{r} }
 func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 
 type emailResolver struct{ *Resolver }
-type mailboxResolver struct{ *Resolver }
 type mailingListResolver struct{ *Resolver }
 type mailingListACLResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
