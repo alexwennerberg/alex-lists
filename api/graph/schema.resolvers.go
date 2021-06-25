@@ -70,7 +70,12 @@ func (r *emailResolver) Envelope(ctx context.Context, obj *model.Email) (*model.
 }
 
 func (r *emailResolver) Thread(ctx context.Context, obj *model.Email) (*model.Thread, error) {
-	panic(fmt.Errorf("not implemented"))
+	// Regarding the use of an unsafe loader: if you have access to the email
+	// object, you have access to the thread also.
+	if obj.ThreadID == nil {
+		return loaders.ForContext(ctx).ThreadsByIDUnsafe.Load(obj.ID)
+	}
+	return loaders.ForContext(ctx).ThreadsByIDUnsafe.Load(*obj.ThreadID)
 }
 
 func (r *emailResolver) Parent(ctx context.Context, obj *model.Email) (*model.Email, error) {

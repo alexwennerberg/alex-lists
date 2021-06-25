@@ -4,6 +4,7 @@ package loaders
 //go:generate ./gen UsersByNameLoader string api/graph/model.User
 //go:generate ./gen MailingListsByIDLoader int api/graph/model.MailingList
 //go:generate ./gen EmailsByIDLoader int api/graph/model.Email
+//go:generate ./gen ThreadsByIDUnsafeLoader int api/graph/model.Thread
 
 import (
 	"context"
@@ -27,10 +28,11 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	UsersByID        UsersByIDLoader
-	UsersByName      UsersByNameLoader
-	MailingListsByID MailingListsByIDLoader
-	EmailsByID       EmailsByIDLoader
+	UsersByID         UsersByIDLoader
+	UsersByName       UsersByNameLoader
+	MailingListsByID  MailingListsByIDLoader
+	EmailsByID        EmailsByIDLoader
+	ThreadsByIDUnsafe ThreadsByIDUnsafeLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -293,6 +295,49 @@ func fetchEmailsByID(ctx context.Context) func(ids []int) ([]*model.Email, []err
 	}
 }
 
+func fetchThreadsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Thread, []error) {
+	return func(ids []int) ([]*model.Thread, []error) {
+		threads := make([]*model.Thread, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			query := database.
+				Select(ctx, (&model.Thread{}).As(`thread`)).
+				From(`email thread`).
+				Where(`thread.id = ANY(?) AND thread.thread_id IS NULL`, pq.Array(ids))
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				panic(err)
+			}
+			defer rows.Close()
+
+			threadsByID := map[int]*model.Thread{}
+			for rows.Next() {
+				var thread model.Thread
+				if err := rows.Scan(database.Scan(ctx, &thread)...); err != nil {
+					panic(err)
+				}
+				threadsByID[thread.ID] = &thread
+			}
+			if err = rows.Err(); err != nil {
+				panic(err)
+			}
+
+			for i, id := range ids {
+				threads[i] = threadsByID[id]
+			}
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+		return threads, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
@@ -315,6 +360,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchEmailsByID(r.Context()),
+			},
+			ThreadsByIDUnsafe: ThreadsByIDUnsafeLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchThreadsByIDUnsafe(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)

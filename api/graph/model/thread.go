@@ -74,7 +74,6 @@ func (thread *Thread) QueryWithCursor(ctx context.Context,
 		q = q.Where(database.WithAlias(thread.alias, "updated") + "<= ?", updated)
 	}
 	q = q.
-		Column(database.WithAlias(thread.alias, "envelope")).
 		OrderBy(database.WithAlias(thread.alias, "updated") + " DESC").
 		Limit(uint64(cur.Count + 1))
 
@@ -85,13 +84,8 @@ func (thread *Thread) QueryWithCursor(ctx context.Context,
 
 	var threads []*Thread
 	for rows.Next() {
-		var (
-			thread Thread
-			data   string
-		)
-		if err := rows.Scan(append(
-			database.Scan(ctx, &thread),
-			&data)...); err != nil {
+		var thread Thread
+		if err := rows.Scan(database.Scan(ctx, &thread)...); err != nil {
 			panic(err)
 		}
 		threads = append(threads, &thread)
