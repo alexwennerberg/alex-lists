@@ -345,7 +345,7 @@ type Query {
   user(id: Int!): User @access(scope: PROFILE, kind: RO)
   userByName(username: String!): User @access(scope: PROFILE, kind: RO)
 
-  # List of mailing lists that the authenticated user has access to
+  # List of mailing lists that the authenticated user has ownership of
   mailingLists(cursor: Cursor): MailingListCursor! @access(scope: LISTS, kind: RO)
 
   # Looks up a specific mailing list

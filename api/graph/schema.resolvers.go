@@ -222,7 +222,27 @@ func (r *queryResolver) UserByName(ctx context.Context, username string) (*model
 }
 
 func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var lists []*model.MailingList
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		list := (&model.MailingList{})
+		query := database.
+			Select(ctx, list).
+			From(`list`).
+			Where(`list.owner_id = ?`, auth.ForContext(ctx).UserID)
+		lists, cursor = list.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.MailingListCursor{lists, cursor}, nil
 }
 
 func (r *queryResolver) MailingList(ctx context.Context, id int) (*model.MailingList, error) {

@@ -1,10 +1,16 @@
 package model
 
 import (
-	"time"
+	"context"
+	"database/sql"
+	"strconv"
 	"strings"
+	"time"
+
+	sq "github.com/Masterminds/squirrel"
 
 	"git.sr.ht/~sircmpwn/core-go/database"
+	"git.sr.ht/~sircmpwn/core-go/model"
 )
 
 const (
@@ -84,4 +90,49 @@ func (list *MailingList) Fields() *database.ModelFields {
 		},
 	}
 	return list.fields
+}
+
+func (list *MailingList) QueryWithCursor(ctx context.Context,
+	runner sq.BaseRunner, q sq.SelectBuilder,
+	cur *model.Cursor) ([]*MailingList, *model.Cursor) {
+	var (
+		err  error
+		rows *sql.Rows
+	)
+
+	if cur.Next != "" {
+		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
+		updated := time.Unix(ts, 0)
+		q = q.Where(database.WithAlias(list.alias, "updated") + "<= ?", updated)
+	}
+	q = q.
+		OrderBy(database.WithAlias(list.alias, `updated`) + " DESC").
+		Limit(uint64(cur.Count + 1))
+
+	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	var lists []*MailingList
+	for rows.Next() {
+		var list MailingList
+		if err := rows.Scan(database.Scan(ctx, &list)...); err != nil {
+			panic(err)
+		}
+		lists = append(lists, &list)
+	}
+
+	if len(lists) > cur.Count {
+		cur = &model.Cursor{
+			Count:  cur.Count,
+			Next:   strconv.FormatInt(lists[len(lists)-1].Updated.Unix(), 10),
+			Search: cur.Search,
+		}
+		lists = lists[:cur.Count]
+	} else {
+		cur = nil
+	}
+
+	return lists, cur
 }
