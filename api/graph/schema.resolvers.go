@@ -20,7 +20,20 @@ import (
 )
 
 func (r *emailResolver) Sender(ctx context.Context, obj *model.Email) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.SenderID != nil {
+		return loaders.ForContext(ctx).UsersByID.Load(*obj.SenderID)
+	}
+	list, err := obj.RawHeader.AddressList("From")
+	if err != nil {
+		return nil, err
+	}
+	if len(list) != 1 {
+		panic(fmt.Errorf("Malformed email %d, multiple senders", obj.ID))
+	}
+	return &model.Mailbox{
+		Name: list[0].Name,
+		Address: list[0].Address,
+	}, nil
 }
 
 func (r *emailResolver) Date(ctx context.Context, obj *model.Email) (*time.Time, error) {
