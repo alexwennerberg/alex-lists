@@ -31,7 +31,7 @@ func (r *emailResolver) Sender(ctx context.Context, obj *model.Email) (model.Ent
 		panic(fmt.Errorf("Malformed email %d, multiple senders", obj.ID))
 	}
 	return &model.Mailbox{
-		Name: list[0].Name,
+		Name:    list[0].Name,
 		Address: list[0].Address,
 	}, nil
 }
@@ -92,7 +92,12 @@ func (r *emailResolver) Thread(ctx context.Context, obj *model.Email) (*model.Th
 }
 
 func (r *emailResolver) Parent(ctx context.Context, obj *model.Email) (*model.Email, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.ParentID == nil {
+		return nil, nil
+	}
+	// Regarding the use of an unsafe loader: if you have access to the email
+	// object, you have access to its parent also.
+	return loaders.ForContext(ctx).EmailsByIDUnsafe.Load(*obj.ParentID)
 }
 
 func (r *emailResolver) Patchset(ctx context.Context, obj *model.Email) (*model.Patchset, error) {

@@ -4,6 +4,7 @@ package loaders
 //go:generate ./gen UsersByNameLoader string api/graph/model.User
 //go:generate ./gen MailingListsByIDLoader int api/graph/model.MailingList
 //go:generate ./gen EmailsByIDLoader int api/graph/model.Email
+//go:generate ./gen EmailsByIDUnsafeLoader int api/graph/model.Email
 //go:generate ./gen ThreadsByIDUnsafeLoader int api/graph/model.Thread
 
 import (
@@ -32,6 +33,7 @@ type Loaders struct {
 	UsersByName       UsersByNameLoader
 	MailingListsByID  MailingListsByIDLoader
 	EmailsByID        EmailsByIDLoader
+	EmailsByIDUnsafe  EmailsByIDUnsafeLoader
 	ThreadsByIDUnsafe ThreadsByIDUnsafeLoader
 }
 
@@ -295,6 +297,57 @@ func fetchEmailsByID(ctx context.Context) func(ids []int) ([]*model.Email, []err
 	}
 }
 
+func fetchEmailsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Email, []error) {
+	return func(ids []int) ([]*model.Email, []error) {
+		emails := make([]*model.Email, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			query := database.
+				Select(ctx, (&model.Email{}).As(`email`)).
+				From(`email`).
+				Column("envelope").
+				Where(`email.id = ANY(?)`, pq.Array(ids))
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				panic(err)
+			}
+			defer rows.Close()
+
+			emailsByID := map[int]*model.Email{}
+			for rows.Next() {
+				var (
+					email model.Email
+					data  string
+				)
+				if err := rows.Scan(append(
+						database.Scan(ctx, &email),
+						&data,
+					)...); err != nil {
+					panic(err)
+				}
+				email.Populate(data)
+				emailsByID[email.ID] = &email
+			}
+			if err = rows.Err(); err != nil {
+				panic(err)
+			}
+
+			for i, id := range ids {
+				emails[i] = emailsByID[id]
+			}
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+		return emails, nil
+	}
+}
+
 func fetchThreadsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Thread, []error) {
 	return func(ids []int) ([]*model.Thread, []error) {
 		threads := make([]*model.Thread, len(ids))
@@ -360,6 +413,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchEmailsByID(r.Context()),
+			},
+			EmailsByIDUnsafe: EmailsByIDUnsafeLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchEmailsByIDUnsafe(r.Context()),
 			},
 			ThreadsByIDUnsafe: ThreadsByIDUnsafeLoader{
 				maxBatch: 100,
