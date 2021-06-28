@@ -238,7 +238,13 @@ func (r *patchsetResolver) Tools(ctx context.Context, obj *model.Patchset) ([]*m
 }
 
 func (r *patchsetResolver) Mbox(ctx context.Context, obj *model.Patchset) (*model.URL, error) {
-	panic(fmt.Errorf("not implemented"))
+	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
+	uri := fmt.Sprintf("%s/query/patchset/%d.mbox", origin, obj.ID)
+	url, err := url.Parse(uri)
+	if err != nil {
+		panic(err)
+	}
+	return &model.URL{url}, nil
 }
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
