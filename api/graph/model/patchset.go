@@ -77,6 +77,7 @@ func (patch *Patchset) Fields() *database.ModelFields {
 			{ "subject", "subject", &patch.Subject },
 			{ "prefix", "prefix", &patch.Prefix },
 			{ "version", "version", &patch.Version },
+			{ "status", "status", &patch.RawStatus },
 
 			// Always fetch:
 			{ "id", "", &patch.ID },
