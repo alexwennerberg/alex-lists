@@ -366,7 +366,13 @@ func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string,
 }
 
 func (r *threadResolver) Mbox(ctx context.Context, obj *model.Thread) (*model.URL, error) {
-	panic(fmt.Errorf("not implemented"))
+	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
+	uri := fmt.Sprintf("%s/query/thread/%d.mbox", origin, obj.ID)
+	url, err := url.Parse(uri)
+	if err != nil {
+		panic(err)
+	}
+	return &model.URL{url}, nil
 }
 
 func (r *userResolver) Lists(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {

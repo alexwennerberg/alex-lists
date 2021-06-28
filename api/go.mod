@@ -8,6 +8,7 @@ require (
 	github.com/Masterminds/squirrel v1.4.0 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.0 // indirect
+	github.com/emersion/go-mbox v1.0.2 // indirect
 	github.com/emersion/go-message v0.15.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
