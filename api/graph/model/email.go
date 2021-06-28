@@ -61,7 +61,6 @@ func (email *Email) Fields() *database.ModelFields {
 	email.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
 			{ "id", "id", &email.ID },
-			{ "created", "received", &email.Received },
 			{ "body", "body", &email.Body },
 			{ "subject", "subject", &email.Subject },
 			{ "message_id", "message_id", &email.MessageID },
@@ -73,6 +72,7 @@ func (email *Email) Fields() *database.ModelFields {
 			{ "thread_id", "", &email.ThreadID },
 			{ "parent_id", "", &email.ParentID },
 			{ "sender_id", "", &email.SenderID },
+			{ "created", "", &email.Received },
 		},
 	}
 	return email.fields

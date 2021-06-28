@@ -73,7 +73,6 @@ func (patch *Patchset) Fields() *database.ModelFields {
 	patch.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
 			{ "id", "id", &patch.ID },
-			{ "created", "created", &patch.Created },
 			{ "updated", "updated", &patch.Updated },
 			{ "subject", "subject", &patch.Subject },
 			{ "prefix", "prefix", &patch.Prefix },
@@ -84,6 +83,7 @@ func (patch *Patchset) Fields() *database.ModelFields {
 			{ "list_id", "", &patch.MailingListID },
 			{ "cover_letter_id", "", &patch.CoverLetterID },
 			{ "superseded_by_id", "", &patch.SupersededByID },
+			{ "created", "", &patch.Created },
 		},
 	}
 	return patch.fields
@@ -104,7 +104,7 @@ func (patch *Patchset) QueryWithCursor(ctx context.Context,
 	}
 	q = q.
 		Limit(uint64(cur.Count + 1)).
-		OrderBy(database.WithAlias(patch.alias, "created"))
+		OrderBy(database.WithAlias(patch.alias, "created") + "DESC")
 
 	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {
 		panic(err)

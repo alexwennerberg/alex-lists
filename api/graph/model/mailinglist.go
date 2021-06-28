@@ -77,7 +77,6 @@ func (list *MailingList) Fields() *database.ModelFields {
 		Fields: []*database.FieldMap{
 			{ "id", "id", &list.ID },
 			{ "created", "created", &list.Created },
-			{ "updated", "updated", &list.Updated },
 			{ "name", "name", &list.Name },
 			{ "description", "description", &list.Description },
 			{ "import_in_progress", "importing", &list.Importing },
@@ -87,6 +86,7 @@ func (list *MailingList) Fields() *database.ModelFields {
 			// Always fetch:
 			{ "id", "", &list.ID },
 			{ "owner_id", "", &list.OwnerID },
+			{ "updated", "", &list.Updated },
 		},
 	}
 	return list.fields

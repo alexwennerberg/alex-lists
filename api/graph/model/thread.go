@@ -47,7 +47,6 @@ func (thread *Thread) Fields() *database.ModelFields {
 		Fields: []*database.FieldMap{
 			{ "id", "id", &thread.ID },
 			{ "created", "created", &thread.Created },
-			{ "updated", "updated", &thread.Updated },
 			{ "subject", "subject", &thread.Subject },
 			{ "nreplies", "replies", &thread.Replies },
 			{ "nparticipants", "participants", &thread.Participants },
@@ -55,6 +54,7 @@ func (thread *Thread) Fields() *database.ModelFields {
 			// Always fetch:
 			{ "id", "", &thread.ID },
 			{ "list_id", "", &thread.MailingListID },
+			{ "updated", "", &thread.Updated },
 		},
 	}
 	return thread.fields
