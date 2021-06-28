@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/url"
+	"strings"
 	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
@@ -287,7 +288,12 @@ func (r *queryResolver) MailingListByName(ctx context.Context, name string) (*mo
 }
 
 func (r *queryResolver) MailingListByOwner(ctx context.Context, ownerName string, listName string) (*model.MailingList, error) {
-	panic(fmt.Errorf("not implemented"))
+	if strings.HasPrefix(ownerName, "~") {
+		ownerName = ownerName[1:]
+	} else {
+		return nil, fmt.Errorf("Expected owner to be a canonical name")
+	}
+	return loaders.ForContext(ctx).MailingListsByOwnerName.Load([2]string{ownerName, listName})
 }
 
 func (r *queryResolver) Email(ctx context.Context, id int) (*model.Email, error) {

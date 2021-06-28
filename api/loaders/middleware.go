@@ -4,6 +4,7 @@ package loaders
 //go:generate ./gen UsersByNameLoader string api/graph/model.User
 //go:generate ./gen MailingListsByIDLoader int api/graph/model.MailingList
 //go:generate ./gen MailingListsByNameLoader string api/graph/model.MailingList
+//go:generate ./gen MailingListsByOwnerNameLoader [2]string api/graph/model.MailingList
 //go:generate ./gen EmailsByIDLoader int api/graph/model.Email
 //go:generate ./gen EmailsByIDUnsafeLoader int api/graph/model.Email
 //go:generate ./gen EmailsByMessageIDLoader string api/graph/model.Email
@@ -31,14 +32,15 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	UsersByID          UsersByIDLoader
-	UsersByName        UsersByNameLoader
-	MailingListsByID   MailingListsByIDLoader
-	MailingListsByName MailingListsByNameLoader
-	EmailsByID         EmailsByIDLoader
-	EmailsByMessageID  EmailsByMessageIDLoader
-	EmailsByIDUnsafe   EmailsByIDUnsafeLoader
-	ThreadsByIDUnsafe  ThreadsByIDUnsafeLoader
+	UsersByID               UsersByIDLoader
+	UsersByName             UsersByNameLoader
+	MailingListsByID        MailingListsByIDLoader
+	MailingListsByName      MailingListsByNameLoader
+	MailingListsByOwnerName MailingListsByOwnerNameLoader
+	EmailsByID              EmailsByIDLoader
+	EmailsByMessageID       EmailsByMessageIDLoader
+	EmailsByIDUnsafe        EmailsByIDUnsafeLoader
+	ThreadsByIDUnsafe       ThreadsByIDUnsafeLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -258,6 +260,113 @@ func fetchMailingListsByName(ctx context.Context) func(names []string) ([]*model
 
 			for i, name := range names {
 				lists[i] = listsByName[name]
+			}
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+		return lists, nil
+	}
+}
+
+func fetchMailingListsByOwnerName(ctx context.Context) func(names [][2]string) ([]*model.MailingList, []error) {
+	return func(names [][2]string) ([]*model.MailingList, []error) {
+		lists := make([]*model.MailingList, len(names))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err    error
+				rows   *sql.Rows
+				_names []string = make([]string, len(names))
+			)
+			for i, name := range names {
+				// This is a hack, but it works around limitations with
+				// PostgreSQL and is guaranteed to work because / is invalid in
+				// both usernames and list names
+				_names[i] = name[0] + "/" + name[1]
+			}
+
+			// TODO: Test these auth bits
+			user := auth.ForContext(ctx)
+			query := database.
+				Select(ctx).
+				Prefix(`WITH user_list AS (
+					SELECT
+						substring(un for position('/' in un)-1) AS owner,
+						substring(un from position('/' in un)+1) AS name
+					FROM unnest(?::text[]) un)`, pq.Array(_names)).
+				Columns(database.Columns(ctx, (&model.MailingList{}).As(`list`))...).
+				Columns(`u.username`).
+				Distinct().
+				From(`user_list ul`).
+				Join(`"user" u on ul.owner = u.username`).
+				Join(`list ON ul.name = list.name AND u.id = list.owner_id`).
+				LeftJoin(`access ON access.list_id = list.id`).
+				LeftJoin(`subscription sub ON sub.list_id = list.id`).
+				Column(`COALESCE(
+					access.permissions,
+					CASE WHEN list.owner_id = ?
+					THEN ?
+					ELSE CASE WHEN sub.id IS NOT NULL
+						THEN list.subscriber_permissions
+						ELSE null END
+					END,
+					list.nonsubscriber_permissions | list.account_permissions)`,
+					user.UserID, model.ACCESS_ALL).
+				Column(`access.id`).
+				Column(`sub.id`).
+				Where(sq.Or{
+					// List owner, or
+					sq.Expr(`list.owner_id = ?`, user.UserID),
+					// ACL entry exists, or
+					sq.And{
+						sq.Expr(`access.id IS NOT NULL`),
+						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+					},
+					// Subscribers, or
+					sq.And{
+						sq.Expr(`access.id IS NULL`),
+						sq.Expr(`sub.id IS NULL`),
+						sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
+					},
+					// Or:
+					sq.And{
+						sq.Expr(`access.id IS NULL`),
+						sq.Expr(`
+							(list.subscriber_permissions | list.account_permissions) & ? > 0`,
+							model.ACCESS_BROWSE,
+						),
+					},
+				})
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				panic(err)
+			}
+			defer rows.Close()
+
+			listsByOwnerName := map[[2]string]*model.MailingList{}
+			for rows.Next() {
+				var (
+					ownerName string
+					list      model.MailingList
+				)
+				if err := rows.Scan(append(
+					database.Scan(ctx, &list),
+					&ownerName,
+					&list.Permissions,
+					&list.AccessID,
+					&list.SubscriptionID)...); err != nil {
+					panic(err)
+				}
+				listsByOwnerName[[2]string{ownerName, list.Name}] = &list
+			}
+			if err = rows.Err(); err != nil {
+				panic(err)
+			}
+
+			for i, name := range names {
+				lists[i] = listsByOwnerName[name]
 			}
 			return nil
 		}); err != nil {
@@ -546,6 +655,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchMailingListsByName(r.Context()),
+			},
+			MailingListsByOwnerName: MailingListsByOwnerNameLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchMailingListsByOwnerName(r.Context()),
 			},
 			EmailsByID: EmailsByIDLoader{
 				maxBatch: 100,
