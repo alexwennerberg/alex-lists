@@ -283,7 +283,7 @@ func (r *queryResolver) MailingList(ctx context.Context, id int) (*model.Mailing
 }
 
 func (r *queryResolver) MailingListByName(ctx context.Context, name string) (*model.MailingList, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).MailingListsByName.Load(name)
 }
 
 func (r *queryResolver) MailingListByOwner(ctx context.Context, ownerName string, listName string) (*model.MailingList, error) {

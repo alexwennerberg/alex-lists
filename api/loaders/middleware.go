@@ -3,6 +3,7 @@ package loaders
 //go:generate ./gen UsersByIDLoader int api/graph/model.User
 //go:generate ./gen UsersByNameLoader string api/graph/model.User
 //go:generate ./gen MailingListsByIDLoader int api/graph/model.MailingList
+//go:generate ./gen MailingListsByNameLoader string api/graph/model.MailingList
 //go:generate ./gen EmailsByIDLoader int api/graph/model.Email
 //go:generate ./gen EmailsByIDUnsafeLoader int api/graph/model.Email
 //go:generate ./gen EmailsByMessageIDLoader string api/graph/model.Email
@@ -30,13 +31,14 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	UsersByID         UsersByIDLoader
-	UsersByName       UsersByNameLoader
-	MailingListsByID  MailingListsByIDLoader
-	EmailsByID        EmailsByIDLoader
-	EmailsByMessageID EmailsByMessageIDLoader
-	EmailsByIDUnsafe  EmailsByIDUnsafeLoader
-	ThreadsByIDUnsafe ThreadsByIDUnsafeLoader
+	UsersByID          UsersByIDLoader
+	UsersByName        UsersByNameLoader
+	MailingListsByID   MailingListsByIDLoader
+	MailingListsByName MailingListsByNameLoader
+	EmailsByID         EmailsByIDLoader
+	EmailsByMessageID  EmailsByMessageIDLoader
+	EmailsByIDUnsafe   EmailsByIDUnsafeLoader
+	ThreadsByIDUnsafe  ThreadsByIDUnsafeLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -209,6 +211,53 @@ func fetchMailingListsByID(ctx context.Context) func(ids []int) ([]*model.Mailin
 
 			for i, id := range ids {
 				lists[i] = listsByID[id]
+			}
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+		return lists, nil
+	}
+}
+
+func fetchMailingListsByName(ctx context.Context) func(names []string) ([]*model.MailingList, []error) {
+	return func(names []string) ([]*model.MailingList, []error) {
+		lists := make([]*model.MailingList, len(names))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			user := auth.ForContext(ctx)
+			query := database.
+				Select(ctx, (&model.MailingList{}).As(`list`)).
+				From(`list`).
+				Where(sq.And{
+					sq.Expr(`list.name = ANY(?)`, pq.Array(names)),
+					sq.Expr(`list.owner_id = ?`, user.UserID),
+				})
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				panic(err)
+			}
+			defer rows.Close()
+
+			listsByName := map[string]*model.MailingList{}
+			for rows.Next() {
+				list := model.MailingList{}
+				if err := rows.Scan(database.Scan(ctx, &list)...); err != nil {
+					panic(err)
+				}
+				listsByName[list.Name] = &list
+			}
+			if err = rows.Err(); err != nil {
+				panic(err)
+			}
+
+			for i, name := range names {
+				lists[i] = listsByName[name]
 			}
 			return nil
 		}); err != nil {
@@ -492,6 +541,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchMailingListsByID(r.Context()),
+			},
+			MailingListsByName: MailingListsByNameLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchMailingListsByName(r.Context()),
 			},
 			EmailsByID: EmailsByIDLoader{
 				maxBatch: 100,
