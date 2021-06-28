@@ -226,7 +226,7 @@ func (r *patchsetResolver) SupersededBy(ctx context.Context, obj *model.Patchset
 }
 
 func (r *patchsetResolver) List(ctx context.Context, obj *model.Patchset) (*model.MailingList, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)
 }
 
 func (r *patchsetResolver) Patches(ctx context.Context, obj *model.Patchset, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
