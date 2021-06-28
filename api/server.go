@@ -101,47 +101,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-
-			mbw := mbox.NewWriter(w)
-			defer mbw.Close()
-
-			var results bool
-			for rows.Next() {
-				results = true
-				w.Header().Add("Content-Type", "application/mbox")
-
-				var (
-					envelope string
-					created  time.Time
-				)
-				if err := rows.Scan(&envelope, &created); err != nil {
-					return err
-				}
-
-				reader, err := mail.CreateReader(bytes.NewBufferString(envelope))
-				if err != nil {
-					return err
-				}
-				from, err := reader.Header.AddressList("From")
-				reader.Close()
-				if err != nil {
-					return err
-				}
-				sink, err := mbw.CreateMessage(from[0].Address, created)
-				if err != nil {
-					return err
-				}
-				if _, err = sink.Write([]byte(envelope)); err != nil {
-					return err
-				}
-			}
-
-			if !results {
-				w.WriteHeader(http.StatusNotFound)
-				w.Write([]byte("Not found\r\n"))
-			}
-
-			return nil
+			return prepMbox(rows, w)
 		}); err != nil {
 			panic(err)
 		}
@@ -160,4 +120,47 @@ func main() {
 	})
 
 	gsrv.Run()
+}
+
+func prepMbox(rows *sql.Rows, w http.ResponseWriter) error {
+		mbw := mbox.NewWriter(w)
+		defer mbw.Close()
+
+		var results bool
+		for rows.Next() {
+			results = true
+			w.Header().Add("Content-Type", "application/mbox")
+
+			var (
+				envelope string
+				created  time.Time
+			)
+			if err := rows.Scan(&envelope, &created); err != nil {
+				return err
+			}
+
+			reader, err := mail.CreateReader(bytes.NewBufferString(envelope))
+			if err != nil {
+				return err
+			}
+			from, err := reader.Header.AddressList("From")
+			reader.Close()
+			if err != nil {
+				return err
+			}
+			sink, err := mbw.CreateMessage(from[0].Address, created)
+			if err != nil {
+				return err
+			}
+			if _, err = sink.Write([]byte(envelope)); err != nil {
+				return err
+			}
+		}
+
+		if !results {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("Not found\r\n"))
+		}
+
+		return nil
 }
