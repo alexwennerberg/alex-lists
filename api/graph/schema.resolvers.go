@@ -211,7 +211,10 @@ func (r *mailingListACLResolver) Entity(ctx context.Context, obj *model.MailingL
 }
 
 func (r *patchsetResolver) CoverLetter(ctx context.Context, obj *model.Patchset) (*model.Email, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.CoverLetterID == nil {
+		return nil, nil
+	}
+	return loaders.ForContext(ctx).EmailsByID.Load(*obj.CoverLetterID)
 }
 
 func (r *patchsetResolver) Thread(ctx context.Context, obj *model.Patchset) (*model.Thread, error) {
