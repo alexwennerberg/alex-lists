@@ -47,23 +47,6 @@ type Patch struct {
 	Subject *string `json:"subject"`
 }
 
-type Patchset struct {
-	ID           int             `json:"id"`
-	Created      time.Time       `json:"created"`
-	Updated      time.Time       `json:"updated"`
-	Subject      string          `json:"subject"`
-	Version      int             `json:"version"`
-	Prefix       *string         `json:"prefix"`
-	Status       PatchsetStatus  `json:"status"`
-	CoverLetter  *Email          `json:"cover_letter"`
-	Thread       *Thread         `json:"thread"`
-	SupersededBy *Patchset       `json:"superseded_by"`
-	List         *MailingList    `json:"list"`
-	Patches      *EmailCursor    `json:"patches"`
-	Tools        []*PatchsetTool `json:"tools"`
-	Mbox         URL             `json:"mbox"`
-}
-
 type PatchsetCursor struct {
 	Results []*Patchset   `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`

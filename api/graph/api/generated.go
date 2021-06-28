@@ -41,6 +41,7 @@ type ResolverRoot interface {
 	Email() EmailResolver
 	MailingList() MailingListResolver
 	MailingListACL() MailingListACLResolver
+	Patchset() PatchsetResolver
 	Query() QueryResolver
 	Thread() ThreadResolver
 	User() UserResolver
@@ -264,6 +265,15 @@ type MailingListResolver interface {
 type MailingListACLResolver interface {
 	List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error)
 	Entity(ctx context.Context, obj *model.MailingListACL) (model.Entity, error)
+}
+type PatchsetResolver interface {
+	CoverLetter(ctx context.Context, obj *model.Patchset) (*model.Email, error)
+	Thread(ctx context.Context, obj *model.Patchset) (*model.Thread, error)
+	SupersededBy(ctx context.Context, obj *model.Patchset) (*model.Patchset, error)
+	List(ctx context.Context, obj *model.Patchset) (*model.MailingList, error)
+	Patches(ctx context.Context, obj *model.Patchset, cursor *model1.Cursor) (*model.EmailCursor, error)
+	Tools(ctx context.Context, obj *model.Patchset) ([]*model.PatchsetTool, error)
+	Mbox(ctx context.Context, obj *model.Patchset) (*model.URL, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (*model.Version, error)
@@ -1700,7 +1710,8 @@ type Query {
 
   # Looks up a specific email by its ID
   email(id: Int!): Email @access(scope: EMAILS, kind: RO)
-  # Looks up a specific email by its Message-ID header
+  # Looks up a specific email by its Message-ID header, including the angle
+  # brackets ('<' and '>').
   message(messageID: String!): Email @access(scope: EMAILS, kind: RO)
   # Looks up a patchset by ID
   patchset(id: Int!): Patchset @access(scope: EMAILS, kind: RO)
@@ -4663,14 +4674,14 @@ func (ec *executionContext) _Patchset_status(ctx context.Context, field graphql.
 		Object:     "Patchset",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Status, nil
+		return obj.Status(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4698,14 +4709,14 @@ func (ec *executionContext) _Patchset_cover_letter(ctx context.Context, field gr
 		Object:     "Patchset",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.CoverLetter, nil
+		return ec.resolvers.Patchset().CoverLetter(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4730,14 +4741,14 @@ func (ec *executionContext) _Patchset_thread(ctx context.Context, field graphql.
 		Object:     "Patchset",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Thread, nil
+		return ec.resolvers.Patchset().Thread(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4765,14 +4776,14 @@ func (ec *executionContext) _Patchset_superseded_by(ctx context.Context, field g
 		Object:     "Patchset",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.SupersededBy, nil
+		return ec.resolvers.Patchset().SupersededBy(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4797,15 +4808,15 @@ func (ec *executionContext) _Patchset_list(ctx context.Context, field graphql.Co
 		Object:     "Patchset",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.List, nil
+			return ec.resolvers.Patchset().List(rctx, obj)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "LISTS")
@@ -4860,8 +4871,8 @@ func (ec *executionContext) _Patchset_patches(ctx context.Context, field graphql
 		Object:     "Patchset",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -4874,7 +4885,7 @@ func (ec *executionContext) _Patchset_patches(ctx context.Context, field graphql
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Patches, nil
+		return ec.resolvers.Patchset().Patches(rctx, obj, args["cursor"].(*model1.Cursor))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4902,14 +4913,14 @@ func (ec *executionContext) _Patchset_tools(ctx context.Context, field graphql.C
 		Object:     "Patchset",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Tools, nil
+		return ec.resolvers.Patchset().Tools(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4937,14 +4948,14 @@ func (ec *executionContext) _Patchset_mbox(ctx context.Context, field graphql.Co
 		Object:     "Patchset",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Mbox, nil
+		return ec.resolvers.Patchset().Mbox(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4956,9 +4967,9 @@ func (ec *executionContext) _Patchset_mbox(ctx context.Context, field graphql.Co
 		}
 		return graphql.Null
 	}
-	res := resTmp.(model.URL)
+	res := resTmp.(*model.URL)
 	fc.Result = res
-	return ec.marshalNURL2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐURL(ctx, field.Selections, res)
+	return ec.marshalNURL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐURL(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _PatchsetCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.PatchsetCursor) (ret graphql.Marshaler) {
@@ -9166,64 +9177,127 @@ func (ec *executionContext) _Patchset(ctx context.Context, sel ast.SelectionSet,
 		case "id":
 			out.Values[i] = ec._Patchset_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "created":
 			out.Values[i] = ec._Patchset_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "updated":
 			out.Values[i] = ec._Patchset_updated(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "subject":
 			out.Values[i] = ec._Patchset_subject(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "version":
 			out.Values[i] = ec._Patchset_version(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "prefix":
 			out.Values[i] = ec._Patchset_prefix(ctx, field, obj)
 		case "status":
 			out.Values[i] = ec._Patchset_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "cover_letter":
-			out.Values[i] = ec._Patchset_cover_letter(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Patchset_cover_letter(ctx, field, obj)
+				return res
+			})
 		case "thread":
-			out.Values[i] = ec._Patchset_thread(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Patchset_thread(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "superseded_by":
-			out.Values[i] = ec._Patchset_superseded_by(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Patchset_superseded_by(ctx, field, obj)
+				return res
+			})
 		case "list":
-			out.Values[i] = ec._Patchset_list(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Patchset_list(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "patches":
-			out.Values[i] = ec._Patchset_patches(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Patchset_patches(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "tools":
-			out.Values[i] = ec._Patchset_tools(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Patchset_tools(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "mbox":
-			out.Values[i] = ec._Patchset_mbox(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Patchset_mbox(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

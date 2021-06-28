@@ -163,7 +163,27 @@ func (r *mailingListResolver) Emails(ctx context.Context, obj *model.MailingList
 }
 
 func (r *mailingListResolver) Patches(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.PatchsetCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var patches []*model.Patchset
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		patch := (&model.Patchset{}).As(`patch`)
+		query := database.
+			Select(ctx, patch).
+			From(`patchset patch`).
+			Where(`patch.list_id = ?`, obj.ID)
+		patches, cursor = patch.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.PatchsetCursor{patches, cursor}, nil
 }
 
 func (r *mailingListResolver) Access(ctx context.Context, obj *model.MailingList) (model.ACL, error) {
@@ -187,6 +207,34 @@ func (r *mailingListACLResolver) List(ctx context.Context, obj *model.MailingLis
 }
 
 func (r *mailingListACLResolver) Entity(ctx context.Context, obj *model.MailingListACL) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *patchsetResolver) CoverLetter(ctx context.Context, obj *model.Patchset) (*model.Email, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *patchsetResolver) Thread(ctx context.Context, obj *model.Patchset) (*model.Thread, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *patchsetResolver) SupersededBy(ctx context.Context, obj *model.Patchset) (*model.Patchset, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *patchsetResolver) List(ctx context.Context, obj *model.Patchset) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *patchsetResolver) Patches(ctx context.Context, obj *model.Patchset, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *patchsetResolver) Tools(ctx context.Context, obj *model.Patchset) ([]*model.PatchsetTool, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *patchsetResolver) Mbox(ctx context.Context, obj *model.Patchset) (*model.URL, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -343,6 +391,9 @@ func (r *Resolver) MailingList() api.MailingListResolver { return &mailingListRe
 // MailingListACL returns api.MailingListACLResolver implementation.
 func (r *Resolver) MailingListACL() api.MailingListACLResolver { return &mailingListACLResolver{r} }
 
+// Patchset returns api.PatchsetResolver implementation.
+func (r *Resolver) Patchset() api.PatchsetResolver { return &patchsetResolver{r} }
+
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
@@ -355,6 +406,7 @@ func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 type emailResolver struct{ *Resolver }
 type mailingListResolver struct{ *Resolver }
 type mailingListACLResolver struct{ *Resolver }
+type patchsetResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type threadResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
