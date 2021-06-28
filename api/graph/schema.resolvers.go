@@ -211,6 +211,10 @@ func (r *mailingListACLResolver) Entity(ctx context.Context, obj *model.MailingL
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *patchsetResolver) CoverLetter(ctx context.Context, obj *model.Patchset) (*model.Email, error) {
 	if obj.CoverLetterID == nil {
 		return nil, nil
@@ -305,7 +309,7 @@ func (r *queryResolver) Message(ctx context.Context, messageID string) (*model.E
 }
 
 func (r *queryResolver) Patchset(ctx context.Context, id int) (*model.Patchset, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).PatchsetsByID.Load(id)
 }
 
 func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {

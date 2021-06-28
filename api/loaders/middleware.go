@@ -9,6 +9,7 @@ package loaders
 //go:generate ./gen EmailsByIDUnsafeLoader int api/graph/model.Email
 //go:generate ./gen EmailsByMessageIDLoader string api/graph/model.Email
 //go:generate ./gen ThreadsByIDUnsafeLoader int api/graph/model.Thread
+//go:generate ./gen PatchsetsByIDLoader int api/graph/model.Patchset
 
 import (
 	"context"
@@ -41,6 +42,7 @@ type Loaders struct {
 	EmailsByMessageID       EmailsByMessageIDLoader
 	EmailsByIDUnsafe        EmailsByIDUnsafeLoader
 	ThreadsByIDUnsafe       ThreadsByIDUnsafeLoader
+	PatchsetsByID           PatchsetsByIDLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -233,6 +235,7 @@ func fetchMailingListsByName(ctx context.Context) func(names []string) ([]*model
 				err  error
 				rows *sql.Rows
 			)
+			// TODO: Fill in subscription ID?
 			user := auth.ForContext(ctx)
 			query := database.
 				Select(ctx, (&model.MailingList{}).As(`list`)).
@@ -633,6 +636,79 @@ func fetchThreadsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Threa
 	}
 }
 
+func fetchPatchsetsByID(ctx context.Context) func(ids []int) ([]*model.Patchset, []error) {
+	return func(ids []int) ([]*model.Patchset, []error) {
+		patches := make([]*model.Patchset, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			// TODO: Test these authentication bits
+			user := auth.ForContext(ctx)
+			query := database.
+				Select(ctx, (&model.Patchset{}).As(`patch`)).
+				From(`patchset patch`).
+				LeftJoin(`list ON patch.list_id = list.id`).
+				LeftJoin(`access ON access.list_id = list.id`).
+				LeftJoin(`subscription sub ON sub.list_id = list.id`).
+				Where(sq.And{
+					sq.Expr(`patch.id = ANY(?)`, pq.Array(ids)),
+					sq.Or{
+						// List owner, or
+						sq.Expr(`list.owner_id = ?`, user.UserID),
+						// ACL entry exists, or
+						sq.And{
+							sq.Expr(`access.id IS NOT NULL`),
+							sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+						},
+						// Subscribers, or
+						sq.And{
+							sq.Expr(`access.id IS NULL`),
+							sq.Expr(`sub.id IS NULL`),
+							sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
+						},
+						// Or:
+						sq.And{
+							sq.Expr(`access.id IS NULL`),
+							sq.Expr(`
+								(list.subscriber_permissions | list.account_permissions) & ? > 0`,
+								model.ACCESS_BROWSE,
+							),
+						},
+					},
+				})
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				panic(err)
+			}
+			defer rows.Close()
+
+			patchesByID := map[int]*model.Patchset{}
+			for rows.Next() {
+				var patch model.Patchset
+				if err := rows.Scan(database.Scan(ctx, &patch)...); err != nil {
+					panic(err)
+				}
+				patchesByID[patch.ID] = &patch
+			}
+			if err = rows.Err(); err != nil {
+				panic(err)
+			}
+
+			for i, id := range ids {
+				patches[i] = patchesByID[id]
+			}
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+		return patches, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
@@ -680,6 +756,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchThreadsByIDUnsafe(r.Context()),
+			},
+			PatchsetsByID: PatchsetsByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchPatchsetsByID(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)

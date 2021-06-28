@@ -241,6 +241,7 @@ type Patchset {
   version: Int!
   prefix: String
   status: PatchsetStatus!
+  submitter: Entity!
 
   cover_letter: Email
   thread: Thread!

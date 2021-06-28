@@ -150,6 +150,7 @@ type ComplexityRoot struct {
 		Prefix       func(childComplexity int) int
 		Status       func(childComplexity int) int
 		Subject      func(childComplexity int) int
+		Submitter    func(childComplexity int) int
 		SupersededBy func(childComplexity int) int
 		Thread       func(childComplexity int) int
 		Tools        func(childComplexity int) int
@@ -267,6 +268,7 @@ type MailingListACLResolver interface {
 	Entity(ctx context.Context, obj *model.MailingListACL) (model.Entity, error)
 }
 type PatchsetResolver interface {
+	Submitter(ctx context.Context, obj *model.Patchset) (model.Entity, error)
 	CoverLetter(ctx context.Context, obj *model.Patchset) (*model.Email, error)
 	Thread(ctx context.Context, obj *model.Patchset) (*model.Thread, error)
 	SupersededBy(ctx context.Context, obj *model.Patchset) (*model.Patchset, error)
@@ -824,6 +826,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Patchset.Subject(childComplexity), true
+
+	case "Patchset.submitter":
+		if e.complexity.Patchset.Submitter == nil {
+			break
+		}
+
+		return e.complexity.Patchset.Submitter(childComplexity), true
 
 	case "Patchset.superseded_by":
 		if e.complexity.Patchset.SupersededBy == nil {
@@ -1599,6 +1608,7 @@ type Patchset {
   version: Int!
   prefix: String
   status: PatchsetStatus!
+  submitter: Entity!
 
   cover_letter: Email
   thread: Thread!
@@ -4696,6 +4706,41 @@ func (ec *executionContext) _Patchset_status(ctx context.Context, field graphql.
 	res := resTmp.(model.PatchsetStatus)
 	fc.Result = res
 	return ec.marshalNPatchsetStatus2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetStatus(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Patchset_submitter(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Patchset",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Patchset().Submitter(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Entity)
+	fc.Result = res
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Patchset_cover_letter(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
@@ -9206,6 +9251,20 @@ func (ec *executionContext) _Patchset(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "submitter":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Patchset_submitter(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "cover_letter":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
