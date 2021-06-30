@@ -102,7 +102,12 @@ func (r *emailResolver) Parent(ctx context.Context, obj *model.Email) (*model.Em
 }
 
 func (r *emailResolver) Patchset(ctx context.Context, obj *model.Email) (*model.Patchset, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.PatchsetID == nil {
+		return nil, nil
+	}
+	// Regarding the use of an unsafe loader: if you have access to the email
+	// object, you have access to the patchset also.
+	return loaders.ForContext(ctx).PatchsetsByIDUnsafe.Load(*obj.PatchsetID)
 }
 
 func (r *emailResolver) List(ctx context.Context, obj *model.Email) (*model.MailingList, error) {

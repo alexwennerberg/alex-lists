@@ -42,6 +42,7 @@ type Loaders struct {
 	EmailsByIDUnsafe        EmailsByIDLoader
 	ThreadsByIDUnsafe       ThreadsByIDLoader
 	PatchsetsByID           PatchsetsByIDLoader
+	PatchsetsByIDUnsafe     PatchsetsByIDLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -708,6 +709,49 @@ func fetchPatchsetsByID(ctx context.Context) func(ids []int) ([]*model.Patchset,
 	}
 }
 
+func fetchPatchsetsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Patchset, []error) {
+	return func(ids []int) ([]*model.Patchset, []error) {
+		patches := make([]*model.Patchset, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			query := database.
+				Select(ctx, (&model.Patchset{}).As(`patch`)).
+				From(`patchset patch`).
+				Where(sq.Expr(`patch.id = ANY(?)`, pq.Array(ids)))
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				panic(err)
+			}
+			defer rows.Close()
+
+			patchesByID := map[int]*model.Patchset{}
+			for rows.Next() {
+				var patch model.Patchset
+				if err := rows.Scan(database.Scan(ctx, &patch)...); err != nil {
+					panic(err)
+				}
+				patchesByID[patch.ID] = &patch
+			}
+			if err = rows.Err(); err != nil {
+				panic(err)
+			}
+
+			for i, id := range ids {
+				patches[i] = patchesByID[id]
+			}
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+		return patches, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
@@ -760,6 +804,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchPatchsetsByID(r.Context()),
+			},
+			PatchsetsByIDUnsafe: PatchsetsByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchPatchsetsByIDUnsafe(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)
