@@ -6,9 +6,8 @@ package loaders
 //go:generate ./gen MailingListsByNameLoader string api/graph/model.MailingList
 //go:generate ./gen MailingListsByOwnerNameLoader [2]string api/graph/model.MailingList
 //go:generate ./gen EmailsByIDLoader int api/graph/model.Email
-//go:generate ./gen EmailsByIDUnsafeLoader int api/graph/model.Email
 //go:generate ./gen EmailsByMessageIDLoader string api/graph/model.Email
-//go:generate ./gen ThreadsByIDUnsafeLoader int api/graph/model.Thread
+//go:generate ./gen ThreadsByIDLoader int api/graph/model.Thread
 //go:generate ./gen PatchsetsByIDLoader int api/graph/model.Patchset
 
 import (
@@ -40,8 +39,8 @@ type Loaders struct {
 	MailingListsByOwnerName MailingListsByOwnerNameLoader
 	EmailsByID              EmailsByIDLoader
 	EmailsByMessageID       EmailsByMessageIDLoader
-	EmailsByIDUnsafe        EmailsByIDUnsafeLoader
-	ThreadsByIDUnsafe       ThreadsByIDUnsafeLoader
+	EmailsByIDUnsafe        EmailsByIDLoader
+	ThreadsByIDUnsafe       ThreadsByIDLoader
 	PatchsetsByID           PatchsetsByIDLoader
 }
 
@@ -747,12 +746,12 @@ func Middleware(next http.Handler) http.Handler {
 				wait:     1 * time.Millisecond,
 				fetch:    fetchEmailsByMessageID(r.Context()),
 			},
-			EmailsByIDUnsafe: EmailsByIDUnsafeLoader{
+			EmailsByIDUnsafe: EmailsByIDLoader{
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchEmailsByIDUnsafe(r.Context()),
 			},
-			ThreadsByIDUnsafe: ThreadsByIDUnsafeLoader{
+			ThreadsByIDUnsafe: ThreadsByIDLoader{
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchThreadsByIDUnsafe(r.Context()),

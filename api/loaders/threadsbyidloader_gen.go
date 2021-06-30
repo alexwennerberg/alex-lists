@@ -9,10 +9,10 @@ import (
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 )
 
-// EmailsByIDUnsafeLoaderConfig captures the config to create a new EmailsByIDUnsafeLoader
-type EmailsByIDUnsafeLoaderConfig struct {
+// ThreadsByIDLoaderConfig captures the config to create a new ThreadsByIDLoader
+type ThreadsByIDLoaderConfig struct {
 	// Fetch is a method that provides the data for the loader
-	Fetch func(keys []int) ([]*model.Email, []error)
+	Fetch func(keys []int) ([]*model.Thread, []error)
 
 	// Wait is how long wait before sending a batch
 	Wait time.Duration
@@ -21,19 +21,19 @@ type EmailsByIDUnsafeLoaderConfig struct {
 	MaxBatch int
 }
 
-// NewEmailsByIDUnsafeLoader creates a new EmailsByIDUnsafeLoader given a fetch, wait, and maxBatch
-func NewEmailsByIDUnsafeLoader(config EmailsByIDUnsafeLoaderConfig) *EmailsByIDUnsafeLoader {
-	return &EmailsByIDUnsafeLoader{
+// NewThreadsByIDLoader creates a new ThreadsByIDLoader given a fetch, wait, and maxBatch
+func NewThreadsByIDLoader(config ThreadsByIDLoaderConfig) *ThreadsByIDLoader {
+	return &ThreadsByIDLoader{
 		fetch:    config.Fetch,
 		wait:     config.Wait,
 		maxBatch: config.MaxBatch,
 	}
 }
 
-// EmailsByIDUnsafeLoader batches and caches requests
-type EmailsByIDUnsafeLoader struct {
+// ThreadsByIDLoader batches and caches requests
+type ThreadsByIDLoader struct {
 	// this method provides the data for the loader
-	fetch func(keys []int) ([]*model.Email, []error)
+	fetch func(keys []int) ([]*model.Thread, []error)
 
 	// how long to done before sending a batch
 	wait time.Duration
@@ -44,51 +44,51 @@ type EmailsByIDUnsafeLoader struct {
 	// INTERNAL
 
 	// lazily created cache
-	cache map[int]*model.Email
+	cache map[int]*model.Thread
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
-	batch *emailsByIDUnsafeLoaderBatch
+	batch *threadsByIDLoaderBatch
 
 	// mutex to prevent races
 	mu sync.Mutex
 }
 
-type emailsByIDUnsafeLoaderBatch struct {
+type threadsByIDLoaderBatch struct {
 	keys    []int
-	data    []*model.Email
+	data    []*model.Thread
 	error   []error
 	closing bool
 	done    chan struct{}
 }
 
-// Load a Email by key, batching and caching will be applied automatically
-func (l *EmailsByIDUnsafeLoader) Load(key int) (*model.Email, error) {
+// Load a Thread by key, batching and caching will be applied automatically
+func (l *ThreadsByIDLoader) Load(key int) (*model.Thread, error) {
 	return l.LoadThunk(key)()
 }
 
-// LoadThunk returns a function that when called will block waiting for a Email.
+// LoadThunk returns a function that when called will block waiting for a Thread.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *EmailsByIDUnsafeLoader) LoadThunk(key int) func() (*model.Email, error) {
+func (l *ThreadsByIDLoader) LoadThunk(key int) func() (*model.Thread, error) {
 	l.mu.Lock()
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
-		return func() (*model.Email, error) {
+		return func() (*model.Thread, error) {
 			return it, nil
 		}
 	}
 	if l.batch == nil {
-		l.batch = &emailsByIDUnsafeLoaderBatch{done: make(chan struct{})}
+		l.batch = &threadsByIDLoaderBatch{done: make(chan struct{})}
 	}
 	batch := l.batch
 	pos := batch.keyIndex(l, key)
 	l.mu.Unlock()
 
-	return func() (*model.Email, error) {
+	return func() (*model.Thread, error) {
 		<-batch.done
 
-		var data *model.Email
+		var data *model.Thread
 		if pos < len(batch.data) {
 			data = batch.data[pos]
 		}
@@ -113,43 +113,43 @@ func (l *EmailsByIDUnsafeLoader) LoadThunk(key int) func() (*model.Email, error)
 
 // LoadAll fetches many keys at once. It will be broken into appropriate sized
 // sub batches depending on how the loader is configured
-func (l *EmailsByIDUnsafeLoader) LoadAll(keys []int) ([]*model.Email, []error) {
-	results := make([]func() (*model.Email, error), len(keys))
+func (l *ThreadsByIDLoader) LoadAll(keys []int) ([]*model.Thread, []error) {
+	results := make([]func() (*model.Thread, error), len(keys))
 
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
 
-	emails := make([]*model.Email, len(keys))
+	threads := make([]*model.Thread, len(keys))
 	errors := make([]error, len(keys))
 	for i, thunk := range results {
-		emails[i], errors[i] = thunk()
+		threads[i], errors[i] = thunk()
 	}
-	return emails, errors
+	return threads, errors
 }
 
-// LoadAllThunk returns a function that when called will block waiting for a Emails.
+// LoadAllThunk returns a function that when called will block waiting for a Threads.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *EmailsByIDUnsafeLoader) LoadAllThunk(keys []int) func() ([]*model.Email, []error) {
-	results := make([]func() (*model.Email, error), len(keys))
+func (l *ThreadsByIDLoader) LoadAllThunk(keys []int) func() ([]*model.Thread, []error) {
+	results := make([]func() (*model.Thread, error), len(keys))
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
-	return func() ([]*model.Email, []error) {
-		emails := make([]*model.Email, len(keys))
+	return func() ([]*model.Thread, []error) {
+		threads := make([]*model.Thread, len(keys))
 		errors := make([]error, len(keys))
 		for i, thunk := range results {
-			emails[i], errors[i] = thunk()
+			threads[i], errors[i] = thunk()
 		}
-		return emails, errors
+		return threads, errors
 	}
 }
 
 // Prime the cache with the provided key and value. If the key already exists, no change is made
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
-func (l *EmailsByIDUnsafeLoader) Prime(key int, value *model.Email) bool {
+func (l *ThreadsByIDLoader) Prime(key int, value *model.Thread) bool {
 	l.mu.Lock()
 	var found bool
 	if _, found = l.cache[key]; !found {
@@ -163,22 +163,22 @@ func (l *EmailsByIDUnsafeLoader) Prime(key int, value *model.Email) bool {
 }
 
 // Clear the value at key from the cache, if it exists
-func (l *EmailsByIDUnsafeLoader) Clear(key int) {
+func (l *ThreadsByIDLoader) Clear(key int) {
 	l.mu.Lock()
 	delete(l.cache, key)
 	l.mu.Unlock()
 }
 
-func (l *EmailsByIDUnsafeLoader) unsafeSet(key int, value *model.Email) {
+func (l *ThreadsByIDLoader) unsafeSet(key int, value *model.Thread) {
 	if l.cache == nil {
-		l.cache = map[int]*model.Email{}
+		l.cache = map[int]*model.Thread{}
 	}
 	l.cache[key] = value
 }
 
 // keyIndex will return the location of the key in the batch, if its not found
 // it will add the key to the batch
-func (b *emailsByIDUnsafeLoaderBatch) keyIndex(l *EmailsByIDUnsafeLoader, key int) int {
+func (b *threadsByIDLoaderBatch) keyIndex(l *ThreadsByIDLoader, key int) int {
 	for i, existingKey := range b.keys {
 		if key == existingKey {
 			return i
@@ -202,7 +202,7 @@ func (b *emailsByIDUnsafeLoaderBatch) keyIndex(l *EmailsByIDUnsafeLoader, key in
 	return pos
 }
 
-func (b *emailsByIDUnsafeLoaderBatch) startTimer(l *EmailsByIDUnsafeLoader) {
+func (b *threadsByIDLoaderBatch) startTimer(l *ThreadsByIDLoader) {
 	time.Sleep(l.wait)
 	l.mu.Lock()
 
@@ -218,7 +218,7 @@ func (b *emailsByIDUnsafeLoaderBatch) startTimer(l *EmailsByIDUnsafeLoader) {
 	b.end(l)
 }
 
-func (b *emailsByIDUnsafeLoaderBatch) end(l *EmailsByIDUnsafeLoader) {
+func (b *threadsByIDLoaderBatch) end(l *ThreadsByIDLoader) {
 	b.data, b.error = l.fetch(b.keys)
 	close(b.done)
 }
