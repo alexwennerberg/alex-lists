@@ -33,12 +33,6 @@ type MailingListCursor struct {
 	Cursor  *model.Cursor  `json:"cursor"`
 }
 
-type MailingListSubscription struct {
-	ID      int          `json:"id"`
-	Created time.Time    `json:"created"`
-	List    *MailingList `json:"list"`
-}
-
 type Patch struct {
 	Index   *int    `json:"index"`
 	Count   *int    `json:"count"`

@@ -41,6 +41,7 @@ type ResolverRoot interface {
 	Email() EmailResolver
 	MailingList() MailingListResolver
 	MailingListACL() MailingListACLResolver
+	MailingListSubscription() MailingListSubscriptionResolver
 	Patchset() PatchsetResolver
 	Query() QueryResolver
 	Thread() ThreadResolver
@@ -266,6 +267,9 @@ type MailingListResolver interface {
 type MailingListACLResolver interface {
 	List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error)
 	Entity(ctx context.Context, obj *model.MailingListACL) (model.Entity, error)
+}
+type MailingListSubscriptionResolver interface {
+	List(ctx context.Context, obj *model.MailingListSubscription) (*model.MailingList, error)
 }
 type PatchsetResolver interface {
 	Submitter(ctx context.Context, obj *model.Patchset) (model.Entity, error)
@@ -1646,7 +1650,7 @@ interface Subscription {
   created: Time!
 }
 
-type MailingListSubscription {
+type MailingListSubscription implements Subscription {
   id: Int!
   created: Time!
   list: MailingList! @access(scope: LISTS, kind: RO)
@@ -4254,15 +4258,15 @@ func (ec *executionContext) _MailingListSubscription_list(ctx context.Context, f
 		Object:     "MailingListSubscription",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.List, nil
+			return ec.resolvers.MailingListSubscription().List(rctx, obj)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "LISTS")
@@ -8577,6 +8581,13 @@ func (ec *executionContext) _Subscription(ctx context.Context, sel ast.Selection
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
+	case model.MailingListSubscription:
+		return ec._MailingListSubscription(ctx, sel, &obj)
+	case *model.MailingListSubscription:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._MailingListSubscription(ctx, sel, obj)
 	default:
 		panic(fmt.Errorf("unexpected type %T", obj))
 	}
@@ -9139,7 +9150,7 @@ func (ec *executionContext) _MailingListCursor(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var mailingListSubscriptionImplementors = []string{"MailingListSubscription"}
+var mailingListSubscriptionImplementors = []string{"MailingListSubscription", "Subscription"}
 
 func (ec *executionContext) _MailingListSubscription(ctx context.Context, sel ast.SelectionSet, obj *model.MailingListSubscription) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, mailingListSubscriptionImplementors)
@@ -9153,18 +9164,27 @@ func (ec *executionContext) _MailingListSubscription(ctx context.Context, sel as
 		case "id":
 			out.Values[i] = ec._MailingListSubscription_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "created":
 			out.Values[i] = ec._MailingListSubscription_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "list":
-			out.Values[i] = ec._MailingListSubscription_list(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._MailingListSubscription_list(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

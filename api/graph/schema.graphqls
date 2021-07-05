@@ -279,7 +279,7 @@ interface Subscription {
   created: Time!
 }
 
-type MailingListSubscription {
+type MailingListSubscription implements Subscription {
   id: Int!
   created: Time!
   list: MailingList! @access(scope: LISTS, kind: RO)

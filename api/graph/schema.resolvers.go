@@ -216,6 +216,11 @@ func (r *mailingListACLResolver) Entity(ctx context.Context, obj *model.MailingL
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *mailingListSubscriptionResolver) List(ctx context.Context, obj *model.MailingListSubscription) (*model.MailingList, error) {
+	// XXX: This can be unsafe if we ever write that loader
+	return loaders.ForContext(ctx).MailingListsByID.Load(obj.ListID)
+}
+
 func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (model.Entity, error) {
 	panic(fmt.Errorf("not implemented"))
 }
@@ -342,7 +347,27 @@ func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Curs
 }
 
 func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cursor) (*model.SubscriptionCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var subs []model.Subscription
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		sub := (&model.MailingListSubscription{}).As(`sub`)
+		query := database.
+			Select(ctx, sub).
+			From(`subscription sub`).
+			Where(`sub.user_id = ?`, auth.ForContext(ctx).UserID)
+		subs, cursor = sub.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.SubscriptionCursor{subs, cursor}, nil
 }
 
 func (r *threadResolver) Sender(ctx context.Context, obj *model.Thread) (model.Entity, error) {
@@ -421,6 +446,11 @@ func (r *Resolver) MailingList() api.MailingListResolver { return &mailingListRe
 // MailingListACL returns api.MailingListACLResolver implementation.
 func (r *Resolver) MailingListACL() api.MailingListACLResolver { return &mailingListACLResolver{r} }
 
+// MailingListSubscription returns api.MailingListSubscriptionResolver implementation.
+func (r *Resolver) MailingListSubscription() api.MailingListSubscriptionResolver {
+	return &mailingListSubscriptionResolver{r}
+}
+
 // Patchset returns api.PatchsetResolver implementation.
 func (r *Resolver) Patchset() api.PatchsetResolver { return &patchsetResolver{r} }
 
@@ -436,6 +466,7 @@ func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 type emailResolver struct{ *Resolver }
 type mailingListResolver struct{ *Resolver }
 type mailingListACLResolver struct{ *Resolver }
+type mailingListSubscriptionResolver struct{ *Resolver }
 type patchsetResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type threadResolver struct{ *Resolver }
