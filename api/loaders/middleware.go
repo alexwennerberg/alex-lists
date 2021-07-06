@@ -147,12 +147,12 @@ func fetchMailingListsByID(ctx context.Context) func(ids []int) ([]*model.Mailin
 			query := database.
 				Select(ctx, (&model.MailingList{}).As(`list`)).
 				From(`list`).
-				// XXX: We could fetch the rest of the ACL and subscription
-				// details here and cache them to return via
-				// MailingList { access, subscription }
-				// if we were so inclined.
-				LeftJoin(`access ON access.list_id = list.id`).
-				LeftJoin(`subscription sub ON sub.list_id = list.id`).
+				LeftJoin(`access ON
+					access.list_id = list.id AND
+					access.user_id = ?`, user.UserID).
+				LeftJoin(`subscription sub ON
+					sub.list_id = list.id AND
+					sub.user_id = ?`, user.UserID).
 				Column(`COALESCE(
 					access.permissions,
 					CASE WHEN list.owner_id = ?
@@ -235,11 +235,14 @@ func fetchMailingListsByName(ctx context.Context) func(names []string) ([]*model
 				err  error
 				rows *sql.Rows
 			)
-			// TODO: Fill in subscription ID?
 			user := auth.ForContext(ctx)
 			query := database.
 				Select(ctx, (&model.MailingList{}).As(`list`)).
 				From(`list`).
+				LeftJoin(`subscription sub ON
+					sub.list_id = list.id AND
+					sub.user_id = ?`, user.UserID).
+				Column(`sub.id`).
 				Where(sq.And{
 					sq.Expr(`list.name = ANY(?)`, pq.Array(names)),
 					sq.Expr(`list.owner_id = ?`, user.UserID),
@@ -252,7 +255,9 @@ func fetchMailingListsByName(ctx context.Context) func(names []string) ([]*model
 			listsByName := map[string]*model.MailingList{}
 			for rows.Next() {
 				list := model.MailingList{}
-				if err := rows.Scan(database.Scan(ctx, &list)...); err != nil {
+				if err := rows.Scan(append(
+					database.Scan(ctx, &list),
+					&list.SubscriptionID)...); err != nil {
 					panic(err)
 				}
 				listsByName[list.Name] = &list
@@ -306,8 +311,12 @@ func fetchMailingListsByOwnerName(ctx context.Context) func(names [][2]string) (
 				From(`user_list ul`).
 				Join(`"user" u on ul.owner = u.username`).
 				Join(`list ON ul.name = list.name AND u.id = list.owner_id`).
-				LeftJoin(`access ON access.list_id = list.id`).
-				LeftJoin(`subscription sub ON sub.list_id = list.id`).
+				LeftJoin(`access ON
+					access.list_id = list.id AND
+					access.user_id = ?`, user.UserID).
+				LeftJoin(`subscription sub ON
+					sub.list_id = list.id AND
+					sub.user_id = ?`, user.UserID).
 				Column(`COALESCE(
 					access.permissions,
 					CASE WHEN list.owner_id = ?
