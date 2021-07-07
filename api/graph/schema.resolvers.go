@@ -197,7 +197,10 @@ func (r *mailingListResolver) Access(ctx context.Context, obj *model.MailingList
 }
 
 func (r *mailingListResolver) Subscription(ctx context.Context, obj *model.MailingList) (model.Subscription, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.SubscriptionID == nil {
+		return nil, nil
+	}
+	return loaders.ForContext(ctx).SubscriptionsByIDUnsafe.Load(*obj.SubscriptionID)
 }
 
 func (r *mailingListResolver) Archive(ctx context.Context, obj *model.MailingList) (*model.URL, error) {

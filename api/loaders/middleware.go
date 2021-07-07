@@ -1,14 +1,15 @@
 package loaders
 
-//go:generate ./gen UsersByIDLoader int api/graph/model.User
-//go:generate ./gen UsersByNameLoader string api/graph/model.User
+//go:generate ./gen EmailsByIDLoader int api/graph/model.Email
+//go:generate ./gen EmailsByMessageIDLoader string api/graph/model.Email
 //go:generate ./gen MailingListsByIDLoader int api/graph/model.MailingList
 //go:generate ./gen MailingListsByNameLoader string api/graph/model.MailingList
 //go:generate ./gen MailingListsByOwnerNameLoader [2]string api/graph/model.MailingList
-//go:generate ./gen EmailsByIDLoader int api/graph/model.Email
-//go:generate ./gen EmailsByMessageIDLoader string api/graph/model.Email
-//go:generate ./gen ThreadsByIDLoader int api/graph/model.Thread
 //go:generate ./gen PatchsetsByIDLoader int api/graph/model.Patchset
+//go:generate go run github.com/vektah/dataloaden SubscriptionsByIDLoader int git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Subscription
+//go:generate ./gen ThreadsByIDLoader int api/graph/model.Thread
+//go:generate ./gen UsersByIDLoader int api/graph/model.User
+//go:generate ./gen UsersByNameLoader string api/graph/model.User
 
 import (
 	"context"
@@ -32,17 +33,18 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	UsersByID               UsersByIDLoader
-	UsersByName             UsersByNameLoader
+	EmailsByID              EmailsByIDLoader
+	EmailsByIDUnsafe        EmailsByIDLoader
+	EmailsByMessageID       EmailsByMessageIDLoader
 	MailingListsByID        MailingListsByIDLoader
 	MailingListsByName      MailingListsByNameLoader
 	MailingListsByOwnerName MailingListsByOwnerNameLoader
-	EmailsByID              EmailsByIDLoader
-	EmailsByMessageID       EmailsByMessageIDLoader
-	EmailsByIDUnsafe        EmailsByIDLoader
-	ThreadsByIDUnsafe       ThreadsByIDLoader
 	PatchsetsByID           PatchsetsByIDLoader
 	PatchsetsByIDUnsafe     PatchsetsByIDLoader
+	SubscriptionsByIDUnsafe SubscriptionsByIDLoader
+	ThreadsByIDUnsafe       ThreadsByIDLoader
+	UsersByID               UsersByIDLoader
+	UsersByName             UsersByNameLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -761,18 +763,69 @@ func fetchPatchsetsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Pat
 	}
 }
 
+func fetchSubscriptionsByIDUnsafe(ctx context.Context) func(ids []int) ([]model.Subscription, []error) {
+	return func(ids []int) ([]model.Subscription, []error) {
+		subs := make([]model.Subscription, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			query := database.
+				Select(ctx, (&model.MailingListSubscription{}).As(`sub`)).
+				From(`subscription sub`).
+				Where(sq.And{
+					sq.Expr(`sub.id = ANY(?)`, pq.Array(ids)),
+					sq.Expr(`sub.user_id = ?`, auth.ForContext(ctx).UserID),
+				})
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				panic(err)
+			}
+			defer rows.Close()
+
+			subsByID := make(map[int]model.Subscription)
+			for rows.Next() {
+				var sub model.MailingListSubscription
+				if err := rows.Scan(database.Scan(ctx, &sub)...); err != nil {
+					panic(err)
+				}
+				subsByID[sub.ID] = &sub
+			}
+			if err = rows.Err(); err != nil {
+				panic(err)
+			}
+
+			for i, id := range ids {
+				subs[i] = subsByID[id]
+			}
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+		return subs, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
-			UsersByID: UsersByIDLoader{
+			EmailsByID: EmailsByIDLoader{
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
-				fetch:    fetchUsersByID(r.Context()),
+				fetch:    fetchEmailsByID(r.Context()),
 			},
-			UsersByName: UsersByNameLoader{
+			EmailsByIDUnsafe: EmailsByIDLoader{
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
-				fetch:    fetchUsersByName(r.Context()),
+				fetch:    fetchEmailsByIDUnsafe(r.Context()),
+			},
+			EmailsByMessageID: EmailsByMessageIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchEmailsByMessageID(r.Context()),
 			},
 			MailingListsByID: MailingListsByIDLoader{
 				maxBatch: 100,
@@ -789,26 +842,6 @@ func Middleware(next http.Handler) http.Handler {
 				wait:     1 * time.Millisecond,
 				fetch:    fetchMailingListsByOwnerName(r.Context()),
 			},
-			EmailsByID: EmailsByIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchEmailsByID(r.Context()),
-			},
-			EmailsByMessageID: EmailsByMessageIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchEmailsByMessageID(r.Context()),
-			},
-			EmailsByIDUnsafe: EmailsByIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchEmailsByIDUnsafe(r.Context()),
-			},
-			ThreadsByIDUnsafe: ThreadsByIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchThreadsByIDUnsafe(r.Context()),
-			},
 			PatchsetsByID: PatchsetsByIDLoader{
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
@@ -818,6 +851,26 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchPatchsetsByIDUnsafe(r.Context()),
+			},
+			SubscriptionsByIDUnsafe: SubscriptionsByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchSubscriptionsByIDUnsafe(r.Context()),
+			},
+			ThreadsByIDUnsafe: ThreadsByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchThreadsByIDUnsafe(r.Context()),
+			},
+			UsersByID: UsersByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchUsersByID(r.Context()),
+			},
+			UsersByName: UsersByNameLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchUsersByName(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)
