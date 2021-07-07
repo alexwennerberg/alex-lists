@@ -207,11 +207,23 @@ func (r *mailingListResolver) Subscription(ctx context.Context, obj *model.Maili
 }
 
 func (r *mailingListResolver) Archive(ctx context.Context, obj *model.MailingList) (*model.URL, error) {
-	panic(fmt.Errorf("not implemented"))
+	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
+	uri := fmt.Sprintf("%s/query/list/%d.mbox", origin, obj.ID)
+	url, err := url.Parse(uri)
+	if err != nil {
+		panic(err)
+	}
+	return &model.URL{url}, nil
 }
 
 func (r *mailingListResolver) Last30days(ctx context.Context, obj *model.MailingList) (*model.URL, error) {
-	panic(fmt.Errorf("not implemented"))
+	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
+	uri := fmt.Sprintf("%s/query/list/%d.mbox?since=30", origin, obj.ID)
+	url, err := url.Parse(uri)
+	if err != nil {
+		panic(err)
+	}
+	return &model.URL{url}, nil
 }
 
 func (r *mailingListACLResolver) List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error) {

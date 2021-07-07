@@ -146,9 +146,52 @@ func main() {
 	})
 
 	gsrv.Router().Get("/query/list/{id}.mbox", func(w http.ResponseWriter, r *http.Request) {
-		// TODO
-		w.WriteHeader(200)
-		w.Write([]byte("200 OK"))
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Invalid mailing list ID\r\n"))
+			return
+		}
+
+		var since time.Time
+		if val, ok := r.URL.Query()["since"]; ok {
+			days, err := strconv.Atoi(val[0])
+			if err != nil {
+				w.WriteHeader(http.StatusBadRequest)
+				w.Write([]byte("Invalid since days\r\n"))
+				return
+			}
+			since = time.Now().UTC().Add(-(time.Hour * 24 * time.Duration(days)))
+		}
+
+		if err := database.WithTx(r.Context(), &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func(tx *sql.Tx) error {
+			// TODO: Test this authentication code
+			rows, err := tx.QueryContext(r.Context(), `
+				SELECT email.envelope, email.created
+				FROM email
+				JOIN list ON list.id = email.list_id
+				LEFT JOIN access ON access.list_id = list.id
+				LEFT JOIN subscription sub ON sub.list_id = list.id
+				WHERE email.list_id = $1 AND email.created >= $2 AND (
+					list.owner_id = $3 OR
+					(access.id IS NOT NULL AND access.permissions & $4 > 0) OR
+					(access.id IS NULL
+						AND sub.id IS NULL
+						AND list.nonsubscriber_permissions & $4 > 0) OR
+					(access.id IS NULL AND
+						(list.subscriber_permissions | list.account_permissions) & $4 > 0))
+				ORDER BY email.created
+			`, id, since, auth.ForContext(r.Context()).UserID, model.ACCESS_BROWSE)
+			if err != nil {
+				return err
+			}
+			return prepMbox(rows, w)
+		}); err != nil {
+			panic(err)
+		}
 	})
 
 	gsrv.Run()
@@ -178,7 +221,7 @@ func prepMbox(rows *sql.Rows, w http.ResponseWriter) error {
 			from, err := reader.Header.AddressList("From")
 			reader.Close()
 			if err != nil {
-				return err
+				from = []*mail.Address{&mail.Address{"unknown", "unknown@example.org"}}
 			}
 			sink, err := mbw.CreateMessage(from[0].Address, created)
 			if err != nil {
