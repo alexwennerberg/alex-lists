@@ -7,7 +7,9 @@ scalar Time
 scalar Cursor
 # URL from which some secondary data may be retrieved. You must provide the
 # same Authentication header to this address as you did to the GraphQL resolver
-# which provided it.
+# which provided it. The URL is not guaranteed to be consistent for an extended
+# length of time; applications should submit a new GraphQL query each time they
+# wish to access the data at the provided URL.
 scalar URL
 
 # Used to provide a human-friendly description of an access scope
