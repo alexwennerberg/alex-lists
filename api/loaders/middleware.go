@@ -409,7 +409,6 @@ func fetchEmailsByID(ctx context.Context) func(ids []int) ([]*model.Email, []err
 				LeftJoin(`list ON email.list_id = list.id`).
 				LeftJoin(`access ON access.list_id = list.id`).
 				LeftJoin(`subscription sub ON sub.list_id = list.id`).
-				Column("envelope").
 				Where(sq.And{
 					sq.Expr(`email.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
@@ -443,17 +442,11 @@ func fetchEmailsByID(ctx context.Context) func(ids []int) ([]*model.Email, []err
 
 			emailsByID := map[int]*model.Email{}
 			for rows.Next() {
-				var (
-					email model.Email
-					data  string
-				)
-				if err := rows.Scan(append(
-						database.Scan(ctx, &email),
-						&data,
-					)...); err != nil {
+				var email model.Email
+				if err := rows.Scan(database.Scan(ctx, &email)...); err != nil {
 					panic(err)
 				}
-				email.Populate(data)
+				email.Populate()
 				emailsByID[email.ID] = &email
 			}
 			if err = rows.Err(); err != nil {
@@ -490,7 +483,6 @@ func fetchEmailsByMessageID(ctx context.Context) func(ids []string) ([]*model.Em
 				LeftJoin(`list ON email.list_id = list.id`).
 				LeftJoin(`access ON access.list_id = list.id`).
 				LeftJoin(`subscription sub ON sub.list_id = list.id`).
-				Column("envelope").
 				Where(sq.And{
 					sq.Expr(`email.message_id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
@@ -524,17 +516,11 @@ func fetchEmailsByMessageID(ctx context.Context) func(ids []string) ([]*model.Em
 
 			emailsByMessageID := map[string]*model.Email{}
 			for rows.Next() {
-				var (
-					email model.Email
-					data  string
-				)
-				if err := rows.Scan(append(
-						database.Scan(ctx, &email),
-						&data,
-					)...); err != nil {
+				var email model.Email
+				if err := rows.Scan(database.Scan(ctx, &email)...); err != nil {
 					panic(err)
 				}
-				email.Populate(data)
+				email.Populate()
 				// TODO: Make the database consistent with the parsed header
 				emailsByMessageID["<" + email.MessageID + ">"] = &email
 			}
@@ -567,7 +553,6 @@ func fetchEmailsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Email,
 			query := database.
 				Select(ctx, (&model.Email{}).As(`email`)).
 				From(`email`).
-				Column("envelope").
 				Where(`email.id = ANY(?)`, pq.Array(ids))
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
 				panic(err)
@@ -576,17 +561,11 @@ func fetchEmailsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Email,
 
 			emailsByID := map[int]*model.Email{}
 			for rows.Next() {
-				var (
-					email model.Email
-					data  string
-				)
-				if err := rows.Scan(append(
-						database.Scan(ctx, &email),
-						&data,
-					)...); err != nil {
+				var email model.Email
+				if err := rows.Scan(database.Scan(ctx, &email)...); err != nil {
 					panic(err)
 				}
-				email.Populate(data)
+				email.Populate()
 				emailsByID[email.ID] = &email
 			}
 			if err = rows.Err(); err != nil {
@@ -630,6 +609,7 @@ func fetchThreadsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Threa
 				if err := rows.Scan(database.Scan(ctx, &thread)...); err != nil {
 					panic(err)
 				}
+				thread.Populate()
 				threadsByID[thread.ID] = &thread
 			}
 			if err = rows.Err(); err != nil {

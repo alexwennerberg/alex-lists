@@ -253,6 +253,7 @@ func (r *patchsetResolver) Thread(ctx context.Context, obj *model.Patchset) (*mo
 		if err := row.Scan(database.Scan(ctx, &thread)...); err != nil {
 			return err
 		}
+		thread.Populate()
 		return nil
 	}); err != nil {
 		return nil, err
@@ -397,7 +398,20 @@ func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cur
 }
 
 func (r *threadResolver) Sender(ctx context.Context, obj *model.Thread) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.SenderID != nil {
+		return loaders.ForContext(ctx).UsersByID.Load(*obj.SenderID)
+	}
+	list, err := obj.RawHeader.AddressList("From")
+	if err != nil {
+		return nil, err
+	}
+	if len(list) != 1 {
+		panic(fmt.Errorf("Malformed email %d, multiple senders", obj.ID))
+	}
+	return &model.Mailbox{
+		Name:    list[0].Name,
+		Address: list[0].Address,
+	}, nil
 }
 
 func (r *threadResolver) Root(ctx context.Context, obj *model.Thread) (*model.Email, error) {

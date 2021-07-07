@@ -73,13 +73,13 @@ func (email *Email) Fields() *database.ModelFields {
 			{ "parent_id", "", &email.ParentID },
 			{ "sender_id", "", &email.SenderID },
 			{ "created", "", &email.Received },
+			{ "envelope", "", &email.RawEnvelope },
 		},
 	}
 	return email.fields
 }
 
-func (email *Email) Populate(envelope string) {
-	email.RawEnvelope = []byte(envelope)
+func (email *Email) Populate() {
 	reader, err := mail.CreateReader(bytes.NewBuffer(email.RawEnvelope))
 	if err != nil {
 		return
@@ -133,7 +133,7 @@ func (email *Email) QueryWithCursor(ctx context.Context,
 			&data)...); err != nil {
 			panic(err)
 		}
-		email.Populate(data)
+		email.Populate()
 		emails = append(emails, &email)
 	}
 

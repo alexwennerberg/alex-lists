@@ -1,11 +1,14 @@
 package model
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"strconv"
 	"time"
 
+	"github.com/emersion/go-message/mail"
+	_ "github.com/emersion/go-message/charset"
 	sq "github.com/Masterminds/squirrel"
 
 	"git.sr.ht/~sircmpwn/core-go/database"
@@ -21,6 +24,10 @@ type Thread struct {
 
 	ID            int
 	MailingListID int
+
+	SenderID    *int
+	RawEnvelope []byte
+	RawHeader   mail.Header
 
 	alias  string
 	fields *database.ModelFields
@@ -55,9 +62,20 @@ func (thread *Thread) Fields() *database.ModelFields {
 			{ "id", "", &thread.ID },
 			{ "list_id", "", &thread.MailingListID },
 			{ "updated", "", &thread.Updated },
+			{ "sender_id", "", &thread.SenderID },
+			{ "envelope", "", &thread.RawEnvelope },
 		},
 	}
 	return thread.fields
+}
+
+func (thread *Thread) Populate() {
+	reader, err := mail.CreateReader(bytes.NewBuffer(thread.RawEnvelope))
+	if err != nil {
+		panic(err)
+	}
+	thread.RawHeader = reader.Header
+	reader.Close()
 }
 
 func (thread *Thread) QueryWithCursor(ctx context.Context,
@@ -88,6 +106,7 @@ func (thread *Thread) QueryWithCursor(ctx context.Context,
 		if err := rows.Scan(database.Scan(ctx, &thread)...); err != nil {
 			panic(err)
 		}
+		thread.Populate()
 		threads = append(threads, &thread)
 	}
 
