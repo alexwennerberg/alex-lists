@@ -4,6 +4,7 @@ package graph
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"fmt"
@@ -11,6 +12,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/emersion/go-message/mail"
+	_ "github.com/emersion/go-message/charset"
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
@@ -225,7 +228,61 @@ func (r *mailingListSubscriptionResolver) List(ctx context.Context, obj *model.M
 }
 
 func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	// XXX: It would be nice if we didn't have to fetch the thread details in
+	// order to get the patchset submitter. The database has a submitter field
+	// but it's not very useful.
+	var submitter model.Entity
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly: true,
+	}, func(tx *sql.Tx) error {
+		var (
+			err      error
+			envelope []byte
+			senderID *int
+		)
+		row := tx.QueryRowContext(ctx, `
+			SELECT envelope, sender_id
+			FROM email
+			WHERE
+				email.thread_id IS NULL AND
+				email.patchset_id = $1
+		`, obj.ID)
+
+		if err = row.Scan(&envelope, &senderID); err != nil {
+			return err
+		}
+
+		if senderID != nil {
+			submitter, err = loaders.ForContext(ctx).UsersByID.Load(*senderID)
+			return err
+		}
+
+		reader, err := mail.CreateReader(bytes.NewBuffer(envelope))
+		if err != nil {
+			panic(err)
+		}
+		defer reader.Close()
+
+		list, err := reader.Header.AddressList("From")
+		if err != nil {
+			return err
+		}
+		if len(list) != 1 {
+			panic(fmt.Errorf("Malformed email %d, multiple senders", obj.ID))
+		}
+
+		submitter = &model.Mailbox{
+			Name:    list[0].Name,
+			Address: list[0].Address,
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return submitter, nil
 }
 
 func (r *patchsetResolver) CoverLetter(ctx context.Context, obj *model.Patchset) (*model.Email, error) {
