@@ -236,11 +236,34 @@ func (r *patchsetResolver) CoverLetter(ctx context.Context, obj *model.Patchset)
 }
 
 func (r *patchsetResolver) Thread(ctx context.Context, obj *model.Patchset) (*model.Thread, error) {
-	panic(fmt.Errorf("not implemented"))
+	var thread model.Thread
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly: true,
+	}, func(tx *sql.Tx) error {
+		// Note that no authentication is required here because anyone with
+		// access to the patchset also has access to the thread.
+		row := database.
+			Select(ctx, &thread).
+			From(`email thread`).
+			Where(`thread.patchset_id = ? AND thread.thread_id IS NULL`, obj.ID).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(database.Scan(ctx, &thread)...); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &thread, nil
 }
 
 func (r *patchsetResolver) SupersededBy(ctx context.Context, obj *model.Patchset) (*model.Patchset, error) {
-	panic(fmt.Errorf("not implemented"))
+	// TODO: This feature has not been completed
+	return nil, nil
 }
 
 func (r *patchsetResolver) List(ctx context.Context, obj *model.Patchset) (*model.MailingList, error) {
