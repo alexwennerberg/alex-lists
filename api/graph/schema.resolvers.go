@@ -654,7 +654,61 @@ func (r *userResolver) Lists(ctx context.Context, obj *model.User, cursor *corem
 }
 
 func (r *userResolver) Emails(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var emails []*model.Email
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		// TODO: Test these auth bits
+		user := auth.ForContext(ctx)
+		email := (&model.Email{}).As(`mail`)
+		query := database.
+			Select(ctx, email).
+			From(`email mail`).
+			LeftJoin(`list ON mail.list_id = list.id`).
+			LeftJoin(`access ON
+				access.list_id = list.id AND
+				access.user_id = ?`, user.UserID).
+			LeftJoin(`subscription sub ON
+				sub.list_id = list.id AND
+				sub.user_id = ?`, user.UserID).
+			Where(sq.And{
+				sq.Expr(`mail.sender_id = ?`, obj.ID),
+				sq.Or{
+					// List owner, or
+					sq.Expr(`list.owner_id = ?`, user.UserID),
+					// ACL entry exists, or
+					sq.And{
+						sq.Expr(`access.id IS NOT NULL`),
+						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+					},
+					// Subscribers, or
+					sq.And{
+						sq.Expr(`access.id IS NULL`),
+						sq.Expr(`sub.id IS NULL`),
+						sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
+					},
+					// Or:
+					sq.And{
+						sq.Expr(`access.id IS NULL`),
+						sq.Expr(`
+							(list.subscriber_permissions | list.account_permissions) & ? > 0`,
+							model.ACCESS_BROWSE,
+						),
+					},
+				},
+			})
+		emails, cursor = email.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.EmailCursor{emails, cursor}, nil
 }
 
 func (r *userResolver) Threads(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.ThreadCursor, error) {
