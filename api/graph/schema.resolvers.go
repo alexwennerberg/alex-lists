@@ -517,7 +517,72 @@ func (r *threadResolver) Descendants(ctx context.Context, obj *model.Thread, cur
 }
 
 func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	var (
+		header    mail.Header
+		ownerName string
+		listName  string
+	)
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly: true,
+	}, func(tx *sql.Tx) error {
+		var envelope []byte
+		row := tx.QueryRowContext(ctx, `
+			SELECT envelope, "user".username, list.name
+			FROM email
+			JOIN list ON list.id = email.list_id
+			JOIN "user" ON "user".id = list.owner_id
+			WHERE email.thread_id = $1
+			ORDER BY email.created DESC
+			LIMIT 1;
+		`, obj.ID)
+
+		if err := row.Scan(&envelope, &ownerName, &listName); err != nil {
+			return err
+		}
+
+		reader, err := mail.CreateReader(bytes.NewBuffer(envelope))
+		if err != nil {
+			panic(err)
+		}
+		header = reader.Header
+		reader.Close()
+		return nil
+	}); err != nil {
+		return "", err
+	}
+
+	v := url.Values{}
+
+	if subject, err := header.Subject(); err != nil {
+		panic(err)
+	} else {
+		if !strings.HasPrefix(subject, "Re: ") {
+			subject = "Re: " + subject
+		}
+		v.Set("subject", subject)
+	}
+
+	if id, err := header.MessageID(); err != nil {
+		panic(err)
+	} else {
+		v.Set("in-reply-to", id)
+	}
+
+	postTo, ok := config.ForContext(ctx).Get("lists.sr.ht", "posting-domain")
+	if !ok {
+		panic("No posting domain configured")
+	}
+
+	url := url.URL{
+		Scheme: "mailto",
+		User: url.User(fmt.Sprintf("~%s/%s", ownerName, listName)),
+		Host: postTo,
+		RawQuery: v.Encode(),
+	}
+
+	return url.String(), nil
 }
 
 func (r *threadResolver) Mbox(ctx context.Context, obj *model.Thread) (*model.URL, error) {
