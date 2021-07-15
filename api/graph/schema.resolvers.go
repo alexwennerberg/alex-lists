@@ -12,15 +12,16 @@ import (
 	"strings"
 	"time"
 
-	"github.com/emersion/go-message/mail"
-	_ "github.com/emersion/go-message/charset"
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
-	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
+	"github.com/emersion/go-message/mail"
+	_ "github.com/emersion/go-message/charset"
+	coremodel "git.sr.ht/~sircmpwn/core-go/model"
+	sq "github.com/Masterminds/squirrel"
 )
 
 func (r *emailResolver) Sender(ctx context.Context, obj *model.Email) (model.Entity, error) {
@@ -596,7 +597,60 @@ func (r *threadResolver) Mbox(ctx context.Context, obj *model.Thread) (*model.UR
 }
 
 func (r *userResolver) Lists(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var lists []*model.MailingList
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		// TODO: Test these auth bits
+		list := (&model.MailingList{}).As(`list`)
+		user := auth.ForContext(ctx)
+		query := database.
+			Select(ctx, list).
+			From(`list`).
+			LeftJoin(`access ON
+				access.list_id = list.id AND
+				access.user_id = ?`, user.UserID).
+			LeftJoin(`subscription sub ON
+				sub.list_id = list.id AND
+				sub.user_id = ?`, user.UserID).
+			Where(sq.And{
+				sq.Expr(`list.owner_id = ?`, obj.ID),
+				sq.Or{
+					// List owner, or
+					sq.Expr(`list.owner_id = ?`, user.UserID),
+					// ACL entry exists, or
+					sq.And{
+						sq.Expr(`access.id IS NOT NULL`),
+						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+					},
+					// Subscribers, or
+					sq.And{
+						sq.Expr(`access.id IS NULL`),
+						sq.Expr(`sub.id IS NULL`),
+						sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
+					},
+					// Or:
+					sq.And{
+						sq.Expr(`access.id IS NULL`),
+						sq.Expr(`
+							(list.subscriber_permissions | list.account_permissions) & ? > 0`,
+							model.ACCESS_BROWSE,
+						),
+					},
+				},
+			})
+		lists, cursor = list.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.MailingListCursor{lists, cursor}, nil
 }
 
 func (r *userResolver) Emails(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
