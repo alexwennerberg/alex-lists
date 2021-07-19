@@ -51,7 +51,6 @@ type ResolverRoot interface {
 type DirectiveRoot struct {
 	Access    func(ctx context.Context, obj interface{}, next graphql.Resolver, scope model.AccessScope, kind model.AccessKind) (res interface{}, err error)
 	Scopehelp func(ctx context.Context, obj interface{}, next graphql.Resolver, details string) (res interface{}, err error)
-	Worker    func(ctx context.Context, obj interface{}, next graphql.Resolver) (res interface{}, err error)
 }
 
 type ComplexityRoot struct {
@@ -1378,7 +1377,9 @@ scalar Time
 scalar Cursor
 # URL from which some secondary data may be retrieved. You must provide the
 # same Authentication header to this address as you did to the GraphQL resolver
-# which provided it.
+# which provided it. The URL is not guaranteed to be consistent for an extended
+# length of time; applications should submit a new GraphQL query each time they
+# wish to access the data at the provided URL.
 scalar URL
 
 # Used to provide a human-friendly description of an access scope
@@ -1401,10 +1402,6 @@ enum AccessKind {
 # Decorates fields for which access requires a particular OAuth 2.0 scope with
 # read or write access.
 directive @access(scope: AccessScope!, kind: AccessKind!) on FIELD_DEFINITION
-
-# This used to decorate private resolvers which are only accessible to build
-# workers, and are used to facilitate the build process.
-directive @worker on FIELD_DEFINITION
 
 # https://semver.org
 type Version {
@@ -2631,14 +2628,14 @@ func (ec *executionContext) _Email_patch(ctx context.Context, field graphql.Coll
 		Object:     "Email",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   true,
+		IsMethod:   false,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Patch(), nil
+		return obj.Patch, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2647,9 +2644,9 @@ func (ec *executionContext) _Email_patch(ctx context.Context, field graphql.Coll
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.Patch)
+	res := resTmp.(model.Patch)
 	fc.Result = res
-	return ec.marshalOPatch2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatch(ctx, field.Selections, res)
+	return ec.marshalOPatch2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatch(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Email_patchset(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
@@ -11133,11 +11130,8 @@ func (ec *executionContext) marshalOMailingListCursor2ᚖgitᚗsrᚗhtᚋאsircm
 	return ec._MailingListCursor(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOPatch2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatch(ctx context.Context, sel ast.SelectionSet, v *model.Patch) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Patch(ctx, sel, v)
+func (ec *executionContext) marshalOPatch2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatch(ctx context.Context, sel ast.SelectionSet, v model.Patch) graphql.Marshaler {
+	return ec._Patch(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalOPatchset2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchset(ctx context.Context, sel ast.SelectionSet, v *model.Patchset) graphql.Marshaler {

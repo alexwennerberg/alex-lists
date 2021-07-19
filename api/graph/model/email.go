@@ -23,6 +23,7 @@ type Email struct {
 	Subject   string    `json:"subject"`
 	MessageID string    `json:"message_id"`
 	InReplyTo *string   `json:"in_reply_to"`
+	Patch     Patch     `json:"patch"`
 
 	MailingListID int
 	PatchsetID    *int
@@ -35,10 +36,6 @@ type Email struct {
 
 	alias  string
 	fields *database.ModelFields
-}
-
-func (email *Email) Patch() *Patch {
-	panic("TODO")
 }
 
 func (email *Email) As(alias string) *Email {
@@ -64,6 +61,11 @@ func (email *Email) Fields() *database.ModelFields {
 			{ "body", "body", &email.Body },
 			{ "subject", "subject", &email.Subject },
 			{ "message_id", "message_id", &email.MessageID },
+			{ "patch_index", "patch", &email.Patch.Index },
+			{ "patch_count", "patch", &email.Patch.Count },
+			{ "patch_version", "patch", &email.Patch.Version },
+			{ "patch_prefix", "patch", &email.Patch.Prefix },
+			{ "patch_subject", "patch", &email.Patch.Subject },
 
 			// Always fetch:
 			{ "id", "", &email.ID },

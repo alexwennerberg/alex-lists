@@ -15,13 +15,13 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
+	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
-	"github.com/emersion/go-message/mail"
-	_ "github.com/emersion/go-message/charset"
-	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	sq "github.com/Masterminds/squirrel"
+	_ "github.com/emersion/go-message/charset"
+	"github.com/emersion/go-message/mail"
 )
 
 func (r *emailResolver) Sender(ctx context.Context, obj *model.Email) (model.Entity, error) {
@@ -248,7 +248,7 @@ func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (
 
 	if err := database.WithTx(ctx, &sql.TxOptions{
 		Isolation: 0,
-		ReadOnly: true,
+		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
 		var (
 			err      error
@@ -310,7 +310,7 @@ func (r *patchsetResolver) Thread(ctx context.Context, obj *model.Patchset) (*mo
 
 	if err := database.WithTx(ctx, &sql.TxOptions{
 		Isolation: 0,
-		ReadOnly: true,
+		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
 		// Note that no authentication is required here because anyone with
 		// access to the patchset also has access to the thread.
@@ -547,7 +547,7 @@ func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string,
 
 	if err := database.WithTx(ctx, &sql.TxOptions{
 		Isolation: 0,
-		ReadOnly: true,
+		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
 		var envelope []byte
 		row := tx.QueryRowContext(ctx, `
@@ -598,9 +598,9 @@ func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string,
 	}
 
 	url := url.URL{
-		Scheme: "mailto",
-		User: url.User(fmt.Sprintf("~%s/%s", ownerName, listName)),
-		Host: postTo,
+		Scheme:   "mailto",
+		User:     url.User(fmt.Sprintf("~%s/%s", ownerName, listName)),
+		Host:     postTo,
 		RawQuery: v.Encode(),
 	}
 
