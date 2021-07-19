@@ -669,7 +669,7 @@ func (r *userResolver) Emails(ctx context.Context, obj *model.User, cursor *core
 		query := database.
 			Select(ctx, email).
 			From(`email mail`).
-			LeftJoin(`list ON mail.list_id = list.id`).
+			Join(`list ON mail.list_id = list.id`).
 			LeftJoin(`access ON
 				access.list_id = list.id AND
 				access.user_id = ?`, user.UserID).
@@ -727,7 +727,7 @@ func (r *userResolver) Threads(ctx context.Context, obj *model.User, cursor *cor
 		query := database.
 			Select(ctx, thread).
 			From(`email mail`).
-			LeftJoin(`list ON mail.list_id = list.id`).
+			Join(`list ON mail.list_id = list.id`).
 			LeftJoin(`access ON
 				access.list_id = list.id AND
 				access.user_id = ?`, user.UserID).
@@ -771,7 +771,62 @@ func (r *userResolver) Threads(ctx context.Context, obj *model.User, cursor *cor
 }
 
 func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.PatchsetCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var patches []*model.Patchset
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		// TODO: Test these auth bits
+		user := auth.ForContext(ctx)
+		patch := (&model.Patchset{}).As(`patch`)
+		query := database.
+			Select(ctx, patch).
+			From(`patchset patch`).
+			Join(`list ON patch.list_id = list.id`).
+			Join(`email ON email.patchset_id = patch.id AND email.thread_id IS NULL`).
+			LeftJoin(`access ON
+				access.list_id = list.id AND
+				access.user_id = ?`, user.UserID).
+			LeftJoin(`subscription sub ON
+				sub.list_id = list.id AND
+				sub.user_id = ?`, user.UserID).
+			Where(sq.And{
+				sq.Expr(`email.sender_id = ?`, obj.ID),
+				sq.Or{
+					// List owner, or
+					sq.Expr(`list.owner_id = ?`, user.UserID),
+					// ACL entry exists, or
+					sq.And{
+						sq.Expr(`access.id IS NOT NULL`),
+						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+					},
+					// Subscribers, or
+					sq.And{
+						sq.Expr(`access.id IS NULL`),
+						sq.Expr(`sub.id IS NULL`),
+						sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
+					},
+					// Or:
+					sq.And{
+						sq.Expr(`access.id IS NULL`),
+						sq.Expr(`
+							(list.subscriber_permissions | list.account_permissions) & ? > 0`,
+							model.ACCESS_BROWSE,
+						),
+					},
+				},
+			})
+		patches, cursor = patch.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.PatchsetCursor{patches, cursor}, nil
 }
 
 // Email returns api.EmailResolver implementation.
