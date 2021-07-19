@@ -342,7 +342,28 @@ func (r *patchsetResolver) List(ctx context.Context, obj *model.Patchset) (*mode
 }
 
 func (r *patchsetResolver) Patches(ctx context.Context, obj *model.Patchset, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var emails []*model.Email
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		email := (&model.Email{}).As(`email`)
+		query := database.
+			Select(ctx, email).
+			From(`email`).
+			Where(`email.patchset_id = ? AND email.is_patch`, obj.ID).
+			OrderBy("email.created")
+		emails, cursor = email.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.EmailCursor{emails, cursor}, nil
 }
 
 func (r *patchsetResolver) Tools(ctx context.Context, obj *model.Patchset) ([]*model.PatchsetTool, error) {
