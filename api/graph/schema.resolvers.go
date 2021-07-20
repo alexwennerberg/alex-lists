@@ -197,7 +197,16 @@ func (r *mailingListResolver) Patches(ctx context.Context, obj *model.MailingLis
 }
 
 func (r *mailingListResolver) Access(ctx context.Context, obj *model.MailingList) (model.ACL, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.AccessID != nil {
+		return loaders.ForContext(ctx).ACLsByID.Load(*obj.AccessID)
+	}
+	p := obj.Permissions
+	return &model.GeneralACL{
+		Browse:   p&model.ACCESS_BROWSE != 0,
+		Reply:    p&model.ACCESS_REPLY != 0,
+		Post:     p&model.ACCESS_POST != 0,
+		Moderate: p&model.ACCESS_MODERATE != 0,
+	}, nil
 }
 
 func (r *mailingListResolver) Subscription(ctx context.Context, obj *model.MailingList) (model.Subscription, error) {

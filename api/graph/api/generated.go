@@ -3978,14 +3978,14 @@ func (ec *executionContext) _MailingListACL_browse(ctx context.Context, field gr
 		Object:     "MailingListACL",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Browse, nil
+		return obj.Browse(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4013,14 +4013,14 @@ func (ec *executionContext) _MailingListACL_reply(ctx context.Context, field gra
 		Object:     "MailingListACL",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Reply, nil
+		return obj.Reply(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4048,14 +4048,14 @@ func (ec *executionContext) _MailingListACL_post(ctx context.Context, field grap
 		Object:     "MailingListACL",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Post, nil
+		return obj.Post(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4083,14 +4083,14 @@ func (ec *executionContext) _MailingListACL_moderate(ctx context.Context, field 
 		Object:     "MailingListACL",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Moderate, nil
+		return obj.Moderate(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)

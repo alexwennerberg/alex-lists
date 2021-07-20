@@ -1,5 +1,6 @@
 package loaders
 
+//go:generate ./gen ACLsByIDLoader int api/graph/model.MailingListACL
 //go:generate ./gen EmailsByIDLoader int api/graph/model.Email
 //go:generate ./gen EmailsByMessageIDLoader string api/graph/model.Email
 //go:generate ./gen MailingListsByIDLoader int api/graph/model.MailingList
@@ -33,6 +34,7 @@ type contextKey struct {
 }
 
 type Loaders struct {
+	ACLsByID				ACLsByIDLoader
 	EmailsByID              EmailsByIDLoader
 	EmailsByIDUnsafe        EmailsByIDLoader
 	EmailsByMessageID       EmailsByMessageIDLoader
@@ -45,6 +47,49 @@ type Loaders struct {
 	ThreadsByIDUnsafe       ThreadsByIDLoader
 	UsersByID               UsersByIDLoader
 	UsersByName             UsersByNameLoader
+}
+
+func fetchACLsByID(ctx context.Context) func(ids []int) ([]*model.MailingListACL, []error) {
+	return func(ids []int) ([]*model.MailingListACL, []error) {
+		acls := make([]*model.MailingListACL, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			query := database.
+				Select(ctx, (&model.MailingListACL{}).As(`acl`)).
+				From(`"access" acl`).
+				Where(sq.Expr(`acl.id = ANY(?)`, pq.Array(ids)))
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				panic(err)
+			}
+			defer rows.Close()
+
+			aclsById := map[int]*model.MailingListACL{}
+			for rows.Next() {
+				var acl model.MailingListACL
+				if err := rows.Scan(database.Scan(ctx, &acl)...); err != nil {
+					panic(err)
+				}
+				aclsById[acl.ID] = &acl
+			}
+			if err = rows.Err(); err != nil {
+				panic(err)
+			}
+
+			for i, id := range ids {
+				acls[i] = aclsById[id]
+			}
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+		return acls, nil
+	}
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -792,6 +837,11 @@ func fetchSubscriptionsByIDUnsafe(ctx context.Context) func(ids []int) ([]model.
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
+			ACLsByID: ACLsByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchACLsByID(r.Context()),
+			},
 			EmailsByID: EmailsByIDLoader{
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
