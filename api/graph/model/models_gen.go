@@ -23,6 +23,11 @@ type Subscription interface {
 	IsSubscription()
 }
 
+type ACLCursor struct {
+	Results []ACL         `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
+}
+
 type EmailCursor struct {
 	Results []*Email      `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`

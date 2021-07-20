@@ -100,14 +100,18 @@ type MailingList {
   importing: Boolean!
 
   # The access that applies to this user for this list
-  access: ACL!
+  access: ACL! @access(scope: ACLS, kind: RO)
 
   # The user's subscription for this list, if any
-  subscription: Subscription
+  subscription: Subscription @access(scope: SUBSCRIPTIONS, kind: RO)
 
   # URLs to application/mbox archives for this mailing list
   archive: URL!
   last30days: URL!
+
+  # ACL entries for this mailing list. This resolver may only be used by the
+  # list owner.
+  acl(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
 }
 
 interface ACL {
@@ -241,11 +245,11 @@ type Patchset {
   status: PatchsetStatus!
   submitter: Entity!
 
-  cover_letter: Email
-  thread: Thread!
+  cover_letter: Email @access(scope: EMAILS, kind: RO)
+  thread: Thread! @access(scope: EMAILS, kind: RO)
   superseded_by: Patchset
   list: MailingList! @access(scope: LISTS, kind: RO)
-  patches(cursor: Cursor): EmailCursor!
+  patches(cursor: Cursor): EmailCursor! @access(scope: EMAILS, kind: RO)
   tools: [PatchsetTool!]!
 
   # URL to an application/mbox archive of only the patches in this thread
@@ -281,6 +285,16 @@ type MailingListSubscription implements Subscription {
   id: Int!
   created: Time!
   list: MailingList! @access(scope: LISTS, kind: RO)
+}
+
+# A cursor for enumerating ACL entries
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type ACLCursor {
+  results: [ACL!]!
+  cursor: Cursor
 }
 
 # A cursor for enumerating mailing lists

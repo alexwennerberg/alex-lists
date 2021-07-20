@@ -236,6 +236,10 @@ func (r *mailingListResolver) Last30days(ctx context.Context, obj *model.Mailing
 	return &model.URL{url}, nil
 }
 
+func (r *mailingListResolver) ACL(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *mailingListACLResolver) List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)
 }
