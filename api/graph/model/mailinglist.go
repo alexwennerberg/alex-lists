@@ -38,6 +38,10 @@ type MailingList struct {
 	AccessID       *int
 	SubscriptionID *int
 
+	RawNonsubscriber uint
+	RawSubscriber    uint
+	RawIdentified    uint
+
 	alias  string
 	fields *database.ModelFields
 }
@@ -54,6 +58,33 @@ func (list *MailingList) RejectMime() []string {
 		return []string{}
 	}
 	return strings.Split(list.RawRejectMime, ",")
+}
+
+func (list *MailingList) Nonsubscriber() *GeneralACL {
+	return &GeneralACL{
+		Browse: list.RawNonsubscriber & ACCESS_BROWSE > 0,
+		Reply: list.RawNonsubscriber & ACCESS_REPLY > 0,
+		Post: list.RawNonsubscriber & ACCESS_POST > 0,
+		Moderate: list.RawNonsubscriber & ACCESS_MODERATE > 0,
+	}
+}
+
+func (list *MailingList) Subscriber() *GeneralACL {
+	return &GeneralACL{
+		Browse: list.RawSubscriber & ACCESS_BROWSE > 0,
+		Reply: list.RawSubscriber & ACCESS_REPLY > 0,
+		Post: list.RawSubscriber & ACCESS_POST > 0,
+		Moderate: list.RawSubscriber & ACCESS_MODERATE > 0,
+	}
+}
+
+func (list *MailingList) Identified() *GeneralACL {
+	return &GeneralACL{
+		Browse: list.RawIdentified & ACCESS_BROWSE > 0,
+		Reply: list.RawIdentified & ACCESS_REPLY > 0,
+		Post: list.RawIdentified & ACCESS_POST > 0,
+		Moderate: list.RawIdentified & ACCESS_MODERATE > 0,
+	}
 }
 
 func (list *MailingList) As(alias string) *MailingList {
@@ -82,6 +113,9 @@ func (list *MailingList) Fields() *database.ModelFields {
 			{ "import_in_progress", "importing", &list.Importing },
 			{ "permit_mimetypes", "permit_mime", &list.RawPermitMime },
 			{ "reject_mimetypes", "reject_mime", &list.RawRejectMime },
+			{ "nonsubscriber_permissions", "nonsubscriber", &list.RawNonsubscriber },
+			{ "subscriber_permissions", "subscriber", &list.RawSubscriber },
+			{ "account_permissions", "identified", &list.RawIdentified },
 
 			// Always fetch:
 			{ "id", "", &list.ID },

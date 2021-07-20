@@ -272,9 +272,6 @@ type MailingListResolver interface {
 	Archive(ctx context.Context, obj *model.MailingList) (*model.URL, error)
 	Last30days(ctx context.Context, obj *model.MailingList) (*model.URL, error)
 	ACL(ctx context.Context, obj *model.MailingList, cursor *model1.Cursor) (*model.ACLCursor, error)
-	Nonsubscriber(ctx context.Context, obj *model.MailingList) (*model.GeneralACL, error)
-	Subscriber(ctx context.Context, obj *model.MailingList) (*model.GeneralACL, error)
-	Identified(ctx context.Context, obj *model.MailingList) (*model.GeneralACL, error)
 }
 type MailingListACLResolver interface {
 	List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error)
@@ -4073,13 +4070,13 @@ func (ec *executionContext) _MailingList_nonsubscriber(ctx context.Context, fiel
 		Field:      field,
 		Args:       nil,
 		IsMethod:   true,
-		IsResolver: true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.MailingList().Nonsubscriber(rctx, obj)
+		return obj.Nonsubscriber(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4108,13 +4105,13 @@ func (ec *executionContext) _MailingList_subscriber(ctx context.Context, field g
 		Field:      field,
 		Args:       nil,
 		IsMethod:   true,
-		IsResolver: true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.MailingList().Subscriber(rctx, obj)
+		return obj.Subscriber(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4143,13 +4140,13 @@ func (ec *executionContext) _MailingList_identified(ctx context.Context, field g
 		Field:      field,
 		Args:       nil,
 		IsMethod:   true,
-		IsResolver: true,
+		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.MailingList().Identified(rctx, obj)
+		return obj.Identified(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9550,47 +9547,20 @@ func (ec *executionContext) _MailingList(ctx context.Context, sel ast.SelectionS
 				return res
 			})
 		case "nonsubscriber":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._MailingList_nonsubscriber(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._MailingList_nonsubscriber(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "subscriber":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._MailingList_subscriber(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._MailingList_subscriber(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "identified":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._MailingList_identified(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
+			out.Values[i] = ec._MailingList_identified(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10950,10 +10920,6 @@ func (ec *executionContext) marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗ
 		return graphql.Null
 	}
 	return ec._Entity(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNGeneralACL2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐGeneralACL(ctx context.Context, sel ast.SelectionSet, v model.GeneralACL) graphql.Marshaler {
-	return ec._GeneralACL(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNGeneralACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐGeneralACL(ctx context.Context, sel ast.SelectionSet, v *model.GeneralACL) graphql.Marshaler {

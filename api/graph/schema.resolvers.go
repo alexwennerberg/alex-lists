@@ -263,18 +263,6 @@ func (r *mailingListResolver) ACL(ctx context.Context, obj *model.MailingList, c
 	return &model.ACLCursor{acls, cursor}, nil
 }
 
-func (r *mailingListResolver) Nonsubscriber(ctx context.Context, obj *model.MailingList) (*model.GeneralACL, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *mailingListResolver) Subscriber(ctx context.Context, obj *model.MailingList) (*model.GeneralACL, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *mailingListResolver) Identified(ctx context.Context, obj *model.MailingList) (*model.GeneralACL, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *mailingListACLResolver) List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)
 }
