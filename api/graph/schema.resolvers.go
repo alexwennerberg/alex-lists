@@ -237,11 +237,24 @@ func (r *mailingListResolver) Last30days(ctx context.Context, obj *model.Mailing
 }
 
 func (r *mailingListACLResolver) List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)
 }
 
 func (r *mailingListACLResolver) Entity(ctx context.Context, obj *model.MailingListACL) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.UserID != nil {
+		return loaders.ForContext(ctx).UsersByID.Load(*obj.UserID)
+	} else if obj.Email != nil {
+		addr, err := mail.ParseAddress(*obj.Email)
+		if err != nil {
+			panic(err)
+		}
+		return &model.Mailbox{
+			Name:    addr.Name,
+			Address: addr.Address,
+		}, nil
+	} else {
+		panic(fmt.Errorf("Invalid ACL record %d", obj.ID))
+	}
 }
 
 func (r *mailingListSubscriptionResolver) List(ctx context.Context, obj *model.MailingListSubscription) (*model.MailingList, error) {
