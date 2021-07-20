@@ -237,6 +237,41 @@ func (r *mailingListResolver) Last30days(ctx context.Context, obj *model.Mailing
 }
 
 func (r *mailingListResolver) ACL(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
+	if obj.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, fmt.Errorf("Access denied")
+	}
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var acls []model.ACL
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		acl := (&model.MailingListACL{}).As(`acl`)
+		query := database.
+			Select(ctx, acl).
+			From(`access acl`).
+			Where(`acl.list_id = ?`, obj.ID)
+		acls, cursor = acl.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.ACLCursor{acls, cursor}, nil
+}
+
+func (r *mailingListResolver) Nonsubscriber(ctx context.Context, obj *model.MailingList) (*model.GeneralACL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mailingListResolver) Subscriber(ctx context.Context, obj *model.MailingList) (*model.GeneralACL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mailingListResolver) Identified(ctx context.Context, obj *model.MailingList) (*model.GeneralACL, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

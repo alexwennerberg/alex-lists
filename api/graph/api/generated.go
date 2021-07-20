@@ -97,23 +97,26 @@ type ComplexityRoot struct {
 	}
 
 	MailingList struct {
-		ACL          func(childComplexity int, cursor *model1.Cursor) int
-		Access       func(childComplexity int) int
-		Archive      func(childComplexity int) int
-		Created      func(childComplexity int) int
-		Description  func(childComplexity int) int
-		Emails       func(childComplexity int, cursor *model1.Cursor) int
-		ID           func(childComplexity int) int
-		Importing    func(childComplexity int) int
-		Last30days   func(childComplexity int) int
-		Name         func(childComplexity int) int
-		Owner        func(childComplexity int) int
-		Patches      func(childComplexity int, cursor *model1.Cursor) int
-		PermitMime   func(childComplexity int) int
-		RejectMime   func(childComplexity int) int
-		Subscription func(childComplexity int) int
-		Threads      func(childComplexity int, cursor *model1.Cursor) int
-		Updated      func(childComplexity int) int
+		ACL           func(childComplexity int, cursor *model1.Cursor) int
+		Access        func(childComplexity int) int
+		Archive       func(childComplexity int) int
+		Created       func(childComplexity int) int
+		Description   func(childComplexity int) int
+		Emails        func(childComplexity int, cursor *model1.Cursor) int
+		ID            func(childComplexity int) int
+		Identified    func(childComplexity int) int
+		Importing     func(childComplexity int) int
+		Last30days    func(childComplexity int) int
+		Name          func(childComplexity int) int
+		Nonsubscriber func(childComplexity int) int
+		Owner         func(childComplexity int) int
+		Patches       func(childComplexity int, cursor *model1.Cursor) int
+		PermitMime    func(childComplexity int) int
+		RejectMime    func(childComplexity int) int
+		Subscriber    func(childComplexity int) int
+		Subscription  func(childComplexity int) int
+		Threads       func(childComplexity int, cursor *model1.Cursor) int
+		Updated       func(childComplexity int) int
 	}
 
 	MailingListACL struct {
@@ -269,6 +272,9 @@ type MailingListResolver interface {
 	Archive(ctx context.Context, obj *model.MailingList) (*model.URL, error)
 	Last30days(ctx context.Context, obj *model.MailingList) (*model.URL, error)
 	ACL(ctx context.Context, obj *model.MailingList, cursor *model1.Cursor) (*model.ACLCursor, error)
+	Nonsubscriber(ctx context.Context, obj *model.MailingList) (*model.GeneralACL, error)
+	Subscriber(ctx context.Context, obj *model.MailingList) (*model.GeneralACL, error)
+	Identified(ctx context.Context, obj *model.MailingList) (*model.GeneralACL, error)
 }
 type MailingListACLResolver interface {
 	List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error)
@@ -589,6 +595,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.MailingList.ID(childComplexity), true
 
+	case "MailingList.identified":
+		if e.complexity.MailingList.Identified == nil {
+			break
+		}
+
+		return e.complexity.MailingList.Identified(childComplexity), true
+
 	case "MailingList.importing":
 		if e.complexity.MailingList.Importing == nil {
 			break
@@ -609,6 +622,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.MailingList.Name(childComplexity), true
+
+	case "MailingList.nonsubscriber":
+		if e.complexity.MailingList.Nonsubscriber == nil {
+			break
+		}
+
+		return e.complexity.MailingList.Nonsubscriber(childComplexity), true
 
 	case "MailingList.owner":
 		if e.complexity.MailingList.Owner == nil {
@@ -642,6 +662,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.MailingList.RejectMime(childComplexity), true
+
+	case "MailingList.subscriber":
+		if e.complexity.MailingList.Subscriber == nil {
+			break
+		}
+
+		return e.complexity.MailingList.Subscriber(childComplexity), true
 
 	case "MailingList.subscription":
 		if e.complexity.MailingList.Subscription == nil {
@@ -1512,9 +1539,17 @@ type MailingList {
   archive: URL!
   last30days: URL!
 
-  # ACL entries for this mailing list. This resolver may only be used by the
-  # list owner.
+  #
+  # The following resolvers are only available to the list owner:
+
+  # Access control list entries for this mailing list
   acl(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
+  # Permissions which apply to any non-subscriber
+  nonsubscriber: GeneralACL!
+  # Permissions which apply to any subscriber
+  subscriber: GeneralACL!
+  # Permissions which apply to any authenticated account holder
+  identified: GeneralACL!
 }
 
 interface ACL {
@@ -4024,6 +4059,111 @@ func (ec *executionContext) _MailingList_acl(ctx context.Context, field graphql.
 	res := resTmp.(*model.ACLCursor)
 	fc.Result = res
 	return ec.marshalNACLCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_nonsubscriber(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.MailingList().Nonsubscriber(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.GeneralACL)
+	fc.Result = res
+	return ec.marshalNGeneralACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐGeneralACL(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_subscriber(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.MailingList().Subscriber(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.GeneralACL)
+	fc.Result = res
+	return ec.marshalNGeneralACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐGeneralACL(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _MailingList_identified(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "MailingList",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.MailingList().Identified(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.GeneralACL)
+	fc.Result = res
+	return ec.marshalNGeneralACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐGeneralACL(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _MailingListACL_id(ctx context.Context, field graphql.CollectedField, obj *model.MailingListACL) (ret graphql.Marshaler) {
@@ -9409,6 +9549,48 @@ func (ec *executionContext) _MailingList(ctx context.Context, sel ast.SelectionS
 				}
 				return res
 			})
+		case "nonsubscriber":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._MailingList_nonsubscriber(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "subscriber":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._MailingList_subscriber(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "identified":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._MailingList_identified(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10768,6 +10950,20 @@ func (ec *executionContext) marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗ
 		return graphql.Null
 	}
 	return ec._Entity(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNGeneralACL2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐGeneralACL(ctx context.Context, sel ast.SelectionSet, v model.GeneralACL) graphql.Marshaler {
+	return ec._GeneralACL(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNGeneralACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐGeneralACL(ctx context.Context, sel ast.SelectionSet, v *model.GeneralACL) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._GeneralACL(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNInt2int(ctx context.Context, v interface{}) (int, error) {

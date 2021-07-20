@@ -1,9 +1,15 @@
 package model
 
 import (
+	"context"
+	"database/sql"
+	"strconv"
 	"time"
 
+	sq "github.com/Masterminds/squirrel"
+
 	"git.sr.ht/~sircmpwn/core-go/database"
+	"git.sr.ht/~sircmpwn/core-go/model"
 )
 
 type GeneralACL struct {
@@ -76,4 +82,53 @@ func (acl *MailingListACL) Fields() *database.ModelFields {
 		},
 	}
 	return acl.fields
+}
+
+func (acl *MailingListACL) QueryWithCursor(ctx context.Context,
+	runner sq.BaseRunner, q sq.SelectBuilder,
+	cur *model.Cursor) ([]ACL, *model.Cursor) {
+	var (
+		err  error
+		rows *sql.Rows
+	)
+
+	if cur.Next != "" {
+		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
+		created := time.Unix(ts, 0)
+		q = q.Where(database.WithAlias(acl.alias, "created") + "<= ?", created)
+	}
+	q = q.
+		OrderBy(database.WithAlias(acl.alias, `created`) + " DESC").
+		Limit(uint64(cur.Count + 1))
+
+	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	var (
+		acls   []ACL
+		latest time.Time
+	)
+	for rows.Next() {
+		var acl MailingListACL
+		if err := rows.Scan(database.Scan(ctx, &acl)...); err != nil {
+			panic(err)
+		}
+		latest = acl.Created
+		acls = append(acls, &acl)
+	}
+
+	if len(acls) > cur.Count {
+		cur = &model.Cursor{
+			Count:  cur.Count,
+			Next:   strconv.FormatInt(latest.Unix(), 10),
+			Search: cur.Search,
+		}
+		acls = acls[:cur.Count]
+	} else {
+		cur = nil
+	}
+
+	return acls, cur
 }

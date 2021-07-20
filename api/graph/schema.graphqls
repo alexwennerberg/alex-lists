@@ -109,9 +109,17 @@ type MailingList {
   archive: URL!
   last30days: URL!
 
-  # ACL entries for this mailing list. This resolver may only be used by the
-  # list owner.
+  #
+  # The following resolvers are only available to the list owner:
+
+  # Access control list entries for this mailing list
   acl(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
+  # Permissions which apply to any non-subscriber
+  nonsubscriber: GeneralACL!
+  # Permissions which apply to any subscriber
+  subscriber: GeneralACL!
+  # Permissions which apply to any authenticated account holder
+  identified: GeneralACL!
 }
 
 interface ACL {
