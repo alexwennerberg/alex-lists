@@ -51,16 +51,6 @@ type PatchsetCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
-type PatchsetTool struct {
-	ID       int       `json:"id"`
-	Created  time.Time `json:"created"`
-	Updated  time.Time `json:"updated"`
-	Icon     ToolIcon  `json:"icon"`
-	Details  string    `json:"details"`
-	Key      string    `json:"key"`
-	Patchset *Patchset `json:"patchset"`
-}
-
 type SubscriptionCursor struct {
 	Results []Subscription `json:"results"`
 	Cursor  *model.Cursor  `json:"cursor"`

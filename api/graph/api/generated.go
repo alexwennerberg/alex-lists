@@ -43,6 +43,7 @@ type ResolverRoot interface {
 	MailingListACL() MailingListACLResolver
 	MailingListSubscription() MailingListSubscriptionResolver
 	Patchset() PatchsetResolver
+	PatchsetTool() PatchsetToolResolver
 	Query() QueryResolver
 	Thread() ThreadResolver
 	User() UserResolver
@@ -289,6 +290,9 @@ type PatchsetResolver interface {
 	Patches(ctx context.Context, obj *model.Patchset, cursor *model1.Cursor) (*model.EmailCursor, error)
 	Tools(ctx context.Context, obj *model.Patchset) ([]*model.PatchsetTool, error)
 	Mbox(ctx context.Context, obj *model.Patchset) (*model.URL, error)
+}
+type PatchsetToolResolver interface {
+	Patchset(ctx context.Context, obj *model.PatchsetTool) (*model.Patchset, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (*model.Version, error)
@@ -5677,14 +5681,14 @@ func (ec *executionContext) _PatchsetTool_icon(ctx context.Context, field graphq
 		Object:     "PatchsetTool",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Icon, nil
+		return obj.Icon(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5782,14 +5786,14 @@ func (ec *executionContext) _PatchsetTool_patchset(ctx context.Context, field gr
 		Object:     "PatchsetTool",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Patchset, nil
+		return ec.resolvers.PatchsetTool().Patchset(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9962,38 +9966,47 @@ func (ec *executionContext) _PatchsetTool(ctx context.Context, sel ast.Selection
 		case "id":
 			out.Values[i] = ec._PatchsetTool_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "created":
 			out.Values[i] = ec._PatchsetTool_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "updated":
 			out.Values[i] = ec._PatchsetTool_updated(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "icon":
 			out.Values[i] = ec._PatchsetTool_icon(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "details":
 			out.Values[i] = ec._PatchsetTool_details(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "key":
 			out.Values[i] = ec._PatchsetTool_key(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "patchset":
-			out.Values[i] = ec._PatchsetTool_patchset(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._PatchsetTool_patchset(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11057,6 +11070,10 @@ func (ec *executionContext) marshalNMailingListCursor2ᚖgitᚗsrᚗhtᚋאsircm
 		return graphql.Null
 	}
 	return ec._MailingListCursor(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPatchset2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchset(ctx context.Context, sel ast.SelectionSet, v model.Patchset) graphql.Marshaler {
+	return ec._Patchset(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNPatchset2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Patchset) graphql.Marshaler {

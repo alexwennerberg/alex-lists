@@ -416,7 +416,39 @@ func (r *patchsetResolver) Patches(ctx context.Context, obj *model.Patchset, cur
 }
 
 func (r *patchsetResolver) Tools(ctx context.Context, obj *model.Patchset) ([]*model.PatchsetTool, error) {
-	panic(fmt.Errorf("not implemented"))
+	var tools []*model.PatchsetTool
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		// No authentication required because anyone who has access to the
+		// patchset also has access to the tools.
+		tool := (&model.PatchsetTool{}).As(`tool`)
+		rows, err := database.
+			Select(ctx, tool).
+			From(`patchset_tool tool`).
+			Where(`tool.patchset_id = ?`, obj.ID).
+			RunWith(tx).
+			QueryContext(ctx)
+		if err != nil {
+			return err
+		}
+
+		for rows.Next() {
+			var tool model.PatchsetTool
+			if err := rows.Scan(database.Scan(ctx, &tool)...); err != nil {
+				return err
+			}
+			tools = append(tools, &tool)
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return tools, nil
 }
 
 func (r *patchsetResolver) Mbox(ctx context.Context, obj *model.Patchset) (*model.URL, error) {
@@ -427,6 +459,10 @@ func (r *patchsetResolver) Mbox(ctx context.Context, obj *model.Patchset) (*mode
 		panic(err)
 	}
 	return &model.URL{url}, nil
+}
+
+func (r *patchsetToolResolver) Patchset(ctx context.Context, obj *model.PatchsetTool) (*model.Patchset, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
@@ -912,6 +948,9 @@ func (r *Resolver) MailingListSubscription() api.MailingListSubscriptionResolver
 // Patchset returns api.PatchsetResolver implementation.
 func (r *Resolver) Patchset() api.PatchsetResolver { return &patchsetResolver{r} }
 
+// PatchsetTool returns api.PatchsetToolResolver implementation.
+func (r *Resolver) PatchsetTool() api.PatchsetToolResolver { return &patchsetToolResolver{r} }
+
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
@@ -926,6 +965,7 @@ type mailingListResolver struct{ *Resolver }
 type mailingListACLResolver struct{ *Resolver }
 type mailingListSubscriptionResolver struct{ *Resolver }
 type patchsetResolver struct{ *Resolver }
+type patchsetToolResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type threadResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
