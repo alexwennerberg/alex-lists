@@ -211,7 +211,7 @@ def _archive(dest, envelope, do_webhooks=True):
     # Use as_bytes to prevent the stdlib from converting to a different
     # Content-Transfer-Encoding. We need to convert to a string afterwards to
     # store the envelope in the DB. Non-UTF-8 messages will be damaged.
-    mail.envelope = envelope.as_bytes(unixfrom=True).decode("utf-8", "replace")
+    mail.envelope = envelope.as_bytes().decode("utf-8", "replace")
     mail.list_id = dest.id
     for part in envelope.walk():
         if part.is_multipart():
@@ -400,7 +400,7 @@ Feel free to reply to this email if you have any questions.""".format(
             cfg("sr.ht", "owner-name"), cfg("sr.ht", "owner-email"))
     reply["Date"] = formatdate()
     reply["Message-ID"] = make_msgid()
-    print(reply.as_string(unixfrom=True))
+    print(reply.as_string())
     smtp = start_smtp()
     try:
         smtp.send_message(reply, smtp_user, [sender[1]])
@@ -452,7 +452,7 @@ Feel free to reply to this email if you have any questions.""".format(
             cfg("sr.ht", "owner-name"), cfg("sr.ht", "owner-email"))
     reply["Date"] = formatdate()
     reply["Message-ID"] = make_msgid()
-    print(reply.as_string(unixfrom=True))
+    print(reply.as_string())
     smtp = start_smtp()
     try:
         smtp.send_message(reply, smtp_user, [sender[1]])
@@ -464,7 +464,7 @@ Feel free to reply to this email if you have any questions.""".format(
 
 def _configure_mirror(ml, mirror, mail):
     print("Message from mirror upstream mail server: ",
-            mail.as_string(unixfrom=True))
+            mail.as_string())
 
     sender = parseaddr(mail["From"])
     mirror.mailer_sender = sender[1]
@@ -588,7 +588,7 @@ def send_error_for(mail_b64, error):
     # understand.
     mail = email.message_from_bytes(base64.b64decode(mail_b64), policy=policy)
     print("Rejecting email:")
-    print(mail.as_string(unixfrom=True))
+    print(mail.as_string())
     autosub = mail.get("auto-submitted")
     if autosub == "auto-generated" or autosub == "auto-replied":
         return # disregard automatic emails like OOO replies
@@ -606,7 +606,7 @@ def send_error_for(mail_b64, error):
     reply["Date"] = formatdate()
     reply["Message-ID"] = make_msgid()
     reply["Auto-Submitted"] = "auto-replied"
-    print(reply.as_string(unixfrom=True))
+    print(reply.as_string())
     smtp = start_smtp()
     sender = parseaddr(mail["From"])
     try:
