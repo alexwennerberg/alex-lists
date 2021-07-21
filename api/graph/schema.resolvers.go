@@ -462,7 +462,7 @@ func (r *patchsetResolver) Mbox(ctx context.Context, obj *model.Patchset) (*mode
 }
 
 func (r *patchsetToolResolver) Patchset(ctx context.Context, obj *model.PatchsetTool) (*model.Patchset, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).PatchsetsByID.Load(obj.PatchsetID)
 }
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
