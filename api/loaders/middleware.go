@@ -189,7 +189,6 @@ func fetchMailingListsByID(ctx context.Context) func(ids []int) ([]*model.Mailin
 				err  error
 				rows *sql.Rows
 			)
-			// TODO: Test these auth bits
 			user := auth.ForContext(ctx)
 			query := database.
 				Select(ctx, (&model.MailingList{}).As(`list`)).
@@ -343,7 +342,6 @@ func fetchMailingListsByOwnerName(ctx context.Context) func(names [][2]string) (
 				_names[i] = name[0] + "/" + name[1]
 			}
 
-			// TODO: Test these auth bits
 			user := auth.ForContext(ctx)
 			query := database.
 				Select(ctx).
@@ -446,7 +444,6 @@ func fetchEmailsByID(ctx context.Context) func(ids []int) ([]*model.Email, []err
 				err  error
 				rows *sql.Rows
 			)
-			// TODO: Test these auth bits
 			user := auth.ForContext(ctx)
 			query := database.
 				Select(ctx, (&model.Email{}).As(`email`)).
@@ -520,7 +517,6 @@ func fetchEmailsByMessageID(ctx context.Context) func(ids []string) ([]*model.Em
 				err  error
 				rows *sql.Rows
 			)
-			// TODO: Test these auth bits
 			user := auth.ForContext(ctx)
 			query := database.
 				Select(ctx, (&model.Email{}).As(`email`)).
@@ -566,8 +562,7 @@ func fetchEmailsByMessageID(ctx context.Context) func(ids []string) ([]*model.Em
 					panic(err)
 				}
 				email.Populate()
-				// TODO: Make the database consistent with the parsed header
-				emailsByMessageID["<" + email.MessageID + ">"] = &email
+				emailsByMessageID[email.MessageID] = &email
 			}
 			if err = rows.Err(); err != nil {
 				panic(err)
@@ -683,7 +678,6 @@ func fetchPatchsetsByID(ctx context.Context) func(ids []int) ([]*model.Patchset,
 				err  error
 				rows *sql.Rows
 			)
-			// TODO: Test these authentication bits
 			user := auth.ForContext(ctx)
 			query := database.
 				Select(ctx, (&model.Patchset{}).As(`patch`)).

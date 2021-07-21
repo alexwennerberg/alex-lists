@@ -81,7 +81,6 @@ func main() {
 			Isolation: 0,
 			ReadOnly: true,
 		}, func(tx *sql.Tx) error {
-			// TODO: Test this authentication code
 			rows, err := tx.QueryContext(r.Context(), `
 				SELECT email.envelope, email.created
 				FROM email
@@ -119,7 +118,6 @@ func main() {
 			Isolation: 0,
 			ReadOnly: true,
 		}, func(tx *sql.Tx) error {
-			// TODO: Test this authentication code
 			rows, err := tx.QueryContext(r.Context(), `
 				SELECT email.envelope, email.created
 				FROM email
@@ -168,7 +166,6 @@ func main() {
 			Isolation: 0,
 			ReadOnly: true,
 		}, func(tx *sql.Tx) error {
-			// TODO: Test this authentication code
 			rows, err := tx.QueryContext(r.Context(), `
 				SELECT email.envelope, email.created
 				FROM email

@@ -676,7 +676,6 @@ func (r *userResolver) Lists(ctx context.Context, obj *model.User, cursor *corem
 		Isolation: 0,
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
-		// TODO: Test these auth bits
 		list := (&model.MailingList{}).As(`list`)
 		user := auth.ForContext(ctx)
 		query := database.
@@ -733,7 +732,6 @@ func (r *userResolver) Emails(ctx context.Context, obj *model.User, cursor *core
 		Isolation: 0,
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
-		// TODO: Test these auth bits
 		user := auth.ForContext(ctx)
 		email := (&model.Email{}).As(`mail`)
 		query := database.
@@ -791,7 +789,6 @@ func (r *userResolver) Threads(ctx context.Context, obj *model.User, cursor *cor
 		Isolation: 0,
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
-		// TODO: Test these auth bits
 		user := auth.ForContext(ctx)
 		thread := (&model.Thread{}).As(`mail`)
 		query := database.
@@ -850,7 +847,6 @@ func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *cor
 		Isolation: 0,
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
-		// TODO: Test these auth bits
 		user := auth.ForContext(ctx)
 		patch := (&model.Patchset{}).As(`patch`)
 		query := database.
