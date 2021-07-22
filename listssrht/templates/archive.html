@@ -166,8 +166,7 @@
             <label for="select-{{message.patchset_id}}"
               class="status {{status_to_color[message.patchset.status]}}"
             >
-              {% if current_user and view == "patches"
-                and current_user.id == ml.owner_id %}
+              {% if ListAccess.moderate in access and view == "patches" %}
               <input
                 type="checkbox"
                 class="patch-select"
@@ -225,8 +224,7 @@
           </small>
         </div>
         {% endfor %}
-        {% if view == "patches"
-          and current_user and current_user.id == ml.owner_id %}
+        {% if view == "patches" and ListAccess.moderate in access %}
         {{csrf_token()}}
         <input type="hidden" name="search" value="{{search if search else ""}}" />
         <div class="event">
