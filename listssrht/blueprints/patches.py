@@ -226,7 +226,7 @@ def patchset_bulk_update(owner_name, list_name):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
         abort(404)
-    if ml.owner_id != current_user.id:
+    if ListAccess.moderate not in access:
         abort(403)
     select_all = False
     selection = []
