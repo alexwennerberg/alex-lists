@@ -159,6 +159,7 @@ func (list *MailingList) QueryWithCursor(ctx context.Context,
 			list.nonsubscriber_permissions | list.account_permissions)`,
 			user.UserID, ACCESS_ALL).
 		Column(`access.id`).
+		Column(`sub.id`).
 		OrderBy(database.WithAlias(list.alias, `updated`) + " DESC").
 		Limit(uint64(cur.Count + 1))
 
@@ -171,7 +172,9 @@ func (list *MailingList) QueryWithCursor(ctx context.Context,
 	for rows.Next() {
 		var list MailingList
 		if err := rows.Scan(append(database.Scan(ctx, &list),
-			&list.Permissions, &list.AccessID)...); err != nil {
+			&list.Permissions,
+			&list.AccessID,
+			&list.SubscriptionID)...); err != nil {
 			panic(err)
 		}
 		lists = append(lists, &list)
