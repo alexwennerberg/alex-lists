@@ -49,14 +49,14 @@ type MailingList struct {
 
 func (list *MailingList) PermitMime() []string {
 	if len(list.RawPermitMime) == 0 {
-		return []string{}
+		return nil
 	}
 	return strings.Split(list.RawPermitMime, ",")
 }
 
 func (list *MailingList) RejectMime() []string {
 	if len(list.RawRejectMime) == 0 {
-		return []string{}
+		return nil
 	}
 	return strings.Split(list.RawRejectMime, ",")
 }
