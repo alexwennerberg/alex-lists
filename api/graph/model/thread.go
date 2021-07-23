@@ -8,20 +8,20 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/emersion/go-message/mail"
-	_ "github.com/emersion/go-message/charset"
 	sq "github.com/Masterminds/squirrel"
+	_ "github.com/emersion/go-message/charset"
+	"github.com/emersion/go-message/mail"
 
 	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/core-go/model"
 )
 
 type Thread struct {
-	Created      time.Time    `json:"created"`
-	Participants int          `json:"participants"`
-	Replies      int          `json:"replies"`
-	Subject      string       `json:"subject"`
-	Updated      time.Time    `json:"updated"`
+	Created      time.Time `json:"created"`
+	Participants int       `json:"participants"`
+	Replies      int       `json:"replies"`
+	Subject      string    `json:"subject"`
+	Updated      time.Time `json:"updated"`
 
 	ID            int
 	MailingListID int
@@ -53,18 +53,18 @@ func (thread *Thread) Fields() *database.ModelFields {
 	}
 	thread.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "id", "id", &thread.ID },
-			{ "created", "created", &thread.Created },
-			{ "subject", "subject", &thread.Subject },
-			{ "nreplies", "replies", &thread.Replies },
-			{ "nparticipants", "participants", &thread.Participants },
+			{"id", "id", &thread.ID},
+			{"created", "created", &thread.Created},
+			{"subject", "subject", &thread.Subject},
+			{"nreplies", "replies", &thread.Replies},
+			{"nparticipants", "participants", &thread.Participants},
 
 			// Always fetch:
-			{ "id", "", &thread.ID },
-			{ "list_id", "", &thread.MailingListID },
-			{ "updated", "", &thread.Updated },
-			{ "sender_id", "", &thread.SenderID },
-			{ "envelope", "", &thread.RawEnvelope },
+			{"id", "", &thread.ID},
+			{"list_id", "", &thread.MailingListID},
+			{"updated", "", &thread.Updated},
+			{"sender_id", "", &thread.SenderID},
+			{"envelope", "", &thread.RawEnvelope},
 		},
 	}
 	return thread.fields
@@ -90,7 +90,7 @@ func (thread *Thread) QueryWithCursor(ctx context.Context,
 	if cur.Next != "" {
 		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
 		updated := time.Unix(ts, 0)
-		q = q.Where(database.WithAlias(thread.alias, "updated") + "<= ?", updated)
+		q = q.Where(database.WithAlias(thread.alias, "updated")+"<= ?", updated)
 	}
 	q = q.
 		OrderBy(database.WithAlias(thread.alias, "updated") + " DESC").

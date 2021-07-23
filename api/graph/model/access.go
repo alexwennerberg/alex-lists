@@ -22,8 +22,8 @@ type GeneralACL struct {
 func (GeneralACL) IsACL() {}
 
 type MailingListACL struct {
-	ID       int       `json:"id"`
-	Created  time.Time `json:"created"`
+	ID      int       `json:"id"`
+	Created time.Time `json:"created"`
 
 	UserID        *int
 	Email         *string
@@ -50,19 +50,19 @@ func (acl *MailingListACL) Table() string {
 }
 
 func (acl *MailingListACL) Browse() bool {
-	return acl.RawAccess & ACCESS_BROWSE != 0
+	return acl.RawAccess&ACCESS_BROWSE != 0
 }
 
 func (acl *MailingListACL) Reply() bool {
-	return acl.RawAccess & ACCESS_REPLY != 0
+	return acl.RawAccess&ACCESS_REPLY != 0
 }
 
 func (acl *MailingListACL) Post() bool {
-	return acl.RawAccess & ACCESS_POST != 0
+	return acl.RawAccess&ACCESS_POST != 0
 }
 
 func (acl *MailingListACL) Moderate() bool {
-	return acl.RawAccess & ACCESS_MODERATE != 0
+	return acl.RawAccess&ACCESS_MODERATE != 0
 }
 
 func (acl *MailingListACL) Fields() *database.ModelFields {
@@ -71,14 +71,14 @@ func (acl *MailingListACL) Fields() *database.ModelFields {
 	}
 	acl.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "created", "created", &acl.Created },
+			{"created", "created", &acl.Created},
 
 			// Always fetch:
-			{ "id", "", &acl.ID },
-			{ "permissions", "", &acl.RawAccess },
-			{ "list_id", "", &acl.MailingListID },
-			{ "user_id", "", &acl.UserID },
-			{ "email", "", &acl.Email },
+			{"id", "", &acl.ID},
+			{"permissions", "", &acl.RawAccess},
+			{"list_id", "", &acl.MailingListID},
+			{"user_id", "", &acl.UserID},
+			{"email", "", &acl.Email},
 		},
 	}
 	return acl.fields
@@ -95,7 +95,7 @@ func (acl *MailingListACL) QueryWithCursor(ctx context.Context,
 	if cur.Next != "" {
 		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
 		created := time.Unix(ts, 0)
-		q = q.Where(database.WithAlias(acl.alias, "created") + "<= ?", created)
+		q = q.Where(database.WithAlias(acl.alias, "created")+"<= ?", created)
 	}
 	q = q.
 		OrderBy(database.WithAlias(acl.alias, `created`) + " DESC").

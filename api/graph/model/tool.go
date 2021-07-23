@@ -9,11 +9,11 @@ import (
 )
 
 type PatchsetTool struct {
-	ID       int       `json:"id"`
-	Created  time.Time `json:"created"`
-	Updated  time.Time `json:"updated"`
-	Details  string    `json:"details"`
-	Key      string    `json:"key"`
+	ID      int       `json:"id"`
+	Created time.Time `json:"created"`
+	Updated time.Time `json:"updated"`
+	Details string    `json:"details"`
+	Key     string    `json:"key"`
 
 	PatchsetID int
 	RawIcon    string
@@ -50,15 +50,15 @@ func (tool *PatchsetTool) Fields() *database.ModelFields {
 	}
 	tool.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "updated", "updated", &tool.Updated },
-			{ "icon", "icon", &tool.RawIcon },
-			{ "details", "details", &tool.Details },
-			{ "key", "key", &tool.Key },
+			{"updated", "updated", &tool.Updated},
+			{"icon", "icon", &tool.RawIcon},
+			{"details", "details", &tool.Details},
+			{"key", "key", &tool.Key},
 
 			// Always fetch:
-			{ "id", "", &tool.ID },
-			{ "created", "", &tool.Created },
-			{ "patchset_id", "", &tool.PatchsetID },
+			{"id", "", &tool.ID},
+			{"created", "", &tool.Created},
+			{"patchset_id", "", &tool.PatchsetID},
 		},
 	}
 	return tool.fields

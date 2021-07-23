@@ -13,8 +13,8 @@ import (
 )
 
 type MailingListSubscription struct {
-	ID      int          `json:"id"`
-	Created time.Time    `json:"created"`
+	ID      int       `json:"id"`
+	Created time.Time `json:"created"`
 
 	UserID int
 	ListID int
@@ -46,10 +46,10 @@ func (sub *MailingListSubscription) Fields() *database.ModelFields {
 	sub.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
 			// Always fetch everything
-			{ "id", "", &sub.ID },
-			{ "created", "", &sub.Created },
-			{ "user_id", "", &sub.UserID },
-			{ "list_id", "", &sub.ListID },
+			{"id", "", &sub.ID},
+			{"created", "", &sub.Created},
+			{"user_id", "", &sub.UserID},
+			{"list_id", "", &sub.ListID},
 		},
 	}
 	return sub.fields
@@ -66,7 +66,7 @@ func (sub *MailingListSubscription) QueryWithCursor(ctx context.Context,
 	if cur.Next != "" {
 		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
 		created := time.Unix(ts, 0)
-		q = q.Where(database.WithAlias(sub.alias, "created") + "<= ?", created)
+		q = q.Where(database.WithAlias(sub.alias, "created")+"<= ?", created)
 	}
 	q = q.Limit(uint64(cur.Count + 1))
 

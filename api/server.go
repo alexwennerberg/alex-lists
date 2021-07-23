@@ -15,9 +15,9 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/emersion/go-mbox"
+	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
 	"github.com/go-chi/chi"
-	_ "github.com/emersion/go-message/charset"
 
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
@@ -79,7 +79,7 @@ func main() {
 
 		if err := database.WithTx(r.Context(), &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
+			ReadOnly:  true,
 		}, func(tx *sql.Tx) error {
 			rows, err := tx.QueryContext(r.Context(), `
 				SELECT email.envelope, email.created
@@ -116,7 +116,7 @@ func main() {
 
 		if err := database.WithTx(r.Context(), &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
+			ReadOnly:  true,
 		}, func(tx *sql.Tx) error {
 			rows, err := tx.QueryContext(r.Context(), `
 				SELECT email.envelope, email.created
@@ -164,7 +164,7 @@ func main() {
 
 		if err := database.WithTx(r.Context(), &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
+			ReadOnly:  true,
 		}, func(tx *sql.Tx) error {
 			rows, err := tx.QueryContext(r.Context(), `
 				SELECT email.envelope, email.created
@@ -195,44 +195,44 @@ func main() {
 }
 
 func prepMbox(rows *sql.Rows, w http.ResponseWriter) error {
-		mbw := mbox.NewWriter(w)
-		defer mbw.Close()
+	mbw := mbox.NewWriter(w)
+	defer mbw.Close()
 
-		var results bool
-		for rows.Next() {
-			results = true
-			w.Header().Add("Content-Type", "application/mbox")
+	var results bool
+	for rows.Next() {
+		results = true
+		w.Header().Add("Content-Type", "application/mbox")
 
-			var (
-				envelope string
-				created  time.Time
-			)
-			if err := rows.Scan(&envelope, &created); err != nil {
-				return err
-			}
-
-			reader, err := mail.CreateReader(bytes.NewBufferString(envelope))
-			if err != nil {
-				return err
-			}
-			from, err := reader.Header.AddressList("From")
-			reader.Close()
-			if err != nil {
-				from = []*mail.Address{&mail.Address{"unknown", "unknown@example.org"}}
-			}
-			sink, err := mbw.CreateMessage(from[0].Address, created)
-			if err != nil {
-				return err
-			}
-			if _, err = sink.Write([]byte(envelope)); err != nil {
-				return err
-			}
+		var (
+			envelope string
+			created  time.Time
+		)
+		if err := rows.Scan(&envelope, &created); err != nil {
+			return err
 		}
 
-		if !results {
-			w.WriteHeader(http.StatusNotFound)
-			w.Write([]byte("Not found\r\n"))
+		reader, err := mail.CreateReader(bytes.NewBufferString(envelope))
+		if err != nil {
+			return err
 		}
+		from, err := reader.Header.AddressList("From")
+		reader.Close()
+		if err != nil {
+			from = []*mail.Address{&mail.Address{"unknown", "unknown@example.org"}}
+		}
+		sink, err := mbw.CreateMessage(from[0].Address, created)
+		if err != nil {
+			return err
+		}
+		if _, err = sink.Write([]byte(envelope)); err != nil {
+			return err
+		}
+	}
 
-		return nil
+	if !results {
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Not found\r\n"))
+	}
+
+	return nil
 }

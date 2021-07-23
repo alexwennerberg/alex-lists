@@ -8,9 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/emersion/go-message/mail"
-	_ "github.com/emersion/go-message/charset"
 	sq "github.com/Masterminds/squirrel"
+	_ "github.com/emersion/go-message/charset"
+	"github.com/emersion/go-message/mail"
 
 	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/core-go/model"
@@ -57,25 +57,25 @@ func (email *Email) Fields() *database.ModelFields {
 	}
 	email.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "id", "id", &email.ID },
-			{ "body", "body", &email.Body },
-			{ "subject", "subject", &email.Subject },
-			{ "message_id", "message_id", &email.MessageID },
-			{ "patch_index", "patch", &email.Patch.Index },
-			{ "patch_count", "patch", &email.Patch.Count },
-			{ "patch_version", "patch", &email.Patch.Version },
-			{ "patch_prefix", "patch", &email.Patch.Prefix },
-			{ "patch_subject", "patch", &email.Patch.Subject },
+			{"id", "id", &email.ID},
+			{"body", "body", &email.Body},
+			{"subject", "subject", &email.Subject},
+			{"message_id", "message_id", &email.MessageID},
+			{"patch_index", "patch", &email.Patch.Index},
+			{"patch_count", "patch", &email.Patch.Count},
+			{"patch_version", "patch", &email.Patch.Version},
+			{"patch_prefix", "patch", &email.Patch.Prefix},
+			{"patch_subject", "patch", &email.Patch.Subject},
 
 			// Always fetch:
-			{ "id", "", &email.ID },
-			{ "list_id", "", &email.MailingListID },
-			{ "patchset_id", "", &email.PatchsetID },
-			{ "thread_id", "", &email.ThreadID },
-			{ "parent_id", "", &email.ParentID },
-			{ "sender_id", "", &email.SenderID },
-			{ "created", "", &email.Received },
-			{ "envelope", "", &email.RawEnvelope },
+			{"id", "", &email.ID},
+			{"list_id", "", &email.MailingListID},
+			{"patchset_id", "", &email.PatchsetID},
+			{"thread_id", "", &email.ThreadID},
+			{"parent_id", "", &email.ParentID},
+			{"sender_id", "", &email.SenderID},
+			{"created", "", &email.Received},
+			{"envelope", "", &email.RawEnvelope},
 		},
 	}
 	return email.fields
@@ -113,7 +113,7 @@ func (email *Email) QueryWithCursor(ctx context.Context,
 	if cur.Next != "" {
 		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
 		updated := time.Unix(ts, 0)
-		q = q.Where(database.WithAlias(email.alias, "created") + "<= ?", updated)
+		q = q.Where(database.WithAlias(email.alias, "created")+"<= ?", updated)
 	}
 	q = q.
 		Column(database.WithAlias(email.alias, "envelope")).

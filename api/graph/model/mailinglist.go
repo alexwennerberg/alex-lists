@@ -15,12 +15,12 @@ import (
 )
 
 const (
-    ACCESS_NONE = 0
-    ACCESS_BROWSE = 1
-    ACCESS_REPLY = 2
-    ACCESS_POST = 4
-    ACCESS_MODERATE = 8
-	ACCESS_ALL = 1 | 2 | 4 | 8
+	ACCESS_NONE     = 0
+	ACCESS_BROWSE   = 1
+	ACCESS_REPLY    = 2
+	ACCESS_POST     = 4
+	ACCESS_MODERATE = 8
+	ACCESS_ALL      = 1 | 2 | 4 | 8
 )
 
 type MailingList struct {
@@ -63,28 +63,28 @@ func (list *MailingList) RejectMime() []string {
 
 func (list *MailingList) Nonsubscriber() *GeneralACL {
 	return &GeneralACL{
-		Browse: list.RawNonsubscriber & ACCESS_BROWSE > 0,
-		Reply: list.RawNonsubscriber & ACCESS_REPLY > 0,
-		Post: list.RawNonsubscriber & ACCESS_POST > 0,
-		Moderate: list.RawNonsubscriber & ACCESS_MODERATE > 0,
+		Browse:   list.RawNonsubscriber&ACCESS_BROWSE > 0,
+		Reply:    list.RawNonsubscriber&ACCESS_REPLY > 0,
+		Post:     list.RawNonsubscriber&ACCESS_POST > 0,
+		Moderate: list.RawNonsubscriber&ACCESS_MODERATE > 0,
 	}
 }
 
 func (list *MailingList) Subscriber() *GeneralACL {
 	return &GeneralACL{
-		Browse: list.RawSubscriber & ACCESS_BROWSE > 0,
-		Reply: list.RawSubscriber & ACCESS_REPLY > 0,
-		Post: list.RawSubscriber & ACCESS_POST > 0,
-		Moderate: list.RawSubscriber & ACCESS_MODERATE > 0,
+		Browse:   list.RawSubscriber&ACCESS_BROWSE > 0,
+		Reply:    list.RawSubscriber&ACCESS_REPLY > 0,
+		Post:     list.RawSubscriber&ACCESS_POST > 0,
+		Moderate: list.RawSubscriber&ACCESS_MODERATE > 0,
 	}
 }
 
 func (list *MailingList) Identified() *GeneralACL {
 	return &GeneralACL{
-		Browse: list.RawIdentified & ACCESS_BROWSE > 0,
-		Reply: list.RawIdentified & ACCESS_REPLY > 0,
-		Post: list.RawIdentified & ACCESS_POST > 0,
-		Moderate: list.RawIdentified & ACCESS_MODERATE > 0,
+		Browse:   list.RawIdentified&ACCESS_BROWSE > 0,
+		Reply:    list.RawIdentified&ACCESS_REPLY > 0,
+		Post:     list.RawIdentified&ACCESS_POST > 0,
+		Moderate: list.RawIdentified&ACCESS_MODERATE > 0,
 	}
 }
 
@@ -107,21 +107,21 @@ func (list *MailingList) Fields() *database.ModelFields {
 	}
 	list.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "id", "id", &list.ID },
-			{ "created", "created", &list.Created },
-			{ "name", "name", &list.Name },
-			{ "description", "description", &list.Description },
-			{ "import_in_progress", "importing", &list.Importing },
-			{ "permit_mimetypes", "permit_mime", &list.RawPermitMime },
-			{ "reject_mimetypes", "reject_mime", &list.RawRejectMime },
-			{ "nonsubscriber_permissions", "nonsubscriber", &list.RawNonsubscriber },
-			{ "subscriber_permissions", "subscriber", &list.RawSubscriber },
-			{ "account_permissions", "identified", &list.RawIdentified },
+			{"id", "id", &list.ID},
+			{"created", "created", &list.Created},
+			{"name", "name", &list.Name},
+			{"description", "description", &list.Description},
+			{"import_in_progress", "importing", &list.Importing},
+			{"permit_mimetypes", "permit_mime", &list.RawPermitMime},
+			{"reject_mimetypes", "reject_mime", &list.RawRejectMime},
+			{"nonsubscriber_permissions", "nonsubscriber", &list.RawNonsubscriber},
+			{"subscriber_permissions", "subscriber", &list.RawSubscriber},
+			{"account_permissions", "identified", &list.RawIdentified},
 
 			// Always fetch:
-			{ "id", "", &list.ID },
-			{ "owner_id", "", &list.OwnerID },
-			{ "updated", "", &list.Updated },
+			{"id", "", &list.ID},
+			{"owner_id", "", &list.OwnerID},
+			{"updated", "", &list.Updated},
 		},
 	}
 	return list.fields
@@ -138,7 +138,7 @@ func (list *MailingList) QueryWithCursor(ctx context.Context,
 	if cur.Next != "" {
 		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
 		updated := time.Unix(ts, 0)
-		q = q.Where(database.WithAlias(list.alias, "updated") + "<= ?", updated)
+		q = q.Where(database.WithAlias(list.alias, "updated")+"<= ?", updated)
 	}
 	user := auth.ForContext(ctx)
 	q = q.

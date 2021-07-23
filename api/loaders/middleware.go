@@ -34,7 +34,7 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	ACLsByID				ACLsByIDLoader
+	ACLsByID                ACLsByIDLoader
 	EmailsByID              EmailsByIDLoader
 	EmailsByIDUnsafe        EmailsByIDLoader
 	EmailsByMessageID       EmailsByMessageIDLoader
@@ -54,8 +54,8 @@ func fetchACLsByID(ctx context.Context) func(ids []int) ([]*model.MailingListACL
 		acls := make([]*model.MailingListACL, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -97,8 +97,8 @@ func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error
 		users := make([]*model.User, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -140,8 +140,8 @@ func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, 
 		users := make([]*model.User, len(names))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -183,8 +183,8 @@ func fetchMailingListsByID(ctx context.Context) func(ids []int) ([]*model.Mailin
 		lists := make([]*model.MailingList, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -246,11 +246,11 @@ func fetchMailingListsByID(ctx context.Context) func(ids []int) ([]*model.Mailin
 			for rows.Next() {
 				list := model.MailingList{}
 				if err := rows.Scan(append(
-						database.Scan(ctx, &list),
-						&list.Permissions,
-						&list.AccessID,
-						&list.SubscriptionID,
-					)...); err != nil {
+					database.Scan(ctx, &list),
+					&list.Permissions,
+					&list.AccessID,
+					&list.SubscriptionID,
+				)...); err != nil {
 					panic(err)
 				}
 				listsByID[list.ID] = &list
@@ -275,8 +275,8 @@ func fetchMailingListsByName(ctx context.Context) func(names []string) ([]*model
 		lists := make([]*model.MailingList, len(names))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -328,8 +328,8 @@ func fetchMailingListsByOwnerName(ctx context.Context) func(names [][2]string) (
 		lists := make([]*model.MailingList, len(names))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err    error
 				rows   *sql.Rows
@@ -438,8 +438,8 @@ func fetchEmailsByID(ctx context.Context) func(ids []int) ([]*model.Email, []err
 		emails := make([]*model.Email, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -511,8 +511,8 @@ func fetchEmailsByMessageID(ctx context.Context) func(ids []string) ([]*model.Em
 		emails := make([]*model.Email, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -584,8 +584,8 @@ func fetchEmailsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Email,
 		emails := make([]*model.Email, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -628,8 +628,8 @@ func fetchThreadsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Threa
 		threads := make([]*model.Thread, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -672,8 +672,8 @@ func fetchPatchsetsByID(ctx context.Context) func(ids []int) ([]*model.Patchset,
 		patches := make([]*model.Patchset, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -744,8 +744,8 @@ func fetchPatchsetsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Pat
 		patches := make([]*model.Patchset, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -787,8 +787,8 @@ func fetchSubscriptionsByIDUnsafe(ctx context.Context) func(ids []int) ([]model.
 		subs := make([]model.Subscription, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows

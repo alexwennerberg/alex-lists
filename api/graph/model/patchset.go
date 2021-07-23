@@ -14,12 +14,12 @@ import (
 )
 
 type Patchset struct {
-	ID           int             `json:"id"`
-	Created      time.Time       `json:"created"`
-	Updated      time.Time       `json:"updated"`
-	Subject      string          `json:"subject"`
-	Prefix       *string         `json:"prefix"`
-	Version      int             `json:"version"`
+	ID      int       `json:"id"`
+	Created time.Time `json:"created"`
+	Updated time.Time `json:"updated"`
+	Subject string    `json:"subject"`
+	Prefix  *string   `json:"prefix"`
+	Version int       `json:"version"`
 
 	MailingListID  int
 	CoverLetterID  *int
@@ -32,7 +32,7 @@ type Patchset struct {
 }
 
 func (patch *Patchset) Status() PatchsetStatus {
-	switch (patch.RawStatus) {
+	switch patch.RawStatus {
 	case "unknown":
 		return PatchsetStatusUnknown
 	case "proposed":
@@ -72,19 +72,19 @@ func (patch *Patchset) Fields() *database.ModelFields {
 	}
 	patch.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "id", "id", &patch.ID },
-			{ "updated", "updated", &patch.Updated },
-			{ "subject", "subject", &patch.Subject },
-			{ "prefix", "prefix", &patch.Prefix },
-			{ "version", "version", &patch.Version },
-			{ "status", "status", &patch.RawStatus },
+			{"id", "id", &patch.ID},
+			{"updated", "updated", &patch.Updated},
+			{"subject", "subject", &patch.Subject},
+			{"prefix", "prefix", &patch.Prefix},
+			{"version", "version", &patch.Version},
+			{"status", "status", &patch.RawStatus},
 
 			// Always fetch:
-			{ "id", "", &patch.ID },
-			{ "list_id", "", &patch.MailingListID },
-			{ "cover_letter_id", "", &patch.CoverLetterID },
-			{ "superseded_by_id", "", &patch.SupersededByID },
-			{ "created", "", &patch.Created },
+			{"id", "", &patch.ID},
+			{"list_id", "", &patch.MailingListID},
+			{"cover_letter_id", "", &patch.CoverLetterID},
+			{"superseded_by_id", "", &patch.SupersededByID},
+			{"created", "", &patch.Created},
 		},
 	}
 	return patch.fields
@@ -101,7 +101,7 @@ func (patch *Patchset) QueryWithCursor(ctx context.Context,
 	if cur.Next != "" {
 		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
 		updated := time.Unix(ts, 0)
-		q = q.Where(database.WithAlias(patch.alias, "created") + "<= ?", updated)
+		q = q.Where(database.WithAlias(patch.alias, "created")+"<= ?", updated)
 	}
 	q = q.
 		Limit(uint64(cur.Count + 1)).
