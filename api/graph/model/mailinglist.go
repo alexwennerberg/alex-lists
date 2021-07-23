@@ -9,6 +9,7 @@ import (
 
 	sq "github.com/Masterminds/squirrel"
 
+	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/core-go/model"
 )
@@ -134,13 +135,30 @@ func (list *MailingList) QueryWithCursor(ctx context.Context,
 		rows *sql.Rows
 	)
 
-	// TODO: Add ACL join?
 	if cur.Next != "" {
 		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
 		updated := time.Unix(ts, 0)
 		q = q.Where(database.WithAlias(list.alias, "updated") + "<= ?", updated)
 	}
+	user := auth.ForContext(ctx)
 	q = q.
+		LeftJoin(`access ON
+			access.list_id = list.id AND
+			access.user_id = ?`, user.UserID).
+		LeftJoin(`subscription sub ON
+			sub.list_id = list.id AND
+			sub.user_id = ?`, user.UserID).
+		Column(`COALESCE(
+			access.permissions,
+			CASE WHEN list.owner_id = ?
+			THEN ?
+			ELSE CASE WHEN sub.id IS NOT NULL
+				THEN list.subscriber_permissions
+				ELSE null END
+			END,
+			list.nonsubscriber_permissions | list.account_permissions)`,
+			user.UserID, ACCESS_ALL).
+		Column(`access.id`).
 		OrderBy(database.WithAlias(list.alias, `updated`) + " DESC").
 		Limit(uint64(cur.Count + 1))
 
@@ -152,7 +170,8 @@ func (list *MailingList) QueryWithCursor(ctx context.Context,
 	var lists []*MailingList
 	for rows.Next() {
 		var list MailingList
-		if err := rows.Scan(database.Scan(ctx, &list)...); err != nil {
+		if err := rows.Scan(append(database.Scan(ctx, &list),
+			&list.Permissions, &list.AccessID)...); err != nil {
 			panic(err)
 		}
 		lists = append(lists, &list)
