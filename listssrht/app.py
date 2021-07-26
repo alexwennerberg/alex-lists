@@ -20,12 +20,14 @@ class ListsApp(SrhtFlask):
         from listssrht.blueprints.patches import patches
         from listssrht.blueprints.settings import settings
         from listssrht.blueprints.user import user
+        from srht.graphql import gql_blueprint
 
         register_api(self)
         self.register_blueprint(archives)
         self.register_blueprint(patches)
         self.register_blueprint(settings)
         self.register_blueprint(user)
+        self.register_blueprint(gql_blueprint)
 
         @self.context_processor
         def inject():

@@ -43,7 +43,9 @@ setup(
       'listssrht': [
           'templates/*.html',
           'static/icons/*',
-          'static/*'
+          'static/*',
+          'schema.graphqls',
+          'default_query.graphql',
       ]
   },
   scripts = [
