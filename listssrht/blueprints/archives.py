@@ -309,6 +309,8 @@ def remove_message(owner_name, list_name, message_id):
         redir = url_for("archives.thread",
             owner_name=owner_name, list_name=list_name,
             message_id=message.thread.message_id)
+    if message.patchset:
+        db.session.delete(message.patchset)
     db.session.delete(message)
     db.session.commit()
     return redirect(redir)
