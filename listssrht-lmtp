@@ -117,7 +117,7 @@ class MailHandler:
                        "permit_mimetypes",
                        "reject_mimetypes"
                    FROM "list"
-                   WHERE "owner_id" = $1 AND "name" = $2''')
+                   WHERE "owner_id" = $1 AND "name" ILIKE $2''')
 
     async def fetch_subscription(self, conn):
         return await conn.prepare(
@@ -174,7 +174,7 @@ class MailHandler:
         if not owner_id:
             return None, None
         fetch_list = await self.fetch_list(conn)
-        result = await fetch_list.fetchrow(owner_id, list_name)
+        result = await fetch_list.fetchrow(owner_id, list_name.replace('_', '\\_'))
         return result, command
 
     def validate(self, mail, permit_mimetypes, reject_mimetypes):

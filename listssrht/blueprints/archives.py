@@ -36,7 +36,7 @@ def get_list(owner_name, list_name, current_user=current_user):
         # TODO: orgs
         return None, None, None
     ml = (List.query
-            .filter(List.name == list_name)
+            .filter(List.name.ilike(list_name.replace('_', '\\_')))
             .filter(List.owner_id == owner.id)
         )
     if current_user:

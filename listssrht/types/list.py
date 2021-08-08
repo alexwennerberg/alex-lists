@@ -49,13 +49,15 @@ class List(Base):
         self.description = valid.optional("description")
         if not valid.ok:
             return
-        valid.expect(re.match(r'^[a-z_-][a-z0-9._-]*$', self.name),
-                "Name must match [a-z_-][a-z0-9._-]*", field="name")
+        valid.expect(re.match(r'^[A-Za-z0-9._-]+$', self.name),
+                "Name must match [A-Za-z0-9._-]+", field="name")
         valid.expect(self.name not in [".", ".."],
                 "Name cannot be '.' or '..'", field="name")
+        valid.expect(self.name not in [".git", ".hg"],
+                "Name must not be '.git' or '.hg'", field="name")
         existing = (List.query
                 .filter(List.owner_id == owner.id)
-                .filter(List.name.ilike(self.name))
+                .filter(List.name.ilike(self.name.replace('_', '\\_')))
                 .first())
         valid.expect(not existing,
                 "This name is already in use.", field="name")
