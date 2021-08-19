@@ -206,17 +206,17 @@
               {{from[0]}}
               {% endif %}
             </span>
-            <span>
+            <span aria-label="Time of last update" title="Time of last update">
               {{icon("clock")}} {{ message.updated | date }}
             </span>
             {% if message.nreplies > 0 %}
-            <span>
+            <span aria-label="Number of replies" title="Replies">
               {{icon("reply")}}
               {{message.nreplies}}
             </span>
             {% endif %}
             {% if message.nparticipants > 1 %}
-            <span>
+            <span aria-label="Number of participants" title="Participants">
               {{icon("user")}}
               {{message.nparticipants}}
             </span>
