@@ -11,7 +11,6 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
-	"git.sr.ht/~sircmpwn/core-go/email"
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/emersion/go-mbox"
@@ -41,15 +40,10 @@ func main() {
 		scopes[i] = s.String()
 	}
 
-	mailq := email.NewQueue()
 	gsrv := server.NewServer("lists.sr.ht", appConfig).
 		WithDefaultMiddleware().
-		WithMiddleware(
-			loaders.Middleware,
-			email.Middleware(mailq),
-		).
-		WithSchema(schema, scopes).
-		WithQueues(mailq)
+		WithMiddleware(loaders.Middleware).
+		WithSchema(schema, scopes)
 
 	// Bulk transfer endpoints
 	gsrv.Router().Get("/query/email/{id}", func(w http.ResponseWriter, r *http.Request) {

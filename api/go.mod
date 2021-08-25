@@ -3,7 +3,7 @@ module git.sr.ht/~sircmpwn/lists.sr.ht/api
 go 1.16
 
 require (
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20210721073626-39cd24bd091d // indirect
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20210825094745-ae61e2431576 // indirect
 	github.com/99designs/gqlgen v0.13.0
 	github.com/Masterminds/squirrel v1.4.0 // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
@@ -19,7 +19,6 @@ require (
 	github.com/urfave/cli/v2 v2.3.0 // indirect
 	github.com/vektah/dataloaden v0.3.0 // indirect
 	github.com/vektah/gqlparser/v2 v2.1.0
-	golang.org/x/sys v0.0.0-20210616094352-59db8d763f22 // indirect
 	golang.org/x/tools v0.1.3 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 )
