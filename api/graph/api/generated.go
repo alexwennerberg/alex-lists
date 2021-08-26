@@ -352,12 +352,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ACLCursor.Results(childComplexity), true
 
-	case "Email.address_list":
+	case "Email.addressList":
 		if e.complexity.Email.AddressList == nil {
 			break
 		}
 
-		args, err := ec.field_Email_address_list_args(context.TODO(), rawArgs)
+		args, err := ec.field_Email_addressList_args(context.TODO(), rawArgs)
 		if err != nil {
 			return 0, false
 		}
@@ -404,7 +404,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Email.ID(childComplexity), true
 
-	case "Email.in_reply_to":
+	case "Email.inReplyTo":
 		if e.complexity.Email.InReplyTo == nil {
 			break
 		}
@@ -418,7 +418,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Email.List(childComplexity), true
 
-	case "Email.message_id":
+	case "Email.messageID":
 		if e.complexity.Email.MessageID == nil {
 			break
 		}
@@ -650,14 +650,14 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.MailingList.Patches(childComplexity, args["cursor"].(*model1.Cursor)), true
 
-	case "MailingList.permit_mime":
+	case "MailingList.permitMime":
 		if e.complexity.MailingList.PermitMime == nil {
 			break
 		}
 
 		return e.complexity.MailingList.PermitMime(childComplexity), true
 
-	case "MailingList.reject_mime":
+	case "MailingList.rejectMime":
 		if e.complexity.MailingList.RejectMime == nil {
 			break
 		}
@@ -823,7 +823,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Patch.Version(childComplexity), true
 
-	case "Patchset.cover_letter":
+	case "Patchset.coverLetter":
 		if e.complexity.Patchset.CoverLetter == nil {
 			break
 		}
@@ -898,7 +898,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Patchset.Submitter(childComplexity), true
 
-	case "Patchset.superseded_by":
+	case "Patchset.supersededBy":
 		if e.complexity.Patchset.SupersededBy == nil {
 			break
 		}
@@ -1517,8 +1517,8 @@ type MailingList {
 
   # List of globs for permitted or rejected mimetypes on this list
   # e.g. text/*
-  permit_mime: [String!]!
-  reject_mime: [String!]!
+  permitMime: [String!]!
+  rejectMime: [String!]!
 
   # List of threads on this list in order of most recently bumped
   threads(cursor: Cursor): ThreadCursor! @access(scope: EMAILS, kind: RO)
@@ -1622,16 +1622,16 @@ type Email {
   # The Subject header.
   subject: String!
   # The Message-ID header, without angle brackets.
-  message_id: String!
+  messageID: String!
   # The In-Reply-To header, if present, without angle brackets.
-  in_reply_to: String
+  inReplyTo: String
 
   # Provides the value (or values) of a specific header from this email. Note
   # that the returned value is coerced to UTF-8 and may be lossy under certain
   # circumstances.
   header(want: String!): [String!]!
   # Retrieves the value of an address list header, such as To or Cc.
-  address_list(want: String!): [Mailbox!]!
+  addressList(want: String!): [Mailbox!]!
   # The decoded text/plain message part of the email, i.e. email body.
   body: String!
   # A URL from which the full raw message envelope may be downloaded.
@@ -1684,9 +1684,9 @@ type Patchset {
   status: PatchsetStatus!
   submitter: Entity!
 
-  cover_letter: Email @access(scope: EMAILS, kind: RO)
+  coverLetter: Email @access(scope: EMAILS, kind: RO)
   thread: Thread! @access(scope: EMAILS, kind: RO)
-  superseded_by: Patchset
+  supersededBy: Patchset
   list: MailingList! @access(scope: LISTS, kind: RO)
   patches(cursor: Cursor): EmailCursor! @access(scope: EMAILS, kind: RO)
   tools: [PatchsetTool!]!
@@ -1863,7 +1863,7 @@ func (ec *executionContext) dir_scopehelp_args(ctx context.Context, rawArgs map[
 	return args, nil
 }
 
-func (ec *executionContext) field_Email_address_list_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+func (ec *executionContext) field_Email_addressList_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
 	var err error
 	args := map[string]interface{}{}
 	var arg0 string
@@ -2494,7 +2494,7 @@ func (ec *executionContext) _Email_subject(ctx context.Context, field graphql.Co
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Email_message_id(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+func (ec *executionContext) _Email_messageID(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2529,7 +2529,7 @@ func (ec *executionContext) _Email_message_id(ctx context.Context, field graphql
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Email_in_reply_to(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+func (ec *executionContext) _Email_inReplyTo(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2603,7 +2603,7 @@ func (ec *executionContext) _Email_header(ctx context.Context, field graphql.Col
 	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Email_address_list(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
+func (ec *executionContext) _Email_addressList(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2620,7 +2620,7 @@ func (ec *executionContext) _Email_address_list(ctx context.Context, field graph
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Email_address_list_args(ctx, rawArgs)
+	args, err := ec.field_Email_addressList_args(ctx, rawArgs)
 	if err != nil {
 		ec.Error(ctx, err)
 		return graphql.Null
@@ -3484,7 +3484,7 @@ func (ec *executionContext) _MailingList_description(ctx context.Context, field 
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _MailingList_permit_mime(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+func (ec *executionContext) _MailingList_permitMime(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3519,7 +3519,7 @@ func (ec *executionContext) _MailingList_permit_mime(ctx context.Context, field 
 	return ec.marshalNString2ᚕstringᚄ(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _MailingList_reject_mime(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
+func (ec *executionContext) _MailingList_rejectMime(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -5140,7 +5140,7 @@ func (ec *executionContext) _Patchset_submitter(ctx context.Context, field graph
 	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Patchset_cover_letter(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+func (ec *executionContext) _Patchset_coverLetter(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -5263,7 +5263,7 @@ func (ec *executionContext) _Patchset_thread(ctx context.Context, field graphql.
 	return ec.marshalNThread2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThread(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Patchset_superseded_by(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
+func (ec *executionContext) _Patchset_supersededBy(ctx context.Context, field graphql.CollectedField, obj *model.Patchset) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -9154,13 +9154,13 @@ func (ec *executionContext) _Email(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "message_id":
-			out.Values[i] = ec._Email_message_id(ctx, field, obj)
+		case "messageID":
+			out.Values[i] = ec._Email_messageID(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "in_reply_to":
-			out.Values[i] = ec._Email_in_reply_to(ctx, field, obj)
+		case "inReplyTo":
+			out.Values[i] = ec._Email_inReplyTo(ctx, field, obj)
 		case "header":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -9175,7 +9175,7 @@ func (ec *executionContext) _Email(ctx context.Context, sel ast.SelectionSet, ob
 				}
 				return res
 			})
-		case "address_list":
+		case "addressList":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -9183,7 +9183,7 @@ func (ec *executionContext) _Email(ctx context.Context, sel ast.SelectionSet, ob
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Email_address_list(ctx, field, obj)
+				res = ec._Email_addressList(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -9426,13 +9426,13 @@ func (ec *executionContext) _MailingList(ctx context.Context, sel ast.SelectionS
 			})
 		case "description":
 			out.Values[i] = ec._MailingList_description(ctx, field, obj)
-		case "permit_mime":
-			out.Values[i] = ec._MailingList_permit_mime(ctx, field, obj)
+		case "permitMime":
+			out.Values[i] = ec._MailingList_permitMime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "reject_mime":
-			out.Values[i] = ec._MailingList_reject_mime(ctx, field, obj)
+		case "rejectMime":
+			out.Values[i] = ec._MailingList_rejectMime(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
@@ -9820,7 +9820,7 @@ func (ec *executionContext) _Patchset(ctx context.Context, sel ast.SelectionSet,
 				}
 				return res
 			})
-		case "cover_letter":
+		case "coverLetter":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -9828,7 +9828,7 @@ func (ec *executionContext) _Patchset(ctx context.Context, sel ast.SelectionSet,
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Patchset_cover_letter(ctx, field, obj)
+				res = ec._Patchset_coverLetter(ctx, field, obj)
 				return res
 			})
 		case "thread":
@@ -9845,7 +9845,7 @@ func (ec *executionContext) _Patchset(ctx context.Context, sel ast.SelectionSet,
 				}
 				return res
 			})
-		case "superseded_by":
+		case "supersededBy":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -9853,7 +9853,7 @@ func (ec *executionContext) _Patchset(ctx context.Context, sel ast.SelectionSet,
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Patchset_superseded_by(ctx, field, obj)
+				res = ec._Patchset_supersededBy(ctx, field, obj)
 				return res
 			})
 		case "list":

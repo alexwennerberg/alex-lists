@@ -21,8 +21,8 @@ type Email struct {
 	Received  time.Time `json:"received"`
 	Body      string    `json:"body"`
 	Subject   string    `json:"subject"`
-	MessageID string    `json:"message_id"`
-	InReplyTo *string   `json:"in_reply_to"`
+	MessageID string    `json:"messageID"`
+	InReplyTo *string   `json:"inReplyTo"`
 	Patch     Patch     `json:"patch"`
 
 	MailingListID int
@@ -60,7 +60,7 @@ func (email *Email) Fields() *database.ModelFields {
 			{"id", "id", &email.ID},
 			{"body", "body", &email.Body},
 			{"subject", "subject", &email.Subject},
-			{"message_id", "message_id", &email.MessageID},
+			{"message_id", "messageID", &email.MessageID},
 			{"patch_index", "patch", &email.Patch.Index},
 			{"patch_count", "patch", &email.Patch.Count},
 			{"patch_version", "patch", &email.Patch.Version},

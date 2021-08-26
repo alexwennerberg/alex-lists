@@ -86,8 +86,8 @@ type MailingList {
 
   # List of globs for permitted or rejected mimetypes on this list
   # e.g. text/*
-  permit_mime: [String!]!
-  reject_mime: [String!]!
+  permitMime: [String!]!
+  rejectMime: [String!]!
 
   # List of threads on this list in order of most recently bumped
   threads(cursor: Cursor): ThreadCursor! @access(scope: EMAILS, kind: RO)
@@ -191,16 +191,16 @@ type Email {
   # The Subject header.
   subject: String!
   # The Message-ID header, without angle brackets.
-  message_id: String!
+  messageID: String!
   # The In-Reply-To header, if present, without angle brackets.
-  in_reply_to: String
+  inReplyTo: String
 
   # Provides the value (or values) of a specific header from this email. Note
   # that the returned value is coerced to UTF-8 and may be lossy under certain
   # circumstances.
   header(want: String!): [String!]!
   # Retrieves the value of an address list header, such as To or Cc.
-  address_list(want: String!): [Mailbox!]!
+  addressList(want: String!): [Mailbox!]!
   # The decoded text/plain message part of the email, i.e. email body.
   body: String!
   # A URL from which the full raw message envelope may be downloaded.
@@ -253,9 +253,9 @@ type Patchset {
   status: PatchsetStatus!
   submitter: Entity!
 
-  cover_letter: Email @access(scope: EMAILS, kind: RO)
+  coverLetter: Email @access(scope: EMAILS, kind: RO)
   thread: Thread! @access(scope: EMAILS, kind: RO)
-  superseded_by: Patchset
+  supersededBy: Patchset
   list: MailingList! @access(scope: LISTS, kind: RO)
   patches(cursor: Cursor): EmailCursor! @access(scope: EMAILS, kind: RO)
   tools: [PatchsetTool!]!
