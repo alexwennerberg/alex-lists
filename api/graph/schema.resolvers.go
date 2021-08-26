@@ -16,6 +16,7 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
+	"git.sr.ht/~sircmpwn/core-go/valid"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
@@ -285,8 +286,109 @@ func (r *mailingListACLResolver) Entity(ctx context.Context, obj *model.MailingL
 }
 
 func (r *mailingListSubscriptionResolver) List(ctx context.Context, obj *model.MailingListSubscription) (*model.MailingList, error) {
-	// XXX: This can be unsafe if we ever write that loader
+	// XXX: We could use an unsafe resolver here if we wrote one
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.ListID)
+}
+
+func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, description *string) (*model.MailingList, error) {
+	valid := valid.New(ctx)
+	valid.Expect(listNameRE.MatchString(name), "Name must match %s", listNameRE.String()).
+		WithField("name").
+		And(name != "." && name != ".." && name != ".git" && name != ".hg",
+			"This is a reserved name and cannot be used for user mailing lists.").
+		WithField("name")
+	valid.Expect(description == nil || len(*description) < 2048,
+		"Description must be fewer than 2048 characters").
+		WithField("description")
+	if !valid.Ok() {
+		return nil, nil
+	}
+
+	var list model.MailingList
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO list (
+				created, updated, name, description, owner_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, $2, $3
+			) RETURNING
+				id, created, updated, name, description, owner_id,
+				permit_mimetypes, reject_mimetypes,
+				nonsubscriber_permissions, subscriber_permissions, account_permissions;
+		`, name, description, auth.ForContext(ctx).UserID)
+
+		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
+			&list.Description, &list.OwnerID,
+			&list.RawPermitMime, &list.RawRejectMime,
+			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified);
+			err != nil {
+			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+				return fmt.Errorf("A mailing list with this name already exists.")
+			}
+			return err
+		}
+		list.Permissions = model.ACCESS_ALL
+
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO subscription (
+				created, updated, list_id, user_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, $2
+			);
+		`, list.ID, auth.ForContext(ctx).UserID)
+		return err
+	}); err != nil {
+		return nil, err
+	}
+	return &list, nil
+}
+
+func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input model.MailingListInput) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateUserACL(ctx context.Context, listID int, userID int, input model.ACLInput) (*model.MailingListACL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateSenderACL(ctx context.Context, listID int, address string, input model.ACLInput) (*model.MailingListACL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateMailingListACL(ctx context.Context, listID int, input model.ACLInput) (*model.MailingList, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.MailingListACL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) RemoveEmail(ctx context.Context, id int) (*model.Email, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdatePatchset(ctx context.Context, id int, status model.PatchsetStatus) (*model.Patchset, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateTool(ctx context.Context, patchsetID int, key string, details string, icon model.ToolIcon) (*model.PatchsetTool, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) MailingListSubscribe(ctx context.Context, listID int) (*model.MailingListSubscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) MailingListUnsubscribe(ctx context.Context, listID int) (*model.MailingListSubscription, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (model.Entity, error) {
@@ -933,6 +1035,9 @@ func (r *Resolver) MailingListSubscription() api.MailingListSubscriptionResolver
 	return &mailingListSubscriptionResolver{r}
 }
 
+// Mutation returns api.MutationResolver implementation.
+func (r *Resolver) Mutation() api.MutationResolver { return &mutationResolver{r} }
+
 // Patchset returns api.PatchsetResolver implementation.
 func (r *Resolver) Patchset() api.PatchsetResolver { return &patchsetResolver{r} }
 
@@ -952,6 +1057,7 @@ type emailResolver struct{ *Resolver }
 type mailingListResolver struct{ *Resolver }
 type mailingListACLResolver struct{ *Resolver }
 type mailingListSubscriptionResolver struct{ *Resolver }
+type mutationResolver struct{ *Resolver }
 type patchsetResolver struct{ *Resolver }
 type patchsetToolResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

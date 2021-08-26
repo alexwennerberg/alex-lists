@@ -6,6 +6,9 @@ from listssrht.types.listaccess import ListAccess
 
 class List(Base):
     __tablename__ = 'list'
+    __table_args__ = sa.UniqueConstraint('owner_id', 'name',
+                name="uq_list_owner_id_name"),
+
     id = sa.Column(sa.Integer, primary_key=True)
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)

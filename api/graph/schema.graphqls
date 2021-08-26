@@ -385,3 +385,78 @@ type Query {
   # List of subscriptions of the authenticated user
   subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
 }
+
+# TODO: Allow users to change the name of a mailing list
+input MailingListInput {
+  # Omit any fields to leave it unchanged, or set them to null to clear their
+  # value (if appropriate).
+  description: String
+  # List of globs for permitted or rejected mimetypes on this list
+  # e.g. text/*
+  permitMime: [String!]
+  rejectMime: [String!]
+}
+
+# All fields are required
+input ACLInput {
+  browse: Boolean!
+  reply: Boolean!
+  post: Boolean!
+  moderate: Boolean!
+}
+
+type Mutation {
+  # Creates a new mailing list
+  createMailingList(
+    name: String!,
+    description: String): MailingList! @access(scope: LISTS, kind: RW)
+
+  # Updates a mailing list.
+  updateMailingList(
+    id: Int!,
+    input: MailingListInput!): MailingList @access(scope: LISTS, kind: RW)
+
+  # Deletes a mailing list
+  deleteMailingList(id: Int!): MailingList @access(scope: LISTS, kind: RW)
+
+  # Adds or updates the ACL for a user on a mailing list
+  updateUserACL(
+    listID: Int!,
+    userID: Int!,
+    input: ACLInput!): MailingListACL @access(scope: ACLS, kind: RW)
+
+  # Adds or updates the ACL for an email address on a mailing list
+  updateSenderACL(
+    listID: Int!,
+    address: String!,
+    input: ACLInput!): MailingListACL @access(scope: ACLS, kind: RW)
+
+  # Updates the default ACL for a mailing list, which applies to users and
+  # senders for whom a more specific ACL does not exist.
+  updateMailingListACL(
+    listID: Int!,
+    input: ACLInput!): MailingList @access(scope: ACLS, kind: RW)
+
+  # Removes a mailing list ACL. Following this, the default mailing list ACL will apply to this user.
+  deleteACL(id: Int!): MailingListACL @access(scope: ACLS, kind: RW)
+
+  # Removes an email from the archives. Requires moderator permissions on the
+  # implicated mailing list.
+  removeEmail(id: Int!): Email @access(scope: EMAILS, kind: RW)
+
+  # Updates the status of a patchset
+  updatePatchset(id: Int!, status: PatchsetStatus!): Patchset @access(scope: PATCHES, kind: RW)
+
+  # Adds or updates the status of a patchset tool
+  updateTool(
+    patchsetID: Int!,
+    key: String!,
+    details: String!,
+    icon: ToolIcon!): PatchsetTool @access(scope: PATCHES, kind: RW)
+
+  # Creates a mailing list subscription
+  mailingListSubscribe(listID: Int!): MailingListSubscription! @access(scope: SUBSCRIPTIONS, kind: RW)
+
+  # Deletes a mailing list subscription
+  mailingListUnsubscribe(listID: Int!): MailingListSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
+}

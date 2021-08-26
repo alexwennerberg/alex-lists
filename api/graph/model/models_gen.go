@@ -28,6 +28,13 @@ type ACLCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+type ACLInput struct {
+	Browse   bool `json:"browse"`
+	Reply    bool `json:"reply"`
+	Post     bool `json:"post"`
+	Moderate bool `json:"moderate"`
+}
+
 type EmailCursor struct {
 	Results []*Email      `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
@@ -36,6 +43,12 @@ type EmailCursor struct {
 type MailingListCursor struct {
 	Results []*MailingList `json:"results"`
 	Cursor  *model.Cursor  `json:"cursor"`
+}
+
+type MailingListInput struct {
+	Description *string  `json:"description"`
+	PermitMime  []string `json:"permitMime"`
+	RejectMime  []string `json:"rejectMime"`
 }
 
 type Patch struct {
