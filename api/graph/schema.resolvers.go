@@ -411,7 +411,35 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 }
 
 func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*model.MailingList, error) {
-	panic(fmt.Errorf("not implemented"))
+	var list model.MailingList
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		// XXX: It would be nice if we generalized database.Scan a little bit
+		// so it can work with queries other than Select. Might call for
+		// forking squirrel to add PostgreSQL-specific features.
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM list
+			WHERE id = $1 AND owner_id = $2
+			RETURNING
+				id, created, updated, name, description, owner_id,
+				permit_mimetypes, reject_mimetypes,
+				nonsubscriber_permissions, subscriber_permissions, account_permissions;`,
+			id, auth.ForContext(ctx).UserID)
+		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
+			&list.Description, &list.OwnerID,
+			&list.RawPermitMime, &list.RawRejectMime,
+			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified);
+			err != nil {
+			return err
+		}
+		list.Permissions = model.ACCESS_ALL
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &list, nil
 }
 
 func (r *mutationResolver) UpdateUserACL(ctx context.Context, listID int, userID int, input model.ACLInput) (*model.MailingListACL, error) {
