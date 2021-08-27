@@ -386,11 +386,11 @@ type Query {
   subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 
+# You may omit any fields to leave them unchanged.
 # TODO: Allow users to change the name of a mailing list
 input MailingListInput {
-  # Omit any fields to leave it unchanged, or set them to null to clear their
-  # value (if appropriate).
   description: String
+
   # List of globs for permitted or rejected mimetypes on this list
   # e.g. text/*
   permitMime: [String!]

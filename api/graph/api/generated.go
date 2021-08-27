@@ -150,7 +150,7 @@ type ComplexityRoot struct {
 		MailingListSubscribe   func(childComplexity int, listID int) int
 		MailingListUnsubscribe func(childComplexity int, listID int) int
 		RemoveEmail            func(childComplexity int, id int) int
-		UpdateMailingList      func(childComplexity int, id int, input model.MailingListInput) int
+		UpdateMailingList      func(childComplexity int, id int, input map[string]interface{}) int
 		UpdateMailingListACL   func(childComplexity int, listID int, input model.ACLInput) int
 		UpdatePatchset         func(childComplexity int, id int, status model.PatchsetStatus) int
 		UpdateSenderACL        func(childComplexity int, listID int, address string, input model.ACLInput) int
@@ -299,7 +299,7 @@ type MailingListSubscriptionResolver interface {
 }
 type MutationResolver interface {
 	CreateMailingList(ctx context.Context, name string, description *string) (*model.MailingList, error)
-	UpdateMailingList(ctx context.Context, id int, input model.MailingListInput) (*model.MailingList, error)
+	UpdateMailingList(ctx context.Context, id int, input map[string]interface{}) (*model.MailingList, error)
 	DeleteMailingList(ctx context.Context, id int) (*model.MailingList, error)
 	UpdateUserACL(ctx context.Context, listID int, userID int, input model.ACLInput) (*model.MailingListACL, error)
 	UpdateSenderACL(ctx context.Context, listID int, address string, input model.ACLInput) (*model.MailingListACL, error)
@@ -900,7 +900,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateMailingList(childComplexity, args["id"].(int), args["input"].(model.MailingListInput)), true
+		return e.complexity.Mutation.UpdateMailingList(childComplexity, args["id"].(int), args["input"].(map[string]interface{})), true
 
 	case "Mutation.updateMailingListACL":
 		if e.complexity.Mutation.UpdateMailingListACL == nil {
@@ -2005,11 +2005,11 @@ type Query {
   subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 
+# You may omit any fields to leave them unchanged.
 # TODO: Allow users to change the name of a mailing list
 input MailingListInput {
-  # Omit any fields to leave it unchanged, or set them to null to clear their
-  # value (if appropriate).
   description: String
+
   # List of globs for permitted or rejected mimetypes on this list
   # e.g. text/*
   permitMime: [String!]
@@ -2351,10 +2351,10 @@ func (ec *executionContext) field_Mutation_updateMailingList_args(ctx context.Co
 		}
 	}
 	args["id"] = arg0
-	var arg1 model.MailingListInput
+	var arg1 map[string]interface{}
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg1, err = ec.unmarshalNMailingListInput2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListInput(ctx, tmp)
+		arg1, err = ec.unmarshalNMailingListInput2map(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -5341,7 +5341,7 @@ func (ec *executionContext) _Mutation_updateMailingList(ctx context.Context, fie
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateMailingList(rctx, args["id"].(int), args["input"].(model.MailingListInput))
+			return ec.resolvers.Mutation().UpdateMailingList(rctx, args["id"].(int), args["input"].(map[string]interface{}))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "LISTS")
@@ -10400,42 +10400,6 @@ func (ec *executionContext) unmarshalInputACLInput(ctx context.Context, obj inte
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputMailingListInput(ctx context.Context, obj interface{}) (model.MailingListInput, error) {
-	var it model.MailingListInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "description":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "permitMime":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("permitMime"))
-			it.PermitMime, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "rejectMime":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("rejectMime"))
-			it.RejectMime, err = ec.unmarshalOString2ᚕstringᚄ(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -12565,9 +12529,8 @@ func (ec *executionContext) marshalNMailingListCursor2ᚖgitᚗsrᚗhtᚋאsircm
 	return ec._MailingListCursor(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNMailingListInput2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListInput(ctx context.Context, v interface{}) (model.MailingListInput, error) {
-	res, err := ec.unmarshalInputMailingListInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
+func (ec *executionContext) unmarshalNMailingListInput2map(ctx context.Context, v interface{}) (map[string]interface{}, error) {
+	return v.(map[string]interface{}), nil
 }
 
 func (ec *executionContext) marshalNMailingListSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListSubscription(ctx context.Context, sel ast.SelectionSet, v model.MailingListSubscription) graphql.Marshaler {

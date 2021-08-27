@@ -60,3 +60,6 @@ models:
   URL:
     model:
       - git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.URL
+  MailingListInput:
+    model:
+      - "map[string]interface{}"

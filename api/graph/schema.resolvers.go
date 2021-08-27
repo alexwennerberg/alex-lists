@@ -73,7 +73,7 @@ func (r *emailResolver) AddressList(ctx context.Context, obj *model.Email, want 
 		addrs = append(addrs, &model.Mailbox{
 			Name:    item.Name,
 			Address: item.Address,
-		})
+			})
 	}
 	return addrs, nil
 }
@@ -322,8 +322,7 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
 			&list.Description, &list.OwnerID,
 			&list.RawPermitMime, &list.RawRejectMime,
-			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified);
-			err != nil {
+			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified); err != nil {
 			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
 				return fmt.Errorf("A mailing list with this name already exists.")
 			}
@@ -347,8 +346,68 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 	return &list, nil
 }
 
-func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input model.MailingListInput) (*model.MailingList, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input map[string]interface{}) (*model.MailingList, error) {
+	valid := valid.New(ctx).WithInput(input)
+	query := sq.Update(`list`).PlaceholderFormat(sq.Dollar)
+
+	valid.OptionalString("description", func(desc string) {
+		valid.Expect(len(desc) < 2048,
+			"Description must be fewer than 2048 characters").
+			WithField("description")
+		query = query.Set("description", desc)
+	})
+	mime := func(name string) {
+		valid.Optional(name + "Mime", func(object interface{}) {
+			list, ok := object.([]interface{})
+			if !ok {
+				panic("Invalid mime list") // GraphQL invariant
+			}
+			items := make([]string, len(list))
+			for i, item := range list {
+				str, ok := item.(string)
+				if !ok {
+					panic("Invalid mime list") // GraphQL invariant
+				}
+				items[i] = str
+			}
+			// TODO: This should be updated to a native Postgres array type
+			query = query.Set(name + "_mimetypes", strings.Join(items, ","))
+		})
+	}
+	mime("permit")
+	mime("reject")
+	if !valid.Ok() {
+		return nil, nil
+	}
+
+	var list model.MailingList
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := query.
+			Where(`list.id = ? AND list.owner_id = ?`,
+				id, auth.ForContext(ctx).UserID).
+			Suffix(`RETURNING
+				id, created, updated, name, description, owner_id,
+				permit_mimetypes, reject_mimetypes,
+				nonsubscriber_permissions, subscriber_permissions, account_permissions`).
+			RunWith(tx).
+			QueryRowContext(ctx)
+
+		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
+			&list.Description, &list.OwnerID,
+			&list.RawPermitMime, &list.RawRejectMime,
+			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified);
+			err != nil {
+			return err
+		}
+		list.Permissions = model.ACCESS_ALL
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &list, nil
 }
 
 func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*model.MailingList, error) {

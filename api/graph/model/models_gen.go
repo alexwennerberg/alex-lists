@@ -45,12 +45,6 @@ type MailingListCursor struct {
 	Cursor  *model.Cursor  `json:"cursor"`
 }
 
-type MailingListInput struct {
-	Description *string  `json:"description"`
-	PermitMime  []string `json:"permitMime"`
-	RejectMime  []string `json:"rejectMime"`
-}
-
 type Patch struct {
 	Index   *int    `json:"index"`
 	Count   *int    `json:"count"`
