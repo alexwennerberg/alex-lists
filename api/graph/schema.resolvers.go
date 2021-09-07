@@ -525,7 +525,37 @@ func (r *mutationResolver) UpdateSenderACL(ctx context.Context, listID int, addr
 }
 
 func (r *mutationResolver) UpdateMailingListACL(ctx context.Context, listID int, input model.ACLInput) (*model.MailingList, error) {
-	panic(fmt.Errorf("not implemented"))
+	bits := ACLInputBits(input)
+	var list model.MailingList
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		// TODO: Update me after unifying the ACL columns
+		row := tx.QueryRowContext(ctx, `
+			UPDATE list SET
+				nonsubscriber_permissions = $1,
+				subscriber_permissions = $1,
+				account_permissions = $1
+			WHERE id = $2 AND owner_id = $3
+			RETURNING
+				id, created, updated, name, description, owner_id,
+				permit_mimetypes, reject_mimetypes,
+				nonsubscriber_permissions, subscriber_permissions, account_permissions;
+		`, bits, listID, auth.ForContext(ctx).UserID)
+		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
+			&list.Description, &list.OwnerID,
+			&list.RawPermitMime, &list.RawRejectMime,
+			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified);
+			err != nil {
+			return err
+		}
+		list.Permissions = model.ACCESS_ALL
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &list, nil
 }
 
 func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.MailingListACL, error) {
