@@ -443,7 +443,44 @@ func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*mode
 }
 
 func (r *mutationResolver) UpdateUserACL(ctx context.Context, listID int, userID int, input model.ACLInput) (*model.MailingListACL, error) {
-	panic(fmt.Errorf("not implemented"))
+	bits := ACLInputBits(input)
+	var acl model.MailingListACL
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO access (
+				created, updated, list_id, user_id, permissions
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				-- The purpose of this is to filter out lists that the user is
+				-- not an owner of. Saves us a round-trip
+				(SELECT id FROM list WHERE id = $1 AND owner_id = $4),
+				$2, $3
+			)
+			ON CONFLICT ON CONSTRAINT uq_access_list_id_user_id
+			DO UPDATE SET
+				updated = NOW() at time zone 'utc',
+				permissions = $3
+			RETURNING id, created, list_id, user_id, permissions;
+		`, listID, userID, bits, auth.ForContext(ctx).UserID)
+		if err := row.Scan(&acl.ID, &acl.Created, &acl.MailingListID,
+			&acl.UserID, &acl.RawAccess); err != nil {
+			if strings.Contains(err.Error(), "violates not-null constraint") {
+				return sql.ErrNoRows
+			}
+			if strings.Contains(err.Error(), "violates foreign key constraint") {
+				return sql.ErrNoRows
+			}
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &acl, nil
 }
 
 func (r *mutationResolver) UpdateSenderACL(ctx context.Context, listID int, address string, input model.ACLInput) (*model.MailingListACL, error) {
