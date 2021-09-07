@@ -73,7 +73,7 @@ func (r *emailResolver) AddressList(ctx context.Context, obj *model.Email, want 
 		addrs = append(addrs, &model.Mailbox{
 			Name:    item.Name,
 			Address: item.Address,
-			})
+		})
 	}
 	return addrs, nil
 }
@@ -237,7 +237,7 @@ func (r *mailingListResolver) Last30days(ctx context.Context, obj *model.Mailing
 	return &model.URL{url}, nil
 }
 
-func (r *mailingListResolver) ACL(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
+func (r *mailingListResolver) ACL(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.MailingListACLCursor, error) {
 	if obj.OwnerID != auth.ForContext(ctx).UserID {
 		return nil, fmt.Errorf("Access denied")
 	}
@@ -245,7 +245,7 @@ func (r *mailingListResolver) ACL(ctx context.Context, obj *model.MailingList, c
 		cursor = coremodel.NewCursor(nil)
 	}
 
-	var acls []model.ACL
+	var acls []*model.MailingListACL
 	if err := database.WithTx(ctx, &sql.TxOptions{
 		Isolation: 0,
 		ReadOnly:  true,
@@ -261,7 +261,7 @@ func (r *mailingListResolver) ACL(ctx context.Context, obj *model.MailingList, c
 		return nil, err
 	}
 
-	return &model.ACLCursor{acls, cursor}, nil
+	return &model.MailingListACLCursor{acls, cursor}, nil
 }
 
 func (r *mailingListACLResolver) List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error) {
@@ -357,7 +357,7 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 		query = query.Set("description", desc)
 	})
 	mime := func(name string) {
-		valid.Optional(name + "Mime", func(object interface{}) {
+		valid.Optional(name+"Mime", func(object interface{}) {
 			list, ok := object.([]interface{})
 			if !ok {
 				panic("Invalid mime list") // GraphQL invariant
@@ -371,7 +371,7 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 				items[i] = str
 			}
 			// TODO: This should be updated to a native Postgres array type
-			query = query.Set(name + "_mimetypes", strings.Join(items, ","))
+			query = query.Set(name+"_mimetypes", strings.Join(items, ","))
 		})
 	}
 	mime("permit")
@@ -395,8 +395,7 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
 			&list.Description, &list.OwnerID,
 			&list.RawPermitMime, &list.RawRejectMime,
-			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified);
-			err != nil {
+			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified); err != nil {
 			return err
 		}
 		list.Permissions = model.ACCESS_ALL
@@ -427,8 +426,7 @@ func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*mode
 		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
 			&list.Description, &list.OwnerID,
 			&list.RawPermitMime, &list.RawRejectMime,
-			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified);
-			err != nil {
+			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified); err != nil {
 			return err
 		}
 		list.Permissions = model.ACCESS_ALL
@@ -543,8 +541,7 @@ func (r *mutationResolver) UpdateMailingListACL(ctx context.Context, listID int,
 		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
 			&list.Description, &list.OwnerID,
 			&list.RawPermitMime, &list.RawRejectMime,
-			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified);
-			err != nil {
+			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified); err != nil {
 			return err
 		}
 		list.Permissions = model.ACCESS_ALL

@@ -113,7 +113,7 @@ type MailingList {
   # The following resolvers are only available to the list owner:
 
   # Access control list entries for this mailing list
-  acl(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
+  acl(cursor: Cursor): MailingListACLCursor! @access(scope: ACLS, kind: RO)
   # Permissions which apply to any non-subscriber
   nonsubscriber: GeneralACL!
   # Permissions which apply to any subscriber
@@ -300,8 +300,8 @@ type MailingListSubscription implements Subscription {
 # If there are additional results available, the cursor object may be passed
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
-type ACLCursor {
-  results: [ACL!]!
+type MailingListACLCursor {
+  results: [MailingListACL!]!
   cursor: Cursor
 }
 

@@ -86,7 +86,7 @@ func (acl *MailingListACL) Fields() *database.ModelFields {
 
 func (acl *MailingListACL) QueryWithCursor(ctx context.Context,
 	runner sq.BaseRunner, q sq.SelectBuilder,
-	cur *model.Cursor) ([]ACL, *model.Cursor) {
+	cur *model.Cursor) ([]*MailingListACL, *model.Cursor) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -107,7 +107,7 @@ func (acl *MailingListACL) QueryWithCursor(ctx context.Context,
 	defer rows.Close()
 
 	var (
-		acls   []ACL
+		acls   []*MailingListACL
 		latest time.Time
 	)
 	for rows.Next() {
