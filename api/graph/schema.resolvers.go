@@ -559,7 +559,31 @@ func (r *mutationResolver) UpdateMailingListACL(ctx context.Context, listID int,
 }
 
 func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.MailingListACL, error) {
-	panic(fmt.Errorf("not implemented"))
+	var acl model.MailingListACL
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM access
+			USING list
+			WHERE
+				access.list_id = list.id AND
+				access.id = $1 AND
+				list.owner_id = $2
+			RETURNING
+				access.id, access.created, access.list_id, access.user_id,
+				access.email, access.permissions;
+		`, id, auth.ForContext(ctx).UserID)
+		if err := row.Scan(&acl.ID, &acl.Created, &acl.MailingListID,
+			&acl.UserID, &acl.Email, &acl.RawAccess); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &acl, nil
 }
 
 func (r *mutationResolver) RemoveEmail(ctx context.Context, id int) (*model.Email, error) {
