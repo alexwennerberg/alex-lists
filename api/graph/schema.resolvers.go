@@ -583,10 +583,6 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.Mailin
 	return &acl, nil
 }
 
-func (r *mutationResolver) RemoveEmail(ctx context.Context, id int) (*model.Email, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *mutationResolver) UpdatePatchset(ctx context.Context, id int, status model.PatchsetStatus) (*model.Patchset, error) {
 	panic(fmt.Errorf("not implemented"))
 }

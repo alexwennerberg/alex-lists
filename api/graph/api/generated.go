@@ -149,7 +149,6 @@ type ComplexityRoot struct {
 		DeleteMailingList      func(childComplexity int, id int) int
 		MailingListSubscribe   func(childComplexity int, listID int) int
 		MailingListUnsubscribe func(childComplexity int, listID int) int
-		RemoveEmail            func(childComplexity int, id int) int
 		UpdateMailingList      func(childComplexity int, id int, input map[string]interface{}) int
 		UpdateMailingListACL   func(childComplexity int, listID int, input model.ACLInput) int
 		UpdatePatchset         func(childComplexity int, id int, status model.PatchsetStatus) int
@@ -305,7 +304,6 @@ type MutationResolver interface {
 	UpdateSenderACL(ctx context.Context, listID int, address string, input model.ACLInput) (*model.MailingListACL, error)
 	UpdateMailingListACL(ctx context.Context, listID int, input model.ACLInput) (*model.MailingList, error)
 	DeleteACL(ctx context.Context, id int) (*model.MailingListACL, error)
-	RemoveEmail(ctx context.Context, id int) (*model.Email, error)
 	UpdatePatchset(ctx context.Context, id int, status model.PatchsetStatus) (*model.Patchset, error)
 	UpdateTool(ctx context.Context, patchsetID int, key string, details string, icon model.ToolIcon) (*model.PatchsetTool, error)
 	MailingListSubscribe(ctx context.Context, listID int) (*model.MailingListSubscription, error)
@@ -877,18 +875,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.MailingListUnsubscribe(childComplexity, args["listID"].(int)), true
-
-	case "Mutation.removeEmail":
-		if e.complexity.Mutation.RemoveEmail == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_removeEmail_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.RemoveEmail(childComplexity, args["id"].(int)), true
 
 	case "Mutation.updateMailingList":
 		if e.complexity.Mutation.UpdateMailingList == nil {
@@ -2059,10 +2045,6 @@ type Mutation {
   # Removes a mailing list ACL. Following this, the default mailing list ACL will apply to this user.
   deleteACL(id: Int!): MailingListACL @access(scope: ACLS, kind: RW)
 
-  # Removes an email from the archives. Requires moderator permissions on the
-  # implicated mailing list.
-  removeEmail(id: Int!): Email @access(scope: EMAILS, kind: RW)
-
   # Updates the status of a patchset
   updatePatchset(id: Int!, status: PatchsetStatus!): Patchset @access(scope: PATCHES, kind: RW)
 
@@ -2297,21 +2279,6 @@ func (ec *executionContext) field_Mutation_mailingListUnsubscribe_args(ctx conte
 		}
 	}
 	args["listID"] = arg0
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_removeEmail_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 int
-	if tmp, ok := rawArgs["id"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
-		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["id"] = arg0
 	return args, nil
 }
 
@@ -5715,73 +5682,6 @@ func (ec *executionContext) _Mutation_deleteACL(ctx context.Context, field graph
 	res := resTmp.(*model.MailingListACL)
 	fc.Result = res
 	return ec.marshalOMailingListACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListACL(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_removeEmail(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_removeEmail_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().RemoveEmail(rctx, args["id"].(int))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "EMAILS")
-			if err != nil {
-				return nil, err
-			}
-			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RW")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.Access == nil {
-				return nil, errors.New("directive access is not implemented")
-			}
-			return ec.directives.Access(ctx, nil, directive0, scope, kind)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(*model.Email); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Email`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.Email)
-	fc.Result = res
-	return ec.marshalOEmail2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEmail(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_updatePatchset(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -11159,8 +11059,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_updateMailingListACL(ctx, field)
 		case "deleteACL":
 			out.Values[i] = ec._Mutation_deleteACL(ctx, field)
-		case "removeEmail":
-			out.Values[i] = ec._Mutation_removeEmail(ctx, field)
 		case "updatePatchset":
 			out.Values[i] = ec._Mutation_updatePatchset(ctx, field)
 		case "updateTool":

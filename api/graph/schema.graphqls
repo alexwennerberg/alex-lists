@@ -440,10 +440,6 @@ type Mutation {
   # Removes a mailing list ACL. Following this, the default mailing list ACL will apply to this user.
   deleteACL(id: Int!): MailingListACL @access(scope: ACLS, kind: RW)
 
-  # Removes an email from the archives. Requires moderator permissions on the
-  # implicated mailing list.
-  removeEmail(id: Int!): Email @access(scope: EMAILS, kind: RW)
-
   # Updates the status of a patchset
   updatePatchset(id: Int!, status: PatchsetStatus!): Patchset @access(scope: PATCHES, kind: RW)
 
