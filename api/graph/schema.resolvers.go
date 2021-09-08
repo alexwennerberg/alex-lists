@@ -584,7 +584,37 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.Mailin
 }
 
 func (r *mutationResolver) UpdatePatchset(ctx context.Context, id int, status model.PatchsetStatus) (*model.Patchset, error) {
-	panic(fmt.Errorf("not implemented"))
+	var patchset model.Patchset
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			WITH lists AS (
+				SELECT id
+				FROM list
+				WHERE owner_id = $1
+			)
+			UPDATE patchset
+			SET status = $3
+			WHERE
+				list_id in (SELECT id FROM lists) AND
+				id = $2
+			RETURNING
+				id, created, updated, subject, prefix, version, status,
+				list_id, cover_letter_id, superseded_by_id;
+		`, auth.ForContext(ctx).UserID, id, strings.ToLower(status.String()))
+		if err := row.Scan(&patchset.ID, &patchset.Created, &patchset.Updated,
+			&patchset.Subject, &patchset.Prefix, &patchset.Version,
+			&patchset.RawStatus, &patchset.MailingListID,
+			&patchset.CoverLetterID, &patchset.SupersededByID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &patchset, nil
 }
 
 func (r *mutationResolver) UpdateTool(ctx context.Context, patchsetID int, key string, details string, icon model.ToolIcon) (*model.PatchsetTool, error) {
