@@ -13,7 +13,6 @@ type PatchsetTool struct {
 	Created time.Time `json:"created"`
 	Updated time.Time `json:"updated"`
 	Details string    `json:"details"`
-	Key     string    `json:"key"`
 
 	PatchsetID int
 	RawIcon    string
@@ -53,7 +52,6 @@ func (tool *PatchsetTool) Fields() *database.ModelFields {
 			{"updated", "updated", &tool.Updated},
 			{"icon", "icon", &tool.RawIcon},
 			{"details", "details", &tool.Details},
-			{"key", "key", &tool.Key},
 
 			// Always fetch:
 			{"id", "", &tool.ID},

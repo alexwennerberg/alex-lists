@@ -617,8 +617,80 @@ func (r *mutationResolver) UpdatePatchset(ctx context.Context, id int, status mo
 	return &patchset, nil
 }
 
-func (r *mutationResolver) UpdateTool(ctx context.Context, patchsetID int, key string, details string, icon model.ToolIcon) (*model.PatchsetTool, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) CreateTool(ctx context.Context, patchsetID int, details string, icon model.ToolIcon) (*model.PatchsetTool, error) {
+	var tool model.PatchsetTool
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			WITH patch AS (
+				SELECT patchset.id
+				FROM patchset
+				JOIN list ON list.id = patchset.list_id
+				LEFT JOIN access
+					ON access.user_id = $2 AND
+					access.list_id = list.id
+				WHERE patchset.id = $1 AND (
+					list.owner_id = $2 OR
+					(access.id IS NOT NULL AND access.permissions & $3 > 0))
+			)
+			INSERT INTO patchset_tool (
+				created, updated, patchset_id, key, icon, details
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				(SELECT id FROM patch), 'graphql',
+				$4, $5
+			)
+			RETURNING id, created, updated, icon, details, patchset_id;`,
+			patchsetID, auth.ForContext(ctx).UserID,
+			model.ACCESS_MODERATE, strings.ToLower(icon.String()), details)
+		return row.Scan(&tool.ID, &tool.Created, &tool.Updated,
+			&tool.RawIcon, &tool.Details, &tool.PatchsetID)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &tool, nil
+}
+
+func (r *mutationResolver) UpdateTool(ctx context.Context, id int, details *string, icon *model.ToolIcon) (*model.PatchsetTool, error) {
+	var tool model.PatchsetTool
+	query := sq.Update(`patchset_tool`).PlaceholderFormat(sq.Dollar)
+	if details != nil {
+		query = query.Set("details", *details)
+	}
+	if icon != nil {
+		query = query.Set("icon", strings.ToLower(icon.String()))
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		userID := auth.ForContext(ctx).UserID
+		row := query.
+			Prefix(`WITH patch AS (
+				SELECT tool.id
+				FROM patchset_tool tool
+				JOIN patchset ON patchset.id = tool.patchset_id
+				JOIN list ON list.id = patchset.list_id
+				LEFT JOIN access
+					ON access.user_id = ? AND
+					access.list_id = list.id
+				WHERE tool.id = ? AND (list.owner_id = ? OR
+					(access.id IS NOT NULL AND access.permissions & ? > 0))
+			)`, userID, id, userID, model.ACCESS_MODERATE).
+			Where(`patchset_tool.id = (SELECT id FROM patch)`).
+			Suffix(`RETURNING id, created, updated, icon, details, patchset_id`).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		return row.Scan(&tool.ID, &tool.Created, &tool.Updated,
+			&tool.RawIcon, &tool.Details, &tool.PatchsetID)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &tool, nil
 }
 
 func (r *mutationResolver) MailingListSubscribe(ctx context.Context, listID int) (*model.MailingListSubscription, error) {

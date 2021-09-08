@@ -280,7 +280,6 @@ type PatchsetTool {
   updated: Time!
   icon: ToolIcon!
   details: String!
-  key: String!
   patchset: Patchset!
 }
 
@@ -443,12 +442,11 @@ type Mutation {
   # Updates the status of a patchset
   updatePatchset(id: Int!, status: PatchsetStatus!): Patchset @access(scope: PATCHES, kind: RW)
 
-  # Adds or updates the status of a patchset tool
-  updateTool(
-    patchsetID: Int!,
-    key: String!,
-    details: String!,
-    icon: ToolIcon!): PatchsetTool @access(scope: PATCHES, kind: RW)
+  # Create a new patchset tool
+  createTool(patchsetID: Int!, details: String!, icon: ToolIcon!): PatchsetTool @access(scope: PATCHES, kind: RW)
+
+  # Updates the status of a patchset tool by its ID
+  updateTool(id: Int!, details: String, icon: ToolIcon): PatchsetTool @access(scope: PATCHES, kind: RW)
 
   # Creates a mailing list subscription
   mailingListSubscribe(listID: Int!): MailingListSubscription! @access(scope: SUBSCRIPTIONS, kind: RW)

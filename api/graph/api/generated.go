@@ -145,6 +145,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		CreateMailingList      func(childComplexity int, name string, description *string) int
+		CreateTool             func(childComplexity int, patchsetID int, details string, icon model.ToolIcon) int
 		DeleteACL              func(childComplexity int, id int) int
 		DeleteMailingList      func(childComplexity int, id int) int
 		MailingListSubscribe   func(childComplexity int, listID int) int
@@ -153,7 +154,7 @@ type ComplexityRoot struct {
 		UpdateMailingListACL   func(childComplexity int, listID int, input model.ACLInput) int
 		UpdatePatchset         func(childComplexity int, id int, status model.PatchsetStatus) int
 		UpdateSenderACL        func(childComplexity int, listID int, address string, input model.ACLInput) int
-		UpdateTool             func(childComplexity int, patchsetID int, key string, details string, icon model.ToolIcon) int
+		UpdateTool             func(childComplexity int, id int, details *string, icon *model.ToolIcon) int
 		UpdateUserACL          func(childComplexity int, listID int, userID int, input model.ACLInput) int
 	}
 
@@ -193,7 +194,6 @@ type ComplexityRoot struct {
 		Details  func(childComplexity int) int
 		ID       func(childComplexity int) int
 		Icon     func(childComplexity int) int
-		Key      func(childComplexity int) int
 		Patchset func(childComplexity int) int
 		Updated  func(childComplexity int) int
 	}
@@ -305,7 +305,8 @@ type MutationResolver interface {
 	UpdateMailingListACL(ctx context.Context, listID int, input model.ACLInput) (*model.MailingList, error)
 	DeleteACL(ctx context.Context, id int) (*model.MailingListACL, error)
 	UpdatePatchset(ctx context.Context, id int, status model.PatchsetStatus) (*model.Patchset, error)
-	UpdateTool(ctx context.Context, patchsetID int, key string, details string, icon model.ToolIcon) (*model.PatchsetTool, error)
+	CreateTool(ctx context.Context, patchsetID int, details string, icon model.ToolIcon) (*model.PatchsetTool, error)
+	UpdateTool(ctx context.Context, id int, details *string, icon *model.ToolIcon) (*model.PatchsetTool, error)
 	MailingListSubscribe(ctx context.Context, listID int) (*model.MailingListSubscription, error)
 	MailingListUnsubscribe(ctx context.Context, listID int) (*model.MailingListSubscription, error)
 }
@@ -828,6 +829,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Mutation.CreateMailingList(childComplexity, args["name"].(string), args["description"].(*string)), true
 
+	case "Mutation.createTool":
+		if e.complexity.Mutation.CreateTool == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_createTool_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.CreateTool(childComplexity, args["patchsetID"].(int), args["details"].(string), args["icon"].(model.ToolIcon)), true
+
 	case "Mutation.deleteACL":
 		if e.complexity.Mutation.DeleteACL == nil {
 			break
@@ -934,7 +947,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateTool(childComplexity, args["patchsetID"].(int), args["key"].(string), args["details"].(string), args["icon"].(model.ToolIcon)), true
+		return e.complexity.Mutation.UpdateTool(childComplexity, args["id"].(int), args["details"].(*string), args["icon"].(*model.ToolIcon)), true
 
 	case "Mutation.updateUserACL":
 		if e.complexity.Mutation.UpdateUserACL == nil {
@@ -1134,13 +1147,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.PatchsetTool.Icon(childComplexity), true
-
-	case "PatchsetTool.key":
-		if e.complexity.PatchsetTool.Key == nil {
-			break
-		}
-
-		return e.complexity.PatchsetTool.Key(childComplexity), true
 
 	case "PatchsetTool.patchset":
 		if e.complexity.PatchsetTool.Patchset == nil {
@@ -1885,7 +1891,6 @@ type PatchsetTool {
   updated: Time!
   icon: ToolIcon!
   details: String!
-  key: String!
   patchset: Patchset!
 }
 
@@ -2048,12 +2053,11 @@ type Mutation {
   # Updates the status of a patchset
   updatePatchset(id: Int!, status: PatchsetStatus!): Patchset @access(scope: PATCHES, kind: RW)
 
-  # Adds or updates the status of a patchset tool
-  updateTool(
-    patchsetID: Int!,
-    key: String!,
-    details: String!,
-    icon: ToolIcon!): PatchsetTool @access(scope: PATCHES, kind: RW)
+  # Create a new patchset tool
+  createTool(patchsetID: Int!, details: String!, icon: ToolIcon!): PatchsetTool @access(scope: PATCHES, kind: RW)
+
+  # Updates the status of a patchset tool by its ID
+  updateTool(id: Int!, details: String, icon: ToolIcon): PatchsetTool @access(scope: PATCHES, kind: RW)
 
   # Creates a mailing list subscription
   mailingListSubscribe(listID: Int!): MailingListSubscription! @access(scope: SUBSCRIPTIONS, kind: RW)
@@ -2219,6 +2223,39 @@ func (ec *executionContext) field_Mutation_createMailingList_args(ctx context.Co
 		}
 	}
 	args["description"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_createTool_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["patchsetID"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("patchsetID"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["patchsetID"] = arg0
+	var arg1 string
+	if tmp, ok := rawArgs["details"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("details"))
+		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["details"] = arg1
+	var arg2 model.ToolIcon
+	if tmp, ok := rawArgs["icon"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("icon"))
+		arg2, err = ec.unmarshalNToolIcon2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐToolIcon(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["icon"] = arg2
 	return args, nil
 }
 
@@ -2391,41 +2428,32 @@ func (ec *executionContext) field_Mutation_updateTool_args(ctx context.Context, 
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
-	if tmp, ok := rawArgs["patchsetID"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("patchsetID"))
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["patchsetID"] = arg0
-	var arg1 string
-	if tmp, ok := rawArgs["key"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("key"))
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["key"] = arg1
-	var arg2 string
+	args["id"] = arg0
+	var arg1 *string
 	if tmp, ok := rawArgs["details"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("details"))
-		arg2, err = ec.unmarshalNString2string(ctx, tmp)
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["details"] = arg2
-	var arg3 model.ToolIcon
+	args["details"] = arg1
+	var arg2 *model.ToolIcon
 	if tmp, ok := rawArgs["icon"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("icon"))
-		arg3, err = ec.unmarshalNToolIcon2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐToolIcon(ctx, tmp)
+		arg2, err = ec.unmarshalOToolIcon2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐToolIcon(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["icon"] = arg3
+	args["icon"] = arg2
 	return args, nil
 }
 
@@ -5751,6 +5779,73 @@ func (ec *executionContext) _Mutation_updatePatchset(ctx context.Context, field 
 	return ec.marshalOPatchset2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchset(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Mutation_createTool(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_createTool_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().CreateTool(rctx, args["patchsetID"].(int), args["details"].(string), args["icon"].(model.ToolIcon))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PATCHES")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RW")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, nil, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.PatchsetTool); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.PatchsetTool`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.PatchsetTool)
+	fc.Result = res
+	return ec.marshalOPatchsetTool2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchsetTool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Mutation_updateTool(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5777,7 +5872,7 @@ func (ec *executionContext) _Mutation_updateTool(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateTool(rctx, args["patchsetID"].(int), args["key"].(string), args["details"].(string), args["icon"].(model.ToolIcon))
+			return ec.resolvers.Mutation().UpdateTool(rctx, args["id"].(int), args["details"].(*string), args["icon"].(*model.ToolIcon))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PATCHES")
@@ -6976,41 +7071,6 @@ func (ec *executionContext) _PatchsetTool_details(ctx context.Context, field gra
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
 		return obj.Details, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(string)
-	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _PatchsetTool_key(ctx context.Context, field graphql.CollectedField, obj *model.PatchsetTool) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "PatchsetTool",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Key, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -11061,6 +11121,8 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_deleteACL(ctx, field)
 		case "updatePatchset":
 			out.Values[i] = ec._Mutation_updatePatchset(ctx, field)
+		case "createTool":
+			out.Values[i] = ec._Mutation_createTool(ctx, field)
 		case "updateTool":
 			out.Values[i] = ec._Mutation_updateTool(ctx, field)
 		case "mailingListSubscribe":
@@ -11335,11 +11397,6 @@ func (ec *executionContext) _PatchsetTool(ctx context.Context, sel ast.Selection
 			}
 		case "details":
 			out.Values[i] = ec._PatchsetTool_details(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
-		case "key":
-			out.Values[i] = ec._PatchsetTool_key(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
@@ -13258,6 +13315,22 @@ func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel
 		return graphql.Null
 	}
 	return graphql.MarshalTime(*v)
+}
+
+func (ec *executionContext) unmarshalOToolIcon2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐToolIcon(ctx context.Context, v interface{}) (*model.ToolIcon, error) {
+	if v == nil {
+		return nil, nil
+	}
+	var res = new(model.ToolIcon)
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOToolIcon2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐToolIcon(ctx context.Context, sel ast.SelectionSet, v *model.ToolIcon) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return v
 }
 
 func (ec *executionContext) marshalOUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {
