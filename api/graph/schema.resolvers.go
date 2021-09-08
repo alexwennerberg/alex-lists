@@ -737,7 +737,21 @@ func (r *mutationResolver) MailingListSubscribe(ctx context.Context, listID int)
 }
 
 func (r *mutationResolver) MailingListUnsubscribe(ctx context.Context, listID int) (*model.MailingListSubscription, error) {
-	panic(fmt.Errorf("not implemented"))
+	var sub model.MailingListSubscription
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM subscription
+			WHERE list_id = $1 AND user_id = $2
+			RETURNING id, created, user_id, list_id;
+		`, listID, auth.ForContext(ctx).UserID)
+		return row.Scan(&sub.ID, &sub.Created, &sub.UserID, &sub.ListID)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &sub, nil
 }
 
 func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (model.Entity, error) {
