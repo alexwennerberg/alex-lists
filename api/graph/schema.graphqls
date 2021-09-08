@@ -449,7 +449,7 @@ type Mutation {
   updateTool(id: Int!, details: String, icon: ToolIcon): PatchsetTool @access(scope: PATCHES, kind: RW)
 
   # Creates a mailing list subscription
-  mailingListSubscribe(listID: Int!): MailingListSubscription! @access(scope: SUBSCRIPTIONS, kind: RW)
+  mailingListSubscribe(listID: Int!): MailingListSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
   # Deletes a mailing list subscription
   mailingListUnsubscribe(listID: Int!): MailingListSubscription @access(scope: SUBSCRIPTIONS, kind: RW)

@@ -694,7 +694,46 @@ func (r *mutationResolver) UpdateTool(ctx context.Context, id int, details *stri
 }
 
 func (r *mutationResolver) MailingListSubscribe(ctx context.Context, listID int) (*model.MailingListSubscription, error) {
-	panic(fmt.Errorf("not implemented"))
+	var sub model.MailingListSubscription
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			WITH list AS (
+				SELECT list.id
+				FROM list
+				LEFT JOIN access ON access.user_id = $1 AND access.list_id = list.id
+				WHERE list.id = $2 AND (
+					list.owner_id = $1 OR
+					(access.id IS NOT NULL AND access.permissions & $3 > 0) OR
+					(access.id IS NULL AND (
+						list.subscriber_permissions |
+						list.account_permissions |
+						list.nonsubscriber_permissions) & $3 > 0)
+				)
+			) INSERT INTO subscription (
+				created, updated, user_id, list_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, (SELECT id FROM list)
+			)
+			ON CONFLICT ON CONSTRAINT subscription_list_id_user_id_unique
+			DO UPDATE SET updated = NOW() at time zone 'utc'
+			RETURNING id, created, user_id, list_id;`,
+			auth.ForContext(ctx).UserID, listID, model.ACCESS_BROWSE)
+		if err := row.Scan(&sub.ID, &sub.Created, &sub.UserID, &sub.ListID); err != nil {
+			if strings.Contains(err.Error(), "null value in column \"list_id\"") {
+				return sql.ErrNoRows
+			}
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &sub, nil
 }
 
 func (r *mutationResolver) MailingListUnsubscribe(ctx context.Context, listID int) (*model.MailingListSubscription, error) {

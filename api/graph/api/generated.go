@@ -2060,7 +2060,7 @@ type Mutation {
   updateTool(id: Int!, details: String, icon: ToolIcon): PatchsetTool @access(scope: PATCHES, kind: RW)
 
   # Creates a mailing list subscription
-  mailingListSubscribe(listID: Int!): MailingListSubscription! @access(scope: SUBSCRIPTIONS, kind: RW)
+  mailingListSubscribe(listID: Int!): MailingListSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
   # Deletes a mailing list subscription
   mailingListUnsubscribe(listID: Int!): MailingListSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
@@ -5973,14 +5973,11 @@ func (ec *executionContext) _Mutation_mailingListSubscribe(ctx context.Context, 
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
 	res := resTmp.(*model.MailingListSubscription)
 	fc.Result = res
-	return ec.marshalNMailingListSubscription2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListSubscription(ctx, field.Selections, res)
+	return ec.marshalOMailingListSubscription2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListSubscription(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_mailingListUnsubscribe(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -11127,9 +11124,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_updateTool(ctx, field)
 		case "mailingListSubscribe":
 			out.Values[i] = ec._Mutation_mailingListSubscribe(ctx, field)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "mailingListUnsubscribe":
 			out.Values[i] = ec._Mutation_mailingListUnsubscribe(ctx, field)
 		default:
@@ -12496,20 +12490,6 @@ func (ec *executionContext) marshalNMailingListCursor2ᚖgitᚗsrᚗhtᚋאsircm
 
 func (ec *executionContext) unmarshalNMailingListInput2map(ctx context.Context, v interface{}) (map[string]interface{}, error) {
 	return v.(map[string]interface{}), nil
-}
-
-func (ec *executionContext) marshalNMailingListSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListSubscription(ctx context.Context, sel ast.SelectionSet, v model.MailingListSubscription) graphql.Marshaler {
-	return ec._MailingListSubscription(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNMailingListSubscription2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListSubscription(ctx context.Context, sel ast.SelectionSet, v *model.MailingListSubscription) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._MailingListSubscription(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNPatchset2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐPatchset(ctx context.Context, sel ast.SelectionSet, v model.Patchset) graphql.Marshaler {
