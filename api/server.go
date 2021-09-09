@@ -22,6 +22,7 @@ import (
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/webhooks"
 )
 
 func main() {
@@ -40,9 +41,15 @@ func main() {
 		scopes[i] = s.String()
 	}
 
+	legacyWebhooks := webhooks.NewLegacyQueue()
+
 	gsrv := server.NewServer("lists.sr.ht", appConfig).
 		WithDefaultMiddleware().
-		WithMiddleware(loaders.Middleware).
+		WithMiddleware(
+			loaders.Middleware,
+			webhooks.LegacyMiddleware(legacyWebhooks),
+		).
+		WithQueues(legacyWebhooks.Queue).
 		WithSchema(schema, scopes)
 
 	// Bulk transfer endpoints

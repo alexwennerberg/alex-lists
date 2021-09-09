@@ -20,9 +20,7 @@ class ListWebhook(CeleryWebhook):
         Event("patchset:update", "patches:read"), # TODO: Deliver
     ]
 
-    list_id = sa.Column(sa.Integer,
-            sa.ForeignKey("list.id", ondelete="CASCADE"),
-            nullable=False)
+    list_id = sa.Column(sa.Integer, sa.ForeignKey("list.id"))
     list = sa.orm.relationship("List")
 
 class UserWebhook(CeleryWebhook):

@@ -20,6 +20,7 @@ import (
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/webhooks"
 	sq "github.com/Masterminds/squirrel"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
@@ -343,6 +344,9 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 	}); err != nil {
 		return nil, err
 	}
+
+	webhooks.DeliverLegacyUserListEvent(ctx, &list, "list:create")
+
 	return &list, nil
 }
 
@@ -406,6 +410,9 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 		}
 		return nil, err
 	}
+
+	webhooks.DeliverLegacyListEvent(ctx, &list, "list:update")
+
 	return &list, nil
 }
 
@@ -430,6 +437,10 @@ func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*mode
 			return err
 		}
 		list.Permissions = model.ACCESS_ALL
+
+		// We need to do this here so that it picks up the subscription list
+		// before the cascade sets their list_id columns to null.
+		webhooks.DeliverLegacyListEvent(ctx, &list, "list:delete")
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
@@ -437,6 +448,7 @@ func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*mode
 		}
 		return nil, err
 	}
+
 	return &list, nil
 }
 
