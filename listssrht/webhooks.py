@@ -27,6 +27,4 @@ class UserWebhook(CeleryWebhook):
     events = [
         Event("email:received", "emails:read"),
         Event("list:create", "lists:read"),
-        Event("subscription:create", "subs:read"),
-        Event("subscription:remove", "subs:read"),
     ]
