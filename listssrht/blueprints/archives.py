@@ -335,8 +335,6 @@ def subscribe(owner_name, list_name):
     sub.list_id = ml.id
     sub.list = ml
     db.session.add(sub)
-    UserWebhook.deliver(UserWebhook.Events.subscription_create,
-            sub.to_dict(), UserWebhook.Subscription.user_id == sub.user_id)
     # Prevent the before_update hook in srht.database, which'd run even though
     # ml wasn't modified, from setting the updated date
     ml._no_autoupdate = True
@@ -355,9 +353,6 @@ def unsubscribe(owner_name, list_name):
         .filter(Subscription.user_id == current_user.id)).one_or_none()
     if sub:
         db.session.delete(sub)
-        UserWebhook.deliver(UserWebhook.Events.subscription_remove,
-                { "id": sub.id },
-                UserWebhook.Subscription.user_id == sub.user_id)
         db.session.commit()
     return redirect(url_for("archives.archive",
         owner_name=owner_name, list_name=list_name))
