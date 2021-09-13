@@ -24,6 +24,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
+	"github.com/lib/pq"
 )
 
 func (r *emailResolver) Sender(ctx context.Context, obj *model.Email) (model.Entity, error) {
@@ -324,7 +325,9 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 			&list.Description, &list.OwnerID,
 			&list.RawPermitMime, &list.RawRejectMime,
 			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified); err != nil {
-			if strings.Contains(err.Error(), "duplicate key value violates unique constraint") {
+			if err, ok := err.(*pq.Error); ok &&
+				err.Code == "23505" && // unique_violation
+				err.Constraint == "uq_list_owner_id_name" {
 				return fmt.Errorf("A mailing list with this name already exists.")
 			}
 			return err
@@ -475,10 +478,13 @@ func (r *mutationResolver) UpdateUserACL(ctx context.Context, listID int, userID
 		`, listID, userID, bits, auth.ForContext(ctx).UserID)
 		if err := row.Scan(&acl.ID, &acl.Created, &acl.MailingListID,
 			&acl.UserID, &acl.RawAccess); err != nil {
-			if strings.Contains(err.Error(), "violates not-null constraint") {
+			if err, ok := err.(*pq.Error); ok &&
+				err.Code == "23502" && // not_null_violation
+				err.Column == "list_id" {
 				return sql.ErrNoRows
-			}
-			if strings.Contains(err.Error(), "violates foreign key constraint") {
+			} else if ok &&
+				err.Code == "23503" && // foreign_key_violation
+				err.Constraint == "access_list_id_fkey" {
 				return sql.ErrNoRows
 			}
 			return err
@@ -516,10 +522,13 @@ func (r *mutationResolver) UpdateSenderACL(ctx context.Context, listID int, addr
 		`, listID, address, bits, auth.ForContext(ctx).UserID)
 		if err := row.Scan(&acl.ID, &acl.Created, &acl.MailingListID,
 			&acl.Email, &acl.RawAccess); err != nil {
-			if strings.Contains(err.Error(), "violates not-null constraint") {
+			if err, ok := err.(*pq.Error); ok &&
+				err.Code == "23502" && // not_null_violation
+				err.Column == "list_id" {
 				return sql.ErrNoRows
-			}
-			if strings.Contains(err.Error(), "violates foreign key constraint") {
+			} else if ok &&
+				err.Code == "23503" && // foreign_key_violation
+				err.Constraint == "access_list_id_fkey" {
 				return sql.ErrNoRows
 			}
 			return err
@@ -733,7 +742,9 @@ func (r *mutationResolver) MailingListSubscribe(ctx context.Context, listID int)
 			RETURNING id, created, user_id, list_id;`,
 			auth.ForContext(ctx).UserID, listID, model.ACCESS_BROWSE)
 		if err := row.Scan(&sub.ID, &sub.Created, &sub.UserID, &sub.ListID); err != nil {
-			if strings.Contains(err.Error(), "null value in column \"list_id\"") {
+			if err, ok := err.(*pq.Error); ok &&
+				err.Code == "23502" &&
+				err.Column == "list_id" { // not_null_violation
 				return sql.ErrNoRows
 			}
 			return err
