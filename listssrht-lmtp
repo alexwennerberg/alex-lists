@@ -292,9 +292,8 @@ class MailHandler:
         err = self.validate(mail, permit_mimetypes, reject_mimetypes)
         if err is not None:
             print("Rejected due to validation errors")
-            send_error_for.delay(mail_b64, err)
             user_errors_processed.inc()
-            return "250 Validation failed, but sending bounce out of band"
+            return f"500 Validation failed: {err}"
 
         if owner_id == user_id:
             print("Message accepted: {}".format(mail.get("Subject")))
