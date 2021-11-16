@@ -43,10 +43,10 @@ tasks:
       ./pkgkit upload "$remote" "$remote_path" "$project"
   - deploy: |
       ssh $master doas apk upgrade -U
-      ssh -t $master doas service lists.sr.ht restart
-      ssh -t $master doas service lists.sr.ht-process restart
+      ssh $master doas service lists.sr.ht restart
+      ssh $master doas service lists.sr.ht-process restart
       for server in $mail_servers
       do
-          ssh -t $server doas apk upgrade -U
-          ssh -t $server doas service lists.sr.ht-lmtp restart
+          ssh $server doas apk upgrade -U
+          ssh $server doas service lists.sr.ht-lmtp restart
       done
