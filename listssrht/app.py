@@ -29,6 +29,9 @@ class ListsApp(SrhtFlask):
         self.register_blueprint(user)
         self.register_blueprint(gql_blueprint)
 
+        from listssrht.webhooks import webhook_metrics_collector
+        self.metrics_registry.register(webhook_metrics_collector)
+
         @self.context_processor
         def inject():
             from listssrht.types import ListAccess
