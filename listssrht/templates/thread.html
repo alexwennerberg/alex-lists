@@ -67,50 +67,57 @@
             <summary>Details</summary>
             <div>
               <dl>
-                <dt>Message ID</dt>
-                <dd><code>{{ msg.message_id }}</code></dd>
+                <div>
+                  <dt>Message ID</dt>
+                  <dd><code>{{ msg.message_id }}</code></dd>
+                </div>
                 {% if msg.parent_id %}
-                <dt>In-Reply-To</dt>
-                <dd>
-                  <code>
-                    {{ msg.parent.message_id }}
-                  </code>
-                  <a href="#{{msg.parent.message_id}}">(view parent)</a>
-                </dd>
-                <dd>
+                <div>
+                  <dt>In-Reply-To</dt>
+                  <dd>
+                    <code>
+                      {{ msg.parent.message_id }}
+                    </code>
+                    <a href="#{{msg.parent.message_id}}">(view parent)</a>
+                  </dd>
+                </div>
                 {% endif %}
                 {% if msg.message_date %}
-                <dt>Sender timestamp</dt>
-                <dd>{{"{:.0f}".format(msg.message_date.timestamp())}}</dd>
+                <div>
+                  <dt>Sender timestamp</dt>
+                  <dd>{{"{:.0f}".format(msg.message_date.timestamp())}}</dd>
+                </div>
                 {% endif %}
-                <dt>DKIM signature</dt>
-                <dd>
-                  {% if dkim_status == None %}
-                  missing
-                  {% else %}
-                  <span
-                    {% if dkim_status == "pass" %}
-                    class="text-success"
-                    {% elif dkim_status == "neutral" %}
+                <div>
+                  <dt>DKIM signature</dt>
+                  <dd>
+                    {% if dkim_status == None %}
+                    missing
                     {% else %}
-                    class="text-danger"
+                    <span
+                      {% if dkim_status == "pass" %}
+                      class="text-success"
+                      {% elif dkim_status == "neutral" %}
+                      {% else %}
+                      class="text-danger"
+                      {% endif %}
+                      title="{{dkim_explain}}"
+                    >
+                      {% if dkim_status == "pass" %}
+                      {{icon('check')}}
+                      {% elif dkim_status == "neutral" %}
+                      {% else %}
+                      {{icon('times')}}
+                      {% endif %}
+                      {{dkim_status}}
+                      {% if dkim_status not in ["pass", "neutral"]
+                        and ml.mirror_id %}
+                      (DKIM failures on mirrored lists are common)
+                      {% endif %}
+                    </span>
                     {% endif %}
-                    title="{{dkim_explain}}"
-                  >
-                    {% if dkim_status == "pass" %}
-                    {{icon('check')}}
-                    {% elif dkim_status == "neutral" %}
-                    {% else %}
-                    {{icon('times')}}
-                    {% endif %}
-                    {{dkim_status}}
-                    {% if dkim_status not in ["pass", "neutral"]
-                      and ml.mirror_id %}
-                    (DKIM failures on mirrored lists are common)
-                    {% endif %}
-                  </span>
-                  {% endif %}
-                </dd>
+                  </dd>
+                </div>
               </dl>
               <a href="{{ url_for(".raw",
                   owner_name=ml.owner.canonical_name,
