@@ -77,7 +77,7 @@ def _format_patch(msg, limit=None):
         else:
             if line.strip() == "--":
                 text += escape(line + "\n")
-            elif line.startswith("+++"):
+            elif line.startswith("+++") and not line.startswith("++++"):
                 path = line[4:].lstrip("b/")
                 if f" {path} " in file_lines:
                     text += (
@@ -87,7 +87,7 @@ def _format_patch(msg, limit=None):
                         + escape(line)
                         + Markup("</a>\n"))
                     continue
-            elif line.startswith("---"):
+            elif line.startswith("---") and not line.startswith("----"):
                 text += (
                     Markup("<span class='text-info'>")
                     + escape(line)
