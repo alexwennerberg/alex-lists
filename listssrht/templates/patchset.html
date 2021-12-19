@@ -15,9 +15,7 @@
     {% else %}
     {{from[0]}}
     {% endif %}
-    {% if current_user %}
     <a href="{{reply_to(msg)}}">&lt;{{ from[1] }}&gt;</a>
-    {% endif %}
   </div>
   {% endif %}
   <div class="date">
