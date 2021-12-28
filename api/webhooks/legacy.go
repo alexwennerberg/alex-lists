@@ -29,11 +29,11 @@ func encodePermissions(bits uint) []string {
 }
 
 type ListWebhookPayload struct {
-	ID            int       `json:"id"`
-	Name          string    `json:"name"`
-	Created       time.Time `json:"created"`
-	Updated       time.Time `json:"created"`
-	Description   *string   `json:"description"`
+	ID          int       `json:"id"`
+	Name        string    `json:"name"`
+	Created     time.Time `json:"created"`
+	Updated     time.Time `json:"created"`
+	Description *string   `json:"description"`
 
 	Permissions struct {
 		Nonsubscriber []string `json:"nonsubscriber"`
@@ -42,8 +42,8 @@ type ListWebhookPayload struct {
 	} `json:"permissions"`
 
 	Owner struct {
-		CanonicalName string  `json:"canonical_name"`
-		Name          string  `json:"name"`
+		CanonicalName string `json:"canonical_name"`
+		Name          string `json:"name"`
 	} `json:"owner"`
 }
 
@@ -54,11 +54,11 @@ func DeliverLegacyUserListEvent(
 ) {
 	queue := LegacyQueueForContext(ctx)
 
-	payload := ListWebhookPayload {
-		ID: list.ID,
-		Name: list.Name,
-		Created: list.Created,
-		Updated: list.Updated,
+	payload := ListWebhookPayload{
+		ID:          list.ID,
+		Name:        list.Name,
+		Created:     list.Created,
+		Updated:     list.Updated,
 		Description: list.Description,
 	}
 	payload.Permissions.Nonsubscriber = encodePermissions(list.RawNonsubscriber)
@@ -92,11 +92,11 @@ func DeliverLegacyListEvent(
 ) {
 	queue := LegacyQueueForContext(ctx)
 
-	payload := ListWebhookPayload {
-		ID: list.ID,
-		Name: list.Name,
-		Created: list.Created,
-		Updated: list.Updated,
+	payload := ListWebhookPayload{
+		ID:          list.ID,
+		Name:        list.Name,
+		Created:     list.Created,
+		Updated:     list.Updated,
 		Description: list.Description,
 	}
 	payload.Permissions.Nonsubscriber = encodePermissions(list.RawNonsubscriber)
