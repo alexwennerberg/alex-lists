@@ -6,8 +6,6 @@ import (
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 )
 
-//go:generate go run github.com/99designs/gqlgen
-
 type Resolver struct{}
 
 var (
