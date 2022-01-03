@@ -245,14 +245,17 @@ def _archive(dest, envelope, do_webhooks=True):
 
     # Set parent of this email
     parent = Email.query.filter(Email.message_id == reply_to,
-            Email.list_id == dest.id).one_or_none()
+            Email.list_id == dest.id,
+            Email.id != mail.id).one_or_none()
     if parent is not None:
         mail.parent_id = parent.id
         mail.parent = parent
 
     thread = mail
-    while thread.parent_id:
+    n = 0
+    while thread.parent_id and n < 100: # don't hang on reference loops
         thread = thread.parent
+        n += 1
 
     if thread.id != mail.id:
         mail.thread_id = thread.id
@@ -655,7 +658,8 @@ def import_mbox(spool, list_id):
                 mail.created = date
                 mail.updated = date
                 db.session.commit()
-            except:
+            except Exception as ex:
+                print(ex)
                 print(f"Skipping email {msg_id} due to exception")
                 db.session.rollback()
                 continue # plow on forward
