@@ -192,7 +192,11 @@
                 list_name=ml.name,
                 message_id=message.message_id)
             }}">
-              {{ message.subject }}
+              {% if message.subject %}
+                {{ message.subject }}
+              {% else %}
+                <em>(no subject)</em>
+              {% endif %}
             </a>
             {% endif %}
           </h4>
