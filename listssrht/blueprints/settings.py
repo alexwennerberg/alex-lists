@@ -254,8 +254,13 @@ def import_POST(owner_name, list_name):
                 view="import/export", ml=ml, owner=owner, **valid.kwargs)
 
     spool = spool.stream.read()
-    spool = base64.b64encode(spool).decode()
 
+    valid.expect(len(spool) > 0, "Mail spool is empty", field="spool")
+    if not valid.ok:
+        return render_template("settings-import-export.html",
+                view="import/export", ml=ml, owner=owner, **valid.kwargs)
+
+    spool = base64.b64encode(spool).decode()
     ml.import_in_progress = True
     db.session.commit()
 
