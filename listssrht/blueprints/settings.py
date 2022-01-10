@@ -255,10 +255,12 @@ def import_POST(owner_name, list_name):
 
     spool = spool.stream.read()
     spool = base64.b64encode(spool).decode()
-    import_mbox.delay(spool, ml.id)
 
     ml.import_in_progress = True
     db.session.commit()
+
+    import_mbox.delay(spool, ml.id)
+
     return redirect(url_for("archives.archive",
         owner_name=owner_name, list_name=list_name))
 
