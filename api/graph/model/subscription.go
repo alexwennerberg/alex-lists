@@ -23,7 +23,7 @@ type MailingListSubscription struct {
 	fields *database.ModelFields
 }
 
-func (sub MailingListSubscription) IsSubscription() {
+func (sub MailingListSubscription) IsActivitySubscription() {
 }
 
 func (sub *MailingListSubscription) As(alias string) *MailingListSubscription {
@@ -57,7 +57,7 @@ func (sub *MailingListSubscription) Fields() *database.ModelFields {
 
 func (sub *MailingListSubscription) QueryWithCursor(ctx context.Context,
 	runner sq.BaseRunner, q sq.SelectBuilder,
-	cur *model.Cursor) ([]Subscription, *model.Cursor) {
+	cur *model.Cursor) ([]ActivitySubscription, *model.Cursor) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -76,7 +76,7 @@ func (sub *MailingListSubscription) QueryWithCursor(ctx context.Context,
 	defer rows.Close()
 
 	var (
-		subs        []Subscription
+		subs        []ActivitySubscription
 		lastCreated time.Time
 	)
 	for rows.Next() {

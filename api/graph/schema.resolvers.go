@@ -1041,12 +1041,12 @@ func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Curs
 	return &model.MailingListCursor{lists, cursor}, nil
 }
 
-func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cursor) (*model.SubscriptionCursor, error) {
+func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cursor) (*model.ActivitySubscriptionCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
 	}
 
-	var subs []model.Subscription
+	var subs []model.ActivitySubscription
 	if err := database.WithTx(ctx, &sql.TxOptions{
 		Isolation: 0,
 		ReadOnly:  true,
@@ -1062,7 +1062,7 @@ func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cur
 		return nil, err
 	}
 
-	return &model.SubscriptionCursor{subs, cursor}, nil
+	return &model.ActivitySubscriptionCursor{subs, cursor}, nil
 }
 
 func (r *threadResolver) Sender(ctx context.Context, obj *model.Thread) (model.Entity, error) {

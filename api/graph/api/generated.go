@@ -56,6 +56,11 @@ type DirectiveRoot struct {
 }
 
 type ComplexityRoot struct {
+	ActivitySubscriptionCursor struct {
+		Cursor  func(childComplexity int) int
+		Results func(childComplexity int) int
+	}
+
 	Email struct {
 		AddressList func(childComplexity int, want string) int
 		Body        func(childComplexity int) int
@@ -213,11 +218,6 @@ type ComplexityRoot struct {
 		Version            func(childComplexity int) int
 	}
 
-	SubscriptionCursor struct {
-		Cursor  func(childComplexity int) int
-		Results func(childComplexity int) int
-	}
-
 	Thread struct {
 		Created      func(childComplexity int) int
 		Descendants  func(childComplexity int, cursor *model1.Cursor) int
@@ -335,7 +335,7 @@ type QueryResolver interface {
 	Message(ctx context.Context, messageID string) (*model.Email, error)
 	Patchset(ctx context.Context, id int) (*model.Patchset, error)
 	MailingLists(ctx context.Context, cursor *model1.Cursor) (*model.MailingListCursor, error)
-	Subscriptions(ctx context.Context, cursor *model1.Cursor) (*model.SubscriptionCursor, error)
+	Subscriptions(ctx context.Context, cursor *model1.Cursor) (*model.ActivitySubscriptionCursor, error)
 }
 type ThreadResolver interface {
 	Sender(ctx context.Context, obj *model.Thread) (model.Entity, error)
@@ -366,6 +366,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 	ec := executionContext{nil, e}
 	_ = ec
 	switch typeName + "." + field {
+
+	case "ActivitySubscriptionCursor.cursor":
+		if e.complexity.ActivitySubscriptionCursor.Cursor == nil {
+			break
+		}
+
+		return e.complexity.ActivitySubscriptionCursor.Cursor(childComplexity), true
+
+	case "ActivitySubscriptionCursor.results":
+		if e.complexity.ActivitySubscriptionCursor.Results == nil {
+			break
+		}
+
+		return e.complexity.ActivitySubscriptionCursor.Results(childComplexity), true
 
 	case "Email.addressList":
 		if e.complexity.Email.AddressList == nil {
@@ -1296,20 +1310,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Version(childComplexity), true
 
-	case "SubscriptionCursor.cursor":
-		if e.complexity.SubscriptionCursor.Cursor == nil {
-			break
-		}
-
-		return e.complexity.SubscriptionCursor.Cursor(childComplexity), true
-
-	case "SubscriptionCursor.results":
-		if e.complexity.SubscriptionCursor.Results == nil {
-			break
-		}
-
-		return e.complexity.SubscriptionCursor.Results(childComplexity), true
-
 	case "Thread.created":
 		if e.complexity.Thread.Created == nil {
 			break
@@ -1914,12 +1914,12 @@ type PatchsetTool {
   patchset: Patchset!
 }
 
-interface Subscription {
+interface ActivitySubscription {
   id: Int!
   created: Time!
 }
 
-type MailingListSubscription implements Subscription {
+type MailingListSubscription implements ActivitySubscription {
   id: Int!
   created: Time!
   list: MailingList! @access(scope: LISTS, kind: RO)
@@ -1992,8 +1992,8 @@ If there are additional results available, the cursor object may be passed
 back into the same endpoint to retrieve another page. If the cursor is null,
 there are no remaining results to return.
 """
-type SubscriptionCursor {
-  results: [Subscription!]!
+type ActivitySubscriptionCursor {
+  results: [ActivitySubscription!]!
   cursor: Cursor
 }
 
@@ -2027,7 +2027,7 @@ type Query {
   mailingLists(cursor: Cursor): MailingListCursor! @access(scope: LISTS, kind: RO)
 
   "List of subscriptions of the authenticated user"
-  subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
+  subscriptions(cursor: Cursor): ActivitySubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 
 # You may omit any fields to leave them unchanged.
@@ -2832,6 +2832,73 @@ func (ec *executionContext) field___Type_fields_args(ctx context.Context, rawArg
 // endregion ************************** directives.gotpl **************************
 
 // region    **************************** field.gotpl *****************************
+
+func (ec *executionContext) _ActivitySubscriptionCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.ActivitySubscriptionCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ActivitySubscriptionCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Results, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]model.ActivitySubscription)
+	fc.Result = res
+	return ec.marshalNActivitySubscription2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐActivitySubscriptionᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _ActivitySubscriptionCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.ActivitySubscriptionCursor) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "ActivitySubscriptionCursor",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model1.Cursor)
+	fc.Result = res
+	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
+}
 
 func (ec *executionContext) _Email_id(ctx context.Context, field graphql.CollectedField, obj *model.Email) (ret graphql.Marshaler) {
 	defer func() {
@@ -7914,10 +7981,10 @@ func (ec *executionContext) _Query_subscriptions(ctx context.Context, field grap
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.(*model.SubscriptionCursor); ok {
+		if data, ok := tmp.(*model.ActivitySubscriptionCursor); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.SubscriptionCursor`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.ActivitySubscriptionCursor`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7926,9 +7993,9 @@ func (ec *executionContext) _Query_subscriptions(ctx context.Context, field grap
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.SubscriptionCursor)
+	res := resTmp.(*model.ActivitySubscriptionCursor)
 	fc.Result = res
-	return ec.marshalOSubscriptionCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionCursor(ctx, field.Selections, res)
+	return ec.marshalOActivitySubscriptionCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐActivitySubscriptionCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -8000,73 +8067,6 @@ func (ec *executionContext) _Query___schema(ctx context.Context, field graphql.C
 	res := resTmp.(*introspection.Schema)
 	fc.Result = res
 	return ec.marshalO__Schema2ᚖgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐSchema(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _SubscriptionCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionCursor) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "SubscriptionCursor",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Results, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.([]model.Subscription)
-	fc.Result = res
-	return ec.marshalNSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionᚄ(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _SubscriptionCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionCursor) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "SubscriptionCursor",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Cursor, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model1.Cursor)
-	fc.Result = res
-	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Thread_created(ctx context.Context, field graphql.CollectedField, obj *model.Thread) (ret graphql.Marshaler) {
@@ -10463,6 +10463,22 @@ func (ec *executionContext) _ACL(ctx context.Context, sel ast.SelectionSet, obj 
 	}
 }
 
+func (ec *executionContext) _ActivitySubscription(ctx context.Context, sel ast.SelectionSet, obj model.ActivitySubscription) graphql.Marshaler {
+	switch obj := (obj).(type) {
+	case nil:
+		return graphql.Null
+	case model.MailingListSubscription:
+		return ec._MailingListSubscription(ctx, sel, &obj)
+	case *model.MailingListSubscription:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._MailingListSubscription(ctx, sel, obj)
+	default:
+		panic(fmt.Errorf("unexpected type %T", obj))
+	}
+}
+
 func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet, obj model.Entity) graphql.Marshaler {
 	switch obj := (obj).(type) {
 	case nil:
@@ -10486,25 +10502,38 @@ func (ec *executionContext) _Entity(ctx context.Context, sel ast.SelectionSet, o
 	}
 }
 
-func (ec *executionContext) _Subscription(ctx context.Context, sel ast.SelectionSet, obj model.Subscription) graphql.Marshaler {
-	switch obj := (obj).(type) {
-	case nil:
-		return graphql.Null
-	case model.MailingListSubscription:
-		return ec._MailingListSubscription(ctx, sel, &obj)
-	case *model.MailingListSubscription:
-		if obj == nil {
-			return graphql.Null
-		}
-		return ec._MailingListSubscription(ctx, sel, obj)
-	default:
-		panic(fmt.Errorf("unexpected type %T", obj))
-	}
-}
-
 // endregion ************************** interface.gotpl ***************************
 
 // region    **************************** object.gotpl ****************************
+
+var activitySubscriptionCursorImplementors = []string{"ActivitySubscriptionCursor"}
+
+func (ec *executionContext) _ActivitySubscriptionCursor(ctx context.Context, sel ast.SelectionSet, obj *model.ActivitySubscriptionCursor) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, activitySubscriptionCursorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ActivitySubscriptionCursor")
+		case "results":
+			out.Values[i] = ec._ActivitySubscriptionCursor_results(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._ActivitySubscriptionCursor_cursor(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
 
 var emailImplementors = []string{"Email"}
 
@@ -11117,7 +11146,7 @@ func (ec *executionContext) _MailingListCursor(ctx context.Context, sel ast.Sele
 	return out
 }
 
-var mailingListSubscriptionImplementors = []string{"MailingListSubscription", "Subscription"}
+var mailingListSubscriptionImplementors = []string{"MailingListSubscription", "ActivitySubscription"}
 
 func (ec *executionContext) _MailingListSubscription(ctx context.Context, sel ast.SelectionSet, obj *model.MailingListSubscription) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, mailingListSubscriptionImplementors)
@@ -11658,35 +11687,6 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 			out.Values[i] = ec._Query___type(ctx, field)
 		case "__schema":
 			out.Values[i] = ec._Query___schema(ctx, field)
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
-var subscriptionCursorImplementors = []string{"SubscriptionCursor"}
-
-func (ec *executionContext) _SubscriptionCursor(ctx context.Context, sel ast.SelectionSet, obj *model.SubscriptionCursor) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, subscriptionCursorImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("SubscriptionCursor")
-		case "results":
-			out.Values[i] = ec._SubscriptionCursor_results(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "cursor":
-			out.Values[i] = ec._SubscriptionCursor_cursor(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12284,6 +12284,60 @@ func (ec *executionContext) marshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋlis
 	return v
 }
 
+func (ec *executionContext) marshalNActivitySubscription2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐActivitySubscription(ctx context.Context, sel ast.SelectionSet, v model.ActivitySubscription) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._ActivitySubscription(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNActivitySubscription2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐActivitySubscriptionᚄ(ctx context.Context, sel ast.SelectionSet, v []model.ActivitySubscription) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNActivitySubscription2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐActivitySubscription(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -12791,60 +12845,6 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 	return ret
 }
 
-func (ec *executionContext) marshalNSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx context.Context, sel ast.SelectionSet, v model.Subscription) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._Subscription(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalNSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Subscription) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalNSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	for _, e := range ret {
-		if e == graphql.Null {
-			return graphql.Null
-		}
-	}
-
-	return ret
-}
-
 func (ec *executionContext) marshalNThread2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThread(ctx context.Context, sel ast.SelectionSet, v model.Thread) graphql.Marshaler {
 	return ec._Thread(ctx, sel, &v)
 }
@@ -13253,6 +13253,13 @@ func (ec *executionContext) marshalN__TypeKind2string(ctx context.Context, sel a
 	return res
 }
 
+func (ec *executionContext) marshalOActivitySubscriptionCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐActivitySubscriptionCursor(ctx context.Context, sel ast.SelectionSet, v *model.ActivitySubscriptionCursor) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._ActivitySubscriptionCursor(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOBoolean2bool(ctx context.Context, v interface{}) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -13439,13 +13446,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
-}
-
-func (ec *executionContext) marshalOSubscriptionCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionCursor(ctx context.Context, sel ast.SelectionSet, v *model.SubscriptionCursor) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._SubscriptionCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOThreadCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐThreadCursor(ctx context.Context, sel ast.SelectionSet, v *model.ThreadCursor) graphql.Marshaler {

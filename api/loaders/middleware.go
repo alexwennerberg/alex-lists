@@ -7,7 +7,7 @@ package loaders
 //go:generate ./gen MailingListsByNameLoader string api/graph/model.MailingList
 //go:generate ./gen MailingListsByOwnerNameLoader [2]string api/graph/model.MailingList
 //go:generate ./gen PatchsetsByIDLoader int api/graph/model.Patchset
-//go:generate go run github.com/vektah/dataloaden SubscriptionsByIDLoader int git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Subscription
+//go:generate go run github.com/vektah/dataloaden SubscriptionsByIDLoader int git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.ActivitySubscription
 //go:generate ./gen ThreadsByIDLoader int api/graph/model.Thread
 //go:generate ./gen UsersByIDLoader int api/graph/model.User
 //go:generate ./gen UsersByNameLoader string api/graph/model.User
@@ -782,9 +782,9 @@ func fetchPatchsetsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Pat
 	}
 }
 
-func fetchSubscriptionsByIDUnsafe(ctx context.Context) func(ids []int) ([]model.Subscription, []error) {
-	return func(ids []int) ([]model.Subscription, []error) {
-		subs := make([]model.Subscription, len(ids))
+func fetchSubscriptionsByIDUnsafe(ctx context.Context) func(ids []int) ([]model.ActivitySubscription, []error) {
+	return func(ids []int) ([]model.ActivitySubscription, []error) {
+		subs := make([]model.ActivitySubscription, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
 			ReadOnly:  true,
@@ -805,7 +805,7 @@ func fetchSubscriptionsByIDUnsafe(ctx context.Context) func(ids []int) ([]model.
 			}
 			defer rows.Close()
 
-			subsByID := make(map[int]model.Subscription)
+			subsByID := make(map[int]model.ActivitySubscription)
 			for rows.Next() {
 				var sub model.MailingListSubscription
 				if err := rows.Scan(database.Scan(ctx, &sub)...); err != nil {

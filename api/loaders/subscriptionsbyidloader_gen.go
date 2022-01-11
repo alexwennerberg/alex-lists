@@ -12,7 +12,7 @@ import (
 // SubscriptionsByIDLoaderConfig captures the config to create a new SubscriptionsByIDLoader
 type SubscriptionsByIDLoaderConfig struct {
 	// Fetch is a method that provides the data for the loader
-	Fetch func(keys []int) ([]model.Subscription, []error)
+	Fetch func(keys []int) ([]model.ActivitySubscription, []error)
 
 	// Wait is how long wait before sending a batch
 	Wait time.Duration
@@ -33,7 +33,7 @@ func NewSubscriptionsByIDLoader(config SubscriptionsByIDLoaderConfig) *Subscript
 // SubscriptionsByIDLoader batches and caches requests
 type SubscriptionsByIDLoader struct {
 	// this method provides the data for the loader
-	fetch func(keys []int) ([]model.Subscription, []error)
+	fetch func(keys []int) ([]model.ActivitySubscription, []error)
 
 	// how long to done before sending a batch
 	wait time.Duration
@@ -44,7 +44,7 @@ type SubscriptionsByIDLoader struct {
 	// INTERNAL
 
 	// lazily created cache
-	cache map[int]model.Subscription
+	cache map[int]model.ActivitySubscription
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
@@ -56,25 +56,25 @@ type SubscriptionsByIDLoader struct {
 
 type subscriptionsByIDLoaderBatch struct {
 	keys    []int
-	data    []model.Subscription
+	data    []model.ActivitySubscription
 	error   []error
 	closing bool
 	done    chan struct{}
 }
 
-// Load a Subscription by key, batching and caching will be applied automatically
-func (l *SubscriptionsByIDLoader) Load(key int) (model.Subscription, error) {
+// Load a ActivitySubscription by key, batching and caching will be applied automatically
+func (l *SubscriptionsByIDLoader) Load(key int) (model.ActivitySubscription, error) {
 	return l.LoadThunk(key)()
 }
 
-// LoadThunk returns a function that when called will block waiting for a Subscription.
+// LoadThunk returns a function that when called will block waiting for a ActivitySubscription.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *SubscriptionsByIDLoader) LoadThunk(key int) func() (model.Subscription, error) {
+func (l *SubscriptionsByIDLoader) LoadThunk(key int) func() (model.ActivitySubscription, error) {
 	l.mu.Lock()
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
-		return func() (model.Subscription, error) {
+		return func() (model.ActivitySubscription, error) {
 			return it, nil
 		}
 	}
@@ -85,10 +85,10 @@ func (l *SubscriptionsByIDLoader) LoadThunk(key int) func() (model.Subscription,
 	pos := batch.keyIndex(l, key)
 	l.mu.Unlock()
 
-	return func() (model.Subscription, error) {
+	return func() (model.ActivitySubscription, error) {
 		<-batch.done
 
-		var data model.Subscription
+		var data model.ActivitySubscription
 		if pos < len(batch.data) {
 			data = batch.data[pos]
 		}
@@ -113,43 +113,43 @@ func (l *SubscriptionsByIDLoader) LoadThunk(key int) func() (model.Subscription,
 
 // LoadAll fetches many keys at once. It will be broken into appropriate sized
 // sub batches depending on how the loader is configured
-func (l *SubscriptionsByIDLoader) LoadAll(keys []int) ([]model.Subscription, []error) {
-	results := make([]func() (model.Subscription, error), len(keys))
+func (l *SubscriptionsByIDLoader) LoadAll(keys []int) ([]model.ActivitySubscription, []error) {
+	results := make([]func() (model.ActivitySubscription, error), len(keys))
 
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
 
-	subscriptions := make([]model.Subscription, len(keys))
+	activitySubscriptions := make([]model.ActivitySubscription, len(keys))
 	errors := make([]error, len(keys))
 	for i, thunk := range results {
-		subscriptions[i], errors[i] = thunk()
+		activitySubscriptions[i], errors[i] = thunk()
 	}
-	return subscriptions, errors
+	return activitySubscriptions, errors
 }
 
-// LoadAllThunk returns a function that when called will block waiting for a Subscriptions.
+// LoadAllThunk returns a function that when called will block waiting for a ActivitySubscriptions.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *SubscriptionsByIDLoader) LoadAllThunk(keys []int) func() ([]model.Subscription, []error) {
-	results := make([]func() (model.Subscription, error), len(keys))
+func (l *SubscriptionsByIDLoader) LoadAllThunk(keys []int) func() ([]model.ActivitySubscription, []error) {
+	results := make([]func() (model.ActivitySubscription, error), len(keys))
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
 	}
-	return func() ([]model.Subscription, []error) {
-		subscriptions := make([]model.Subscription, len(keys))
+	return func() ([]model.ActivitySubscription, []error) {
+		activitySubscriptions := make([]model.ActivitySubscription, len(keys))
 		errors := make([]error, len(keys))
 		for i, thunk := range results {
-			subscriptions[i], errors[i] = thunk()
+			activitySubscriptions[i], errors[i] = thunk()
 		}
-		return subscriptions, errors
+		return activitySubscriptions, errors
 	}
 }
 
 // Prime the cache with the provided key and value. If the key already exists, no change is made
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
-func (l *SubscriptionsByIDLoader) Prime(key int, value model.Subscription) bool {
+func (l *SubscriptionsByIDLoader) Prime(key int, value model.ActivitySubscription) bool {
 	l.mu.Lock()
 	var found bool
 	if _, found = l.cache[key]; !found {
@@ -166,9 +166,9 @@ func (l *SubscriptionsByIDLoader) Clear(key int) {
 	l.mu.Unlock()
 }
 
-func (l *SubscriptionsByIDLoader) unsafeSet(key int, value model.Subscription) {
+func (l *SubscriptionsByIDLoader) unsafeSet(key int, value model.ActivitySubscription) {
 	if l.cache == nil {
-		l.cache = map[int]model.Subscription{}
+		l.cache = map[int]model.ActivitySubscription{}
 	}
 	l.cache[key] = value
 }

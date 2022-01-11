@@ -15,12 +15,12 @@ type ACL interface {
 	IsACL()
 }
 
-type Entity interface {
-	IsEntity()
+type ActivitySubscription interface {
+	IsActivitySubscription()
 }
 
-type Subscription interface {
-	IsSubscription()
+type Entity interface {
+	IsEntity()
 }
 
 type ACLInput struct {
@@ -28,6 +28,16 @@ type ACLInput struct {
 	Reply    bool `json:"reply"`
 	Post     bool `json:"post"`
 	Moderate bool `json:"moderate"`
+}
+
+// A cursor for enumerating subscriptions
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
+type ActivitySubscriptionCursor struct {
+	Results []ActivitySubscription `json:"results"`
+	Cursor  *model.Cursor          `json:"cursor"`
 }
 
 // A cursor for enumerating emails
@@ -87,16 +97,6 @@ type Patch struct {
 type PatchsetCursor struct {
 	Results []*Patchset   `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
-}
-
-// A cursor for enumerating subscriptions
-//
-// If there are additional results available, the cursor object may be passed
-// back into the same endpoint to retrieve another page. If the cursor is null,
-// there are no remaining results to return.
-type SubscriptionCursor struct {
-	Results []Subscription `json:"results"`
-	Cursor  *model.Cursor  `json:"cursor"`
 }
 
 // A cursor for enumerating threads
