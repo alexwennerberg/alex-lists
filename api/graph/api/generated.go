@@ -1612,18 +1612,20 @@ var sources = []*ast.Source{
 	{Name: "graph/schema.graphqls", Input: `# This schema definition is available in the public domain, or under the terms
 # of CC-0, at your choice.
 
-# String of the format %Y-%m-%dT%H:%M:%SZ
+"String of the format %Y-%m-%dT%H:%M:%SZ"
 scalar Time
-# Opaque string
+"Opaque string"
 scalar Cursor
-# URL from which some secondary data may be retrieved. You must provide the
-# same Authentication header to this address as you did to the GraphQL resolver
-# which provided it. The URL is not guaranteed to be consistent for an extended
-# length of time; applications should submit a new GraphQL query each time they
-# wish to access the data at the provided URL.
+"""
+URL from which some secondary data may be retrieved. You must provide the
+same Authentication header to this address as you did to the GraphQL resolver
+which provided it. The URL is not guaranteed to be consistent for an extended
+length of time; applications should submit a new GraphQL query each time they
+wish to access the data at the provided URL.
+"""
 scalar URL
 
-# Used to provide a human-friendly description of an access scope
+"Used to provide a human-friendly description of an access scope"
 directive @scopehelp(details: String!) on ENUM_VALUE
 
 enum AccessScope {
@@ -1640,8 +1642,10 @@ enum AccessKind {
   RW @scopehelp(details: "read and write")
 }
 
-# Decorates fields for which access requires a particular OAuth 2.0 scope with
-# read or write access.
+"""
+Decorates fields for which access requires a particular OAuth 2.0 scope with
+read or write access.
+"""
 directive @access(scope: AccessScope!, kind: AccessKind!) on FIELD_DEFINITION
 
 # https://semver.org
@@ -1650,9 +1654,11 @@ type Version {
   minor: Int!
   patch: Int!
 
-  # If this API version is scheduled for deprecation, this is the date on which
-  # it will stop working; or null if this API version is not scheduled for
-  # deprecation.
+  """
+  If this API version is scheduled for deprecation, this is the date on which
+  it will stop working; or null if this API version is not scheduled for
+  deprecation.
+  """
   deprecationDate: Time
 }
 
@@ -1660,7 +1666,7 @@ interface Entity {
   canonicalName: String!
 }
 
-# A registered user
+"A registered user"
 type User implements Entity {
   id: Int!
   created: Time!
@@ -1678,7 +1684,7 @@ type User implements Entity {
   patches(cursor: Cursor): PatchsetCursor @access(scope: PATCHES, kind: RO)
 }
 
-# A mailbox not associated with a registered user
+"A mailbox not associated with a registered user"
 type Mailbox implements Entity {
   canonicalName: String!
   name: String!
@@ -1695,57 +1701,61 @@ type MailingList {
   # Markdown
   description: String
 
-  # List of globs for permitted or rejected mimetypes on this list
-  # e.g. text/*
+  """
+  List of globs for permitted or rejected mimetypes on this list
+  e.g. text/*
+  """
   permitMime: [String!]!
   rejectMime: [String!]!
 
-  # List of threads on this list in order of most recently bumped
+  "List of threads on this list in order of most recently bumped"
   threads(cursor: Cursor): ThreadCursor! @access(scope: EMAILS, kind: RO)
-  # List of emails received on this list in reverse chronological order
+  "List of emails received on this list in reverse chronological order"
   emails(cursor: Cursor): EmailCursor! @access(scope: EMAILS, kind: RO)
-  # List of patches received on this list in order of most recently bumped
+  "List of patches received on this list in order of most recently bumped"
   patches(cursor: Cursor): PatchsetCursor! @access(scope: PATCHES, kind: RO)
 
-  # True if an import operation is underway for this list
+  "True if an import operation is underway for this list"
   importing: Boolean!
 
-  # The access that applies to this user for this list
+  "The access that applies to this user for this list"
   access: ACL! @access(scope: ACLS, kind: RO)
 
-  # The user's subscription for this list, if any
+  "The user's subscription for this list, if any"
   subscription: Subscription @access(scope: SUBSCRIPTIONS, kind: RO)
 
-  # URLs to application/mbox archives for this mailing list
+  "URLs to application/mbox archives for this mailing list"
   archive: URL!
   last30days: URL!
 
   #
   # The following resolvers are only available to the list owner:
 
-  # Access control list entries for this mailing list
+  "Access control list entries for this mailing list"
   acl(cursor: Cursor): MailingListACLCursor! @access(scope: ACLS, kind: RO)
-  # Permissions which apply to any non-subscriber
+  "Permissions which apply to any non-subscriber"
   nonsubscriber: GeneralACL!
-  # Permissions which apply to any subscriber
+  "Permissions which apply to any subscriber"
   subscriber: GeneralACL!
-  # Permissions which apply to any authenticated account holder
+  "Permissions which apply to any authenticated account holder"
   identified: GeneralACL!
 }
 
 interface ACL {
-  # Permission to browse or subscribe to emails
+  "Permission to browse or subscribe to emails"
   browse: Boolean!
-  # Permission to reply to existing threads
+  "Permission to reply to existing threads"
   reply: Boolean!
-  # Permission to start new threads
+  "Permission to start new threads"
   post: Boolean!
-  # Permission to moderate the list
+  "Permission to moderate the list"
   moderate: Boolean!
 }
 
-# These ACLs are configured for specific entities, and may be used to expand or
-# constrain the rights of a participant.
+"""
+These ACLs are configured for specific entities, and may be used to expand or
+constrain the rights of a participant.
+"""
 type MailingListACL implements ACL {
   id: Int!
   created: Time!
@@ -1758,8 +1768,10 @@ type MailingListACL implements ACL {
   moderate: Boolean!
 }
 
-# An ACL entry that applies "generally", for example the rights which apply to
-# all subscribers to a list.
+"""
+An ACL entry that applies "generally", for example the rights which apply to
+all subscribers to a list.
+"""
 type GeneralACL implements ACL {
   browse: Boolean!
   reply: Boolean!
@@ -1779,42 +1791,46 @@ type Thread {
 
   list: MailingList! @access(scope: LISTS, kind: RO)
 
-  # Replies to this thread, in chronological order
+  "Replies to this thread, in chronological order"
   descendants(cursor: Cursor): EmailCursor!
 
-  # A mailto: URI for replying to the latest message in this thread
+  "A mailto: URI for replying to the latest message in this thread"
   mailto: String!
 
-  # URL to an application/mbox archive of this thread
+  "URL to an application/mbox archive of this thread"
   mbox: URL!
 }
 
 type Email {
   id: Int!
 
-  # The entity which sent this email. Will be a User if it can be associated
-  # with an account, or a Mailbox otherwise.
+  """
+  The entity which sent this email. Will be a User if it can be associated
+  with an account, or a Mailbox otherwise.
+  """
   sender: Entity!
-  # Time we received this email (non-forgable).
+  "Time we received this email (non-forgable)."
   received: Time!
-  # Time given by Date header (forgable).
+  "Time given by Date header (forgable)."
   date: Time
-  # The Subject header.
+  "The Subject header."
   subject: String!
-  # The Message-ID header, without angle brackets.
+  "The Message-ID header, without angle brackets."
   messageID: String!
-  # The In-Reply-To header, if present, without angle brackets.
+  "The In-Reply-To header, if present, without angle brackets."
   inReplyTo: String
 
-  # Provides the value (or values) of a specific header from this email. Note
-  # that the returned value is coerced to UTF-8 and may be lossy under certain
-  # circumstances.
+  """
+  Provides the value (or values) of a specific header from this email. Note
+  that the returned value is coerced to UTF-8 and may be lossy under certain
+  circumstances.
+  """
   header(want: String!): [String!]!
-  # Retrieves the value of an address list header, such as To or Cc.
+  "Retrieves the value of an address list header, such as To or Cc."
   addressList(want: String!): [Mailbox!]!
-  # The decoded text/plain message part of the email, i.e. email body.
+  "The decoded text/plain message part of the email, i.e. email body."
   body: String!
-  # A URL from which the full raw message envelope may be downloaded.
+  "A URL from which the full raw message envelope may be downloaded."
   envelope: URL!
 
   thread: Thread!
@@ -1825,17 +1841,19 @@ type Email {
   list: MailingList! @access(scope: LISTS, kind: RO)
 }
 
-# Information parsed from the subject line of a patch, such that the following:
-#
-#   [PATCH myproject v2 3/4] Add foo to bar
-#
-# Will produce:
-#
-# index: 3
-# count: 4
-# version: 2
-# prefix: "myproject"
-# subject: "Add foo to bar"
+"""
+Information parsed from the subject line of a patch, such that the following:
+
+    [PATCH myproject v2 3/4] Add foo to bar
+
+Will produce:
+
+    index: 3
+    count: 4
+    version: 2
+    prefix: "myproject"
+    subject: "Add foo to bar"
+"""
 type Patch {
   index: Int
   count: Int
@@ -1871,7 +1889,7 @@ type Patchset {
   patches(cursor: Cursor): EmailCursor! @access(scope: EMAILS, kind: RO)
   tools: [PatchsetTool!]!
 
-  # URL to an application/mbox archive of only the patches in this thread
+  "URL to an application/mbox archive of only the patches in this thread"
   mbox: URL!
 }
 
@@ -1883,8 +1901,10 @@ enum ToolIcon {
   CANCELLED
 }
 
-# Used to add some kind of indicator for a third-party process associated with
-# a patchset, such as a CI service validating the change.
+"""
+Used to add some kind of indicator for a third-party process associated with
+a patchset, such as a CI service validating the change.
+"""
 type PatchsetTool {
   id: Int!
   created: Time!
@@ -1905,94 +1925,108 @@ type MailingListSubscription implements Subscription {
   list: MailingList! @access(scope: LISTS, kind: RO)
 }
 
-# A cursor for enumerating ACL entries
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating ACL entries
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type MailingListACLCursor {
   results: [MailingListACL!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating mailing lists
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating mailing lists
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type MailingListCursor {
   results: [MailingList!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating threads
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating threads
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type ThreadCursor {
   results: [Thread!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating emails
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating emails
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type EmailCursor {
   results: [Email!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating patchsets
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating patchsets
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type PatchsetCursor {
   results: [Patchset!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating subscriptions
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating subscriptions
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type SubscriptionCursor {
   results: [Subscription!]!
   cursor: Cursor
 }
 
 type Query {
-  # Returns API version information
+  "Returns API version information"
   version: Version!
 
-  # Returns the authenticated user
+  "Returns the authenticated user"
   me: User! @access(scope: PROFILE, kind: RO)
 
-  # Looks up a specific user
+  "Looks up a specific user"
   user(id: Int!): User @access(scope: PROFILE, kind: RO)
   userByName(username: String!): User @access(scope: PROFILE, kind: RO)
 
-  # Looks up a specific mailing list
+  "Looks up a specific mailing list"
   mailingList(id: Int!): MailingList @access(scope: LISTS, kind: RO)
   mailingListByName(name: String!): MailingList @access(scope: LISTS, kind: RO)
   mailingListByOwner(ownerName: String!, listName: String!): MailingList @access(scope: LISTS, kind: RO)
 
-  # Looks up a specific email by its ID
+  "Looks up a specific email by its ID"
   email(id: Int!): Email @access(scope: EMAILS, kind: RO)
-  # Looks up a specific email by its Message-ID header, including the angle
-  # brackets ('<' and '>').
+  """
+  Looks up a specific email by its Message-ID header, including the angle
+  brackets ('<' and '>').
+  """
   message(messageID: String!): Email @access(scope: EMAILS, kind: RO)
-  # Looks up a patchset by ID
+  "Looks up a patchset by ID"
   patchset(id: Int!): Patchset @access(scope: EMAILS, kind: RO)
 
-  # List of mailing lists that the authenticated user has ownership of
+  "List of mailing lists that the authenticated user has ownership of"
   mailingLists(cursor: Cursor): MailingListCursor! @access(scope: LISTS, kind: RO)
 
-  # List of subscriptions of the authenticated user
+  "List of subscriptions of the authenticated user"
   subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 
@@ -2001,8 +2035,10 @@ type Query {
 input MailingListInput {
   description: String
 
-  # List of globs for permitted or rejected mimetypes on this list
-  # e.g. text/*
+  """
+  List of globs for permitted or rejected mimetypes on this list
+  e.g. text/*
+  """
   permitMime: [String!]
   rejectMime: [String!]
 }
@@ -2016,53 +2052,58 @@ input ACLInput {
 }
 
 type Mutation {
-  # Creates a new mailing list
+  "Creates a new mailing list"
   createMailingList(
     name: String!,
     description: String): MailingList! @access(scope: LISTS, kind: RW)
 
-  # Updates a mailing list.
+  "Updates a mailing list."
   updateMailingList(
     id: Int!,
     input: MailingListInput!): MailingList @access(scope: LISTS, kind: RW)
 
-  # Deletes a mailing list
+  "Deletes a mailing list"
   deleteMailingList(id: Int!): MailingList @access(scope: LISTS, kind: RW)
 
-  # Adds or updates the ACL for a user on a mailing list
+  "Adds or updates the ACL for a user on a mailing list"
   updateUserACL(
     listID: Int!,
     userID: Int!,
     input: ACLInput!): MailingListACL @access(scope: ACLS, kind: RW)
 
-  # Adds or updates the ACL for an email address on a mailing list
+  "Adds or updates the ACL for an email address on a mailing list"
   updateSenderACL(
     listID: Int!,
     address: String!,
     input: ACLInput!): MailingListACL @access(scope: ACLS, kind: RW)
 
-  # Updates the default ACL for a mailing list, which applies to users and
-  # senders for whom a more specific ACL does not exist.
+  """
+  Updates the default ACL for a mailing list, which applies to users and
+  senders for whom a more specific ACL does not exist.
+  """
   updateMailingListACL(
     listID: Int!,
     input: ACLInput!): MailingList @access(scope: ACLS, kind: RW)
 
-  # Removes a mailing list ACL. Following this, the default mailing list ACL will apply to this user.
+  """
+  Removes a mailing list ACL. Following this, the default mailing list ACL will
+  apply to this user.
+  """
   deleteACL(id: Int!): MailingListACL @access(scope: ACLS, kind: RW)
 
-  # Updates the status of a patchset
+  "Updates the status of a patchset"
   updatePatchset(id: Int!, status: PatchsetStatus!): Patchset @access(scope: PATCHES, kind: RW)
 
-  # Create a new patchset tool
+  "Create a new patchset tool"
   createTool(patchsetID: Int!, details: String!, icon: ToolIcon!): PatchsetTool @access(scope: PATCHES, kind: RW)
 
-  # Updates the status of a patchset tool by its ID
+  "Updates the status of a patchset tool by its ID"
   updateTool(id: Int!, details: String, icon: ToolIcon): PatchsetTool @access(scope: PATCHES, kind: RW)
 
-  # Creates a mailing list subscription
+  "Creates a mailing list subscription"
   mailingListSubscribe(listID: Int!): MailingListSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
-  # Deletes a mailing list subscription
+  "Deletes a mailing list subscription"
   mailingListUnsubscribe(listID: Int!): MailingListSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 }
 `, BuiltIn: false},
@@ -9363,6 +9404,41 @@ func (ec *executionContext) ___Directive_args(ctx context.Context, field graphql
 	return ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) ___Directive_isRepeatable(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "__Directive",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsRepeatable, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) ___EnumValue_name(ctx context.Context, field graphql.CollectedField, obj *introspection.EnumValue) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -10315,7 +10391,10 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 func (ec *executionContext) unmarshalInputACLInput(ctx context.Context, obj interface{}) (model.ACLInput, error) {
 	var it model.ACLInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -11948,6 +12027,11 @@ func (ec *executionContext) ___Directive(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "isRepeatable":
+			out.Values[i] = ec.___Directive_isRepeatable(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12253,6 +12337,13 @@ func (ec *executionContext) marshalNEmail2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋlis
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -12349,6 +12440,13 @@ func (ec *executionContext) marshalNMailbox2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋl
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -12400,6 +12498,13 @@ func (ec *executionContext) marshalNMailingList2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -12447,6 +12552,13 @@ func (ec *executionContext) marshalNMailingListACL2ᚕᚖgitᚗsrᚗhtᚋאsircm
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -12530,6 +12642,13 @@ func (ec *executionContext) marshalNPatchset2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋ
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -12601,6 +12720,13 @@ func (ec *executionContext) marshalNPatchsetTool2ᚕᚖgitᚗsrᚗhtᚋאsircmpw
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -12656,6 +12782,12 @@ func (ec *executionContext) marshalNString2ᚕstringᚄ(ctx context.Context, sel
 		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
 	}
 
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -12703,6 +12835,13 @@ func (ec *executionContext) marshalNSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwn�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -12744,6 +12883,13 @@ func (ec *executionContext) marshalNThread2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋli
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -12888,6 +13034,13 @@ func (ec *executionContext) marshalN__Directive2ᚕgithubᚗcomᚋ99designsᚋgq
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -12961,6 +13114,13 @@ func (ec *executionContext) marshalN__DirectiveLocation2ᚕstringᚄ(ctx context
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -13010,6 +13170,13 @@ func (ec *executionContext) marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋg
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -13051,6 +13218,13 @@ func (ec *executionContext) marshalN__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgen�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -13243,6 +13417,12 @@ func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel
 		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
 	}
 
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -13357,6 +13537,13 @@ func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgq
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -13397,6 +13584,13 @@ func (ec *executionContext) marshalO__Field2ᚕgithubᚗcomᚋ99designsᚋgqlgen
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -13437,6 +13631,13 @@ func (ec *executionContext) marshalO__InputValue2ᚕgithubᚗcomᚋ99designsᚋg
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -13484,6 +13685,13 @@ func (ec *executionContext) marshalO__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgen�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 

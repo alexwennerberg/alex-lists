@@ -30,21 +30,47 @@ type ACLInput struct {
 	Moderate bool `json:"moderate"`
 }
 
+// A cursor for enumerating emails
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type EmailCursor struct {
 	Results []*Email      `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+// A cursor for enumerating ACL entries
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type MailingListACLCursor struct {
 	Results []*MailingListACL `json:"results"`
 	Cursor  *model.Cursor     `json:"cursor"`
 }
 
+// A cursor for enumerating mailing lists
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type MailingListCursor struct {
 	Results []*MailingList `json:"results"`
 	Cursor  *model.Cursor  `json:"cursor"`
 }
 
+// Information parsed from the subject line of a patch, such that the following:
+//
+//     [PATCH myproject v2 3/4] Add foo to bar
+//
+// Will produce:
+//
+//     index: 3
+//     count: 4
+//     version: 2
+//     prefix: "myproject"
+//     subject: "Add foo to bar"
 type Patch struct {
 	Index   *int    `json:"index"`
 	Count   *int    `json:"count"`
@@ -53,25 +79,43 @@ type Patch struct {
 	Subject *string `json:"subject"`
 }
 
+// A cursor for enumerating patchsets
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type PatchsetCursor struct {
 	Results []*Patchset   `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+// A cursor for enumerating subscriptions
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type SubscriptionCursor struct {
 	Results []Subscription `json:"results"`
 	Cursor  *model.Cursor  `json:"cursor"`
 }
 
+// A cursor for enumerating threads
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type ThreadCursor struct {
 	Results []*Thread     `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type Version struct {
-	Major           int        `json:"major"`
-	Minor           int        `json:"minor"`
-	Patch           int        `json:"patch"`
+	Major int `json:"major"`
+	Minor int `json:"minor"`
+	Patch int `json:"patch"`
+	// If this API version is scheduled for deprecation, this is the date on which
+	// it will stop working; or null if this API version is not scheduled for
+	// deprecation.
 	DeprecationDate *time.Time `json:"deprecationDate"`
 }
 
