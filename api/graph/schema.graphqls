@@ -111,7 +111,7 @@ type MailingList {
   access: ACL! @access(scope: ACLS, kind: RO)
 
   "The user's subscription for this list, if any"
-  subscription: Subscription @access(scope: SUBSCRIPTIONS, kind: RO)
+  subscription: MailingListSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
 
   "URLs to application/mbox archives for this mailing list"
   archive: URL!

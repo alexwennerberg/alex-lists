@@ -212,11 +212,15 @@ func (r *mailingListResolver) Access(ctx context.Context, obj *model.MailingList
 	}, nil
 }
 
-func (r *mailingListResolver) Subscription(ctx context.Context, obj *model.MailingList) (model.Subscription, error) {
+func (r *mailingListResolver) Subscription(ctx context.Context, obj *model.MailingList) (*model.MailingListSubscription, error) {
 	if obj.SubscriptionID == nil {
 		return nil, nil
 	}
-	return loaders.ForContext(ctx).SubscriptionsByIDUnsafe.Load(*obj.SubscriptionID)
+	sub, err := loaders.ForContext(ctx).SubscriptionsByIDUnsafe.Load(*obj.SubscriptionID)
+	if err != nil {
+		return nil, err
+	}
+	return sub.(*model.MailingListSubscription), nil
 }
 
 func (r *mailingListResolver) Archive(ctx context.Context, obj *model.MailingList) (*model.URL, error) {

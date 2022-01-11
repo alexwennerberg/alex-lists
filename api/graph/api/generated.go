@@ -284,7 +284,7 @@ type MailingListResolver interface {
 	Patches(ctx context.Context, obj *model.MailingList, cursor *model1.Cursor) (*model.PatchsetCursor, error)
 
 	Access(ctx context.Context, obj *model.MailingList) (model.ACL, error)
-	Subscription(ctx context.Context, obj *model.MailingList) (model.Subscription, error)
+	Subscription(ctx context.Context, obj *model.MailingList) (*model.MailingListSubscription, error)
 	Archive(ctx context.Context, obj *model.MailingList) (*model.URL, error)
 	Last30days(ctx context.Context, obj *model.MailingList) (*model.URL, error)
 	ACL(ctx context.Context, obj *model.MailingList, cursor *model1.Cursor) (*model.MailingListACLCursor, error)
@@ -1722,7 +1722,7 @@ type MailingList {
   access: ACL! @access(scope: ACLS, kind: RO)
 
   "The user's subscription for this list, if any"
-  subscription: Subscription @access(scope: SUBSCRIPTIONS, kind: RO)
+  subscription: MailingListSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
 
   "URLs to application/mbox archives for this mailing list"
   archive: URL!
@@ -4416,10 +4416,10 @@ func (ec *executionContext) _MailingList_subscription(ctx context.Context, field
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.(model.Subscription); ok {
+		if data, ok := tmp.(*model.MailingListSubscription); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.Subscription`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model.MailingListSubscription`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4428,9 +4428,9 @@ func (ec *executionContext) _MailingList_subscription(ctx context.Context, field
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(model.Subscription)
+	res := resTmp.(*model.MailingListSubscription)
 	fc.Result = res
-	return ec.marshalOSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx, field.Selections, res)
+	return ec.marshalOMailingListSubscription2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐMailingListSubscription(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _MailingList_archive(ctx context.Context, field graphql.CollectedField, obj *model.MailingList) (ret graphql.Marshaler) {
@@ -13439,13 +13439,6 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 		return graphql.Null
 	}
 	return graphql.MarshalString(*v)
-}
-
-func (ec *executionContext) marshalOSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx context.Context, sel ast.SelectionSet, v model.Subscription) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Subscription(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOSubscriptionCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋlistsᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionCursor(ctx context.Context, sel ast.SelectionSet, v *model.SubscriptionCursor) graphql.Marshaler {
