@@ -45,6 +45,7 @@ tasks:
       ssh $master doas apk upgrade -U
       ssh $master doas service lists.sr.ht restart
       ssh $master doas service lists.sr.ht-process restart
+      ssh $master doas service lists.sr.ht-api restart
       for server in $mail_servers
       do
           ssh $server doas apk upgrade -U
