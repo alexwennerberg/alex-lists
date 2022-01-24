@@ -632,6 +632,8 @@ def import_mbox(spool, list_id):
             mbox = mailbox.mbox(f.name, factory=factory)
         except:
             print("Error opening this file. Is it in mbox format?")
+            ml.import_in_progress = False
+            db.session.commit()
             # TODO: tell the user?
             return
 
