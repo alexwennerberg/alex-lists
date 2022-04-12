@@ -251,10 +251,10 @@ def patchset_bulk_update(owner_name, list_name):
 
 def format_mbox(msgs):
     b = bytes()
+    policy = email.policy.SMTPUTF8.clone(max_line_length=998)
     for msg in msgs:
         parsed = msg.parsed()
-        b += parsed.as_bytes(unixfrom=True,
-                policy=email.policy.SMTPUTF8) + b'\r\n'
+        b += parsed.as_bytes(unixfrom=True, policy=policy) + b'\r\n'
     return b
 
 @patches.route("/<owner_name>/<list_name>/patches/<int:patchset_id>/mbox")

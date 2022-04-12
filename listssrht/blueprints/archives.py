@@ -265,7 +265,8 @@ def raw(owner_name, list_name, message_id):
 
 def format_mbox(msg):
     parsed = msg.parsed()
-    b = parsed.as_bytes(unixfrom=True, policy=email.policy.SMTPUTF8) + b'\r\n'
+    policy = email.policy.SMTPUTF8.clone(max_line_length=998)
+    b = parsed.as_bytes(unixfrom=True, policy=policy) + b'\r\n'
     for reply in msg.replies:
         b += format_mbox(reply)
     return b
