@@ -188,6 +188,59 @@ type Thread {
 
   "URL to an application/mbox archive of this thread"
   mbox: URL!
+
+  """
+  Thread parsed as a tree.
+
+  The returned list is never empty. The first item is guaranteed to be the root
+  message. The blocks are sorted in topological order.
+  """
+  blocks: [ThreadBlock!]!
+}
+
+"""
+A block of text in an email thread.
+
+Blocks are parts of a message's body that aren't quotes of the parent message.
+A block can be a reply to a parent block, in which case the parentStart and
+parentEnd fields indicate which part of the parent message is replied to. A
+block can have replies, each of which will be represented by a block in the
+children field.
+"""
+type ThreadBlock {
+  "Unique identifier for this block."
+  key: String!
+  "The block's plain-text content."
+  body: String!
+  "Index of the parent block (if any) in Thread.blocks."
+  parent: Int
+  """
+  Replies to this block.
+
+  The list items are indexes into Thread.blocks.
+  """
+  children: [Int!]!
+
+  "The email this block comes from."
+  source: Email!
+  "The range of this block in the source email body."
+  sourceRange: ByteRange!
+
+  """
+  If this block is a reply to a particular chunk of the parent block, this
+  field indicates the range of that chunk in the parent's email body.
+  """
+  parentRange: ByteRange
+}
+
+"""
+A byte range.
+"""
+type ByteRange {
+  "Inclusive start byte offset."
+  start: Int!
+  "Exclusive end byte offset."
+  end: Int!
 }
 
 type Email {

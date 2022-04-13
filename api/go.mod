@@ -3,6 +3,7 @@ module git.sr.ht/~sircmpwn/lists.sr.ht/api
 go 1.16
 
 require (
+	git.sr.ht/~emersion/go-emailthreads v0.0.0-20220412093310-4fd792e343ba
 	git.sr.ht/~sircmpwn/core-go v0.0.0-20220113153027-e7ae287d2fec
 	git.sr.ht/~sircmpwn/getopt v1.0.0 // indirect
 	git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9 // indirect
@@ -10,7 +11,6 @@ require (
 	github.com/Masterminds/squirrel v1.5.2
 	github.com/ProtonMail/go-crypto v0.0.0-20220113124808-70ae35bab23f // indirect
 	github.com/agnivade/levenshtein v1.1.1 // indirect
-	github.com/cpuguy83/go-md2man/v2 v2.0.1 // indirect
 	github.com/emersion/go-mbox v1.0.2
 	github.com/emersion/go-message v0.15.0
 	github.com/emersion/go-sasl v0.0.0-20211008083017-0b9dcfb154ac // indirect

@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"git.sr.ht/~emersion/go-emailthreads"
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
@@ -1192,6 +1193,77 @@ func (r *threadResolver) Mbox(ctx context.Context, obj *model.Thread) (*model.UR
 		panic(err)
 	}
 	return &model.URL{url}, nil
+}
+
+func (r *threadResolver) Blocks(ctx context.Context, obj *model.Thread) ([]*model.ThreadBlock, error) {
+	var (
+		messages []emailthreads.Message
+		emails   []model.Email
+	)
+	err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		query := database.
+			Select(ctx, new(model.Email).As(`email`)).
+			From(`email`).
+			Where(`email.thread_id = ?`, obj.ID).
+			OrderBy(`email.created`)
+
+		rows, err := query.RunWith(tx).QueryContext(ctx)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var email model.Email
+			if err := rows.Scan(database.Scan(ctx, &email)...); err != nil {
+				return err
+			}
+			email.Populate()
+
+			mr, err := mail.CreateReader(bytes.NewReader(email.RawEnvelope))
+			if err != nil {
+				return fmt.Errorf("failed to create mail reader: %v", err)
+			}
+			header := mr.Header
+			text, err := getMailText(mr)
+			if err != nil {
+				return fmt.Errorf("failed to get mail text: %v", err)
+			}
+			mr.Close()
+
+			messages = append(messages, emailthreads.Message{
+				Header: header,
+				Body:   text,
+			})
+			emails = append(emails, email)
+		}
+
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	} else if len(messages) == 0 {
+		return nil, nil
+	}
+
+	root, err := emailthreads.Parse(messages)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse thread: %v", err)
+	}
+
+	sources := make(map[*emailthreads.Message]*model.Email)
+	for i := range messages {
+		sources[&messages[i]] = &emails[i]
+	}
+
+	var blocks []*model.ThreadBlock
+	indexes := make(map[*emailthreads.Block]int)
+	toThreadBlockList(&blocks, root, nil, sources, indexes)
+
+	return blocks, nil
 }
 
 func (r *userResolver) Lists(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
