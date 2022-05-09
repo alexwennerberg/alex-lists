@@ -437,8 +437,12 @@ func fetchEmailsByID(ctx context.Context) func(ids []int) ([]*model.Email, []err
 				Select(ctx, (&model.Email{}).As(`email`)).
 				From(`email`).
 				LeftJoin(`list ON email.list_id = list.id`).
-				LeftJoin(`access ON access.list_id = list.id`).
-				LeftJoin(`subscription sub ON sub.list_id = list.id`).
+				LeftJoin(`access ON
+					access.list_id = list.id AND
+					access.user_id = ?`, user.UserID).
+				LeftJoin(`subscription sub ON
+					sub.list_id = list.id AND
+					sub.user_id = ?`, user.UserID).
 				Where(sq.And{
 					sq.Expr(`email.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
@@ -510,8 +514,12 @@ func fetchEmailsByMessageID(ctx context.Context) func(ids []string) ([]*model.Em
 				Select(ctx, (&model.Email{}).As(`email`)).
 				From(`email`).
 				LeftJoin(`list ON email.list_id = list.id`).
-				LeftJoin(`access ON access.list_id = list.id`).
-				LeftJoin(`subscription sub ON sub.list_id = list.id`).
+				LeftJoin(`access ON
+					access.list_id = list.id AND
+					access.user_id = ?`, user.UserID).
+				LeftJoin(`subscription sub ON
+					sub.list_id = list.id AND
+					sub.user_id = ?`, user.UserID).
 				Where(sq.And{
 					sq.Expr(`email.message_id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
@@ -671,8 +679,12 @@ func fetchPatchsetsByID(ctx context.Context) func(ids []int) ([]*model.Patchset,
 				Select(ctx, (&model.Patchset{}).As(`patch`)).
 				From(`patchset patch`).
 				LeftJoin(`list ON patch.list_id = list.id`).
-				LeftJoin(`access ON access.list_id = list.id`).
-				LeftJoin(`subscription sub ON sub.list_id = list.id`).
+				LeftJoin(`access ON
+					access.list_id = list.id AND
+					access.user_id = ?`, user.UserID).
+				LeftJoin(`subscription sub ON
+					sub.list_id = list.id AND
+					sub.user_id = ?`, user.UserID).
 				Where(sq.And{
 					sq.Expr(`patch.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{

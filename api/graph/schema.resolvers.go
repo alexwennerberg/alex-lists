@@ -1332,6 +1332,12 @@ func (r *userResolver) Emails(ctx context.Context, obj *model.User, cursor *core
 			Select(ctx, email).
 			From(`email mail`).
 			Join(`list ON mail.list_id = list.id`).
+			LeftJoin(`access ON
+				access.list_id = list.id AND
+				access.user_id = ?`, user.UserID).
+			LeftJoin(`subscription sub ON
+				sub.list_id = list.id AND
+				sub.user_id = ?`, user.UserID).
 			Where(sq.And{
 				sq.Expr(`mail.sender_id = ?`, obj.ID),
 				sq.Or{
