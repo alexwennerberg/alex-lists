@@ -3,7 +3,7 @@ import email
 from email import policy
 from email.utils import parseaddr
 from emailthreads import parse as parse_thread
-from jinja2 import Markup
+from markupsafe import Markup
 from flask import Blueprint, render_template, abort, Response, request, redirect
 from flask import url_for, session
 from listssrht.blueprints.archives import get_list, apply_search

@@ -1,4 +1,4 @@
-from jinja2 import Markup, escape
+from markupsafe import Markup, escape
 from jinja2.filters import urlize
 from srht.config import cfg
 
