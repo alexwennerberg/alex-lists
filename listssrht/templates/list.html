@@ -24,6 +24,22 @@
       href="{{ path }}">{{ title }}</a>
     {% endmacro %}
     <ul class="nav nav-tabs">
+      {% if ml.visibility.value != "PUBLIC" %}
+      <li
+        class="nav-item nav-text vis-{{ml.visibility.value.lower()}}"
+        {% if ml.visibility.value == "UNLISTED" %}
+        title="This tracker is only visible to those who know the URL."
+        {% elif ml.visibility.value == "PRIVATE" %}
+        title="This tracker is only visible to those who were invited to view it."
+        {% endif %}
+      >
+        {% if ml.visibility.value == "UNLISTED" %}
+        Unlisted
+        {% elif ml.visibility.value == "PRIVATE" %}
+        Private
+        {% endif %}
+      </li>
+      {% endif %}
       <li class="nav-item">
         {{link(url_for("archives.archive",
           owner_name=owner.canonical_name,

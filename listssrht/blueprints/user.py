@@ -10,7 +10,7 @@ from srht.graphql import exec_gql
 from srht.search import search_by
 from srht.validation import Validation
 from sqlalchemy import or_
-from listssrht.types import List, ListAccess, User, Email, Subscription, Mirror
+from listssrht.types import List, ListAccess, User, Email, Subscription, Mirror, Visibility
 from listssrht.webhooks import UserWebhook
 import re
 import smtplib
@@ -49,19 +49,9 @@ def user_profile(username):
     recent = Email.query.filter(Email.sender_id == user.id)
     lists = List.query.filter(List.owner_id == user.id)
 
-    if current_user:
-        if current_user.id != user.id:
-            lists = lists.filter(or_(
-                    List.account_permissions.op('&')(ListAccess.browse) > 0,
-                    List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0))
-            recent = recent.join(List).filter(or_(
-                List.account_permissions.op('&')(ListAccess.browse) > 0,
-                List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0))
-    else:
-        lists = (lists
-                .filter(List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0))
-        recent = (recent.join(List)
-                .filter(List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0))
+    if not current_user or current_user.id != user.id:
+        lists = lists.filter(List.visibility == Visibility.PUBLIC)
+        recent = recent.join(List).filter(List.visibility == Visibility.PUBLIC)
 
     recent = recent.order_by(Email.created.desc()).limit(10).all()
     lists = lists.order_by(List.updated.desc()).limit(10).all()
@@ -76,14 +66,8 @@ def lists_for_user(username):
         abort(404)
     lists = List.query.filter(List.owner_id == user.id)
 
-    if current_user:
-        if current_user.id != user.id:
-            lists = lists.filter(or_(
-                    List.account_permissions.op('&')(ListAccess.browse) > 0,
-                    List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0
-                ))
-    else:
-        lists = lists.filter(List.nonsubscriber_permissions.op('&')(ListAccess.browse) > 0)
+    if not current_user or current_user.id != user.id:
+        lists = lists.filter(List.visibility == Visibility.PUBLIC)
 
     lists = lists.order_by(List.updated.desc())
     terms = request.args.get('search')
@@ -111,19 +95,20 @@ def create_list_POST():
     valid = Validation(request)
     name = valid.require("name", friendly_name="Name")
     description = valid.optional("description")
+    visibility = valid.require("visibility")
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)
 
     resp = exec_gql(current_app.site, """
-        mutation CreateMailingList($name: String!, $description: String) {
-            createMailingList(name: $name, description: $description) {
+        mutation CreateMailingList($name: String!, $description: String, $visibility: Visibility!) {
+            createMailingList(name: $name, description: $description, visibility: $visibility) {
                 name
                 owner {
                     canonicalName
                 }
             }
         }
-    """, valid=valid, name=name, description=description)
+    """, valid=valid, name=name, description=description, visibility=visibility)
 
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)

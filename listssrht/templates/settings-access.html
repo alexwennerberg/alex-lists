@@ -61,7 +61,7 @@
                 specific access configuration.
               </p>
               {% for a in access_type_list %}
-              {{ perm_checkbox(a, ml.nonsubscriber_permissions , "default") }}
+              {{ perm_checkbox(a, ml.default_access, "default") }}
               {% endfor %}
               {{ valid.summary("list_default_access") }}
             </div>

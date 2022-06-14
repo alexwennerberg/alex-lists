@@ -208,7 +208,7 @@ func (r *mailingListResolver) Access(ctx context.Context, obj *model.MailingList
 	if obj.AccessID != nil {
 		return loaders.ForContext(ctx).ACLsByID.Load(*obj.AccessID)
 	}
-	p := obj.Permissions
+	p := obj.Access
 	return &model.GeneralACL{
 		Browse:   p&model.ACCESS_BROWSE != 0,
 		Reply:    p&model.ACCESS_REPLY != 0,
@@ -511,7 +511,7 @@ func (r *mailingListWebhookSubscriptionResolver) List(ctx context.Context, obj *
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.ListID)
 }
 
-func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, description *string) (*model.MailingList, error) {
+func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, description *string, visibility model.Visibility) (*model.MailingList, error) {
 	valid := valid.New(ctx)
 	valid.Expect(listNameRE.MatchString(name), "Name must match %s", listNameRE.String()).
 		WithField("name").
@@ -529,21 +529,20 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			INSERT INTO list (
-				created, updated, name, description, owner_id
+				created, updated, name, description, visibility, owner_id
 			) VALUES (
 				NOW() at time zone 'utc',
 				NOW() at time zone 'utc',
-				$1, $2, $3
+				$1, $2, $3, $4
 			) RETURNING
-				id, created, updated, name, description, owner_id,
-				permit_mimetypes, reject_mimetypes,
-				nonsubscriber_permissions, subscriber_permissions, account_permissions;
-		`, name, description, auth.ForContext(ctx).UserID)
+				id, created, updated, name, description, visibility, owner_id,
+				permit_mimetypes, reject_mimetypes, default_access;
+		`, name, description, visibility.String(), auth.ForContext(ctx).UserID)
 
 		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
-			&list.Description, &list.OwnerID,
+			&list.Description, &list.Visibility, &list.OwnerID,
 			&list.RawPermitMime, &list.RawRejectMime,
-			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified); err != nil {
+			&list.DefaultAccess); err != nil {
 			if err, ok := err.(*pq.Error); ok &&
 				err.Code == "23505" && // unique_violation
 				err.Constraint == "uq_list_owner_id_name" {
@@ -551,7 +550,7 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 			}
 			return err
 		}
-		list.Permissions = model.ACCESS_ALL
+		list.Access = model.ACCESS_ALL
 
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO subscription (
@@ -583,6 +582,9 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 			WithField("description")
 		query = query.Set("description", desc)
 	})
+	valid.OptionalString("visibility", func(visibility string) {
+		query = query.Set("visibility", visibility)
+	})
 	mime := func(name string) {
 		valid.Optional(name+"Mime", func(object interface{}) {
 			list, ok := object.([]interface{})
@@ -613,19 +615,18 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 			Where(`list.id = ? AND list.owner_id = ?`,
 				id, auth.ForContext(ctx).UserID).
 			Suffix(`RETURNING
-				id, created, updated, name, description, owner_id,
-				permit_mimetypes, reject_mimetypes,
-				nonsubscriber_permissions, subscriber_permissions, account_permissions`).
+				id, created, updated, name, description, visibility, owner_id,
+				permit_mimetypes, reject_mimetypes, default_access`).
 			RunWith(tx).
 			QueryRowContext(ctx)
 
 		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
-			&list.Description, &list.OwnerID,
+			&list.Description, &list.Visibility, &list.OwnerID,
 			&list.RawPermitMime, &list.RawRejectMime,
-			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified); err != nil {
+			&list.DefaultAccess); err != nil {
 			return err
 		}
-		list.Permissions = model.ACCESS_ALL
+		list.Access = model.ACCESS_ALL
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
@@ -651,17 +652,15 @@ func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*mode
 			DELETE FROM list
 			WHERE id = $1 AND owner_id = $2
 			RETURNING
-				id, created, updated, name, description, owner_id,
-				permit_mimetypes, reject_mimetypes,
-				nonsubscriber_permissions, subscriber_permissions, account_permissions;`,
+				id, created, updated, name, description, visibility, owner_id,
+				permit_mimetypes, reject_mimetypes, default_access;`,
 			id, auth.ForContext(ctx).UserID)
 		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
-			&list.Description, &list.OwnerID,
-			&list.RawPermitMime, &list.RawRejectMime,
-			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified); err != nil {
+			&list.Description, &list.Visibility, &list.OwnerID,
+			&list.RawPermitMime, &list.RawRejectMime, &list.DefaultAccess); err != nil {
 			return err
 		}
-		list.Permissions = model.ACCESS_ALL
+		list.Access = model.ACCESS_ALL
 
 		// We need to do this here so that it picks up the subscription list
 		// before the cascade sets their list_id columns to null.
@@ -771,25 +770,19 @@ func (r *mutationResolver) UpdateMailingListACL(ctx context.Context, listID int,
 	bits := ACLInputBits(input)
 	var list model.MailingList
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		// TODO: Update me after unifying the ACL columns
 		row := tx.QueryRowContext(ctx, `
-			UPDATE list SET
-				nonsubscriber_permissions = $1,
-				subscriber_permissions = $1,
-				account_permissions = $1
+			UPDATE list SET default_access = $1
 			WHERE id = $2 AND owner_id = $3
 			RETURNING
-				id, created, updated, name, description, owner_id,
-				permit_mimetypes, reject_mimetypes,
-				nonsubscriber_permissions, subscriber_permissions, account_permissions;
+				id, created, updated, name, description, visibility, owner_id,
+				permit_mimetypes, reject_mimetypes, default_access;
 		`, bits, listID, auth.ForContext(ctx).UserID)
 		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
-			&list.Description, &list.OwnerID,
-			&list.RawPermitMime, &list.RawRejectMime,
-			&list.RawNonsubscriber, &list.RawSubscriber, &list.RawIdentified); err != nil {
+			&list.Description, &list.Visibility, &list.OwnerID,
+			&list.RawPermitMime, &list.RawRejectMime, &list.DefaultAccess); err != nil {
 			return err
 		}
-		list.Permissions = model.ACCESS_ALL
+		list.Access = model.ACCESS_ALL
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
@@ -953,10 +946,7 @@ func (r *mutationResolver) MailingListSubscribe(ctx context.Context, listID int)
 				WHERE list.id = $2 AND (
 					list.owner_id = $1 OR
 					(access.id IS NOT NULL AND access.permissions & $3 > 0) OR
-					(access.id IS NULL AND (
-						list.subscriber_permissions |
-						list.account_permissions |
-						list.nonsubscriber_permissions) & $3 > 0)
+					(access.id IS NULL AND list.default_access & $3 > 0)
 				)
 			) INSERT INTO subscription (
 				created, updated, user_id, list_id
@@ -1829,27 +1819,9 @@ func (r *userResolver) Lists(ctx context.Context, obj *model.User, cursor *corem
 			Where(sq.And{
 				sq.Expr(`list.owner_id = ?`, obj.ID),
 				sq.Or{
-					// List owner, or
 					sq.Expr(`list.owner_id = ?`, user.UserID),
-					// ACL entry exists, or
-					sq.And{
-						sq.Expr(`access.id IS NOT NULL`),
-						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
-					},
-					// Subscribers, or
-					sq.And{
-						sq.Expr(`access.id IS NULL`),
-						sq.Expr(`sub.id IS NULL`),
-						sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
-					},
-					// Or:
-					sq.And{
-						sq.Expr(`access.id IS NULL`),
-						sq.Expr(`
-							(list.subscriber_permissions | list.account_permissions) & ? > 0`,
-							model.ACCESS_BROWSE,
-						),
-					},
+					sq.Expr(`list.visibility != 'PRIVATE'`),
+					sq.Expr(`access.permissions > 0`),
 				},
 			})
 		lists, cursor = list.QueryWithCursor(ctx, tx, query, cursor)
@@ -1880,33 +1852,12 @@ func (r *userResolver) Emails(ctx context.Context, obj *model.User, cursor *core
 			LeftJoin(`access ON
 				access.list_id = list.id AND
 				access.user_id = ?`, user.UserID).
-			LeftJoin(`subscription sub ON
-				sub.list_id = list.id AND
-				sub.user_id = ?`, user.UserID).
 			Where(sq.And{
 				sq.Expr(`mail.sender_id = ?`, obj.ID),
 				sq.Or{
-					// List owner, or
 					sq.Expr(`list.owner_id = ?`, user.UserID),
-					// ACL entry exists, or
-					sq.And{
-						sq.Expr(`access.id IS NOT NULL`),
-						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
-					},
-					// Subscribers, or
-					sq.And{
-						sq.Expr(`access.id IS NULL`),
-						sq.Expr(`sub.id IS NULL`),
-						sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
-					},
-					// Or:
-					sq.And{
-						sq.Expr(`access.id IS NULL`),
-						sq.Expr(`
-							(list.subscriber_permissions | list.account_permissions) & ? > 0`,
-							model.ACCESS_BROWSE,
-						),
-					},
+					sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+					sq.Expr(`list.default_access & ? > 0`, model.ACCESS_BROWSE),
 				},
 			})
 		emails, cursor = email.QueryWithCursor(ctx, tx, query, cursor)
@@ -1937,34 +1888,13 @@ func (r *userResolver) Threads(ctx context.Context, obj *model.User, cursor *cor
 			LeftJoin(`access ON
 				access.list_id = list.id AND
 				access.user_id = ?`, user.UserID).
-			LeftJoin(`subscription sub ON
-				sub.list_id = list.id AND
-				sub.user_id = ?`, user.UserID).
 			Where(sq.And{
 				sq.Expr(`mail.sender_id = ?`, obj.ID),
 				sq.Expr(`mail.thread_id IS NULL`),
 				sq.Or{
-					// List owner, or
 					sq.Expr(`list.owner_id = ?`, user.UserID),
-					// ACL entry exists, or
-					sq.And{
-						sq.Expr(`access.id IS NOT NULL`),
-						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
-					},
-					// Subscribers, or
-					sq.And{
-						sq.Expr(`access.id IS NULL`),
-						sq.Expr(`sub.id IS NULL`),
-						sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
-					},
-					// Or:
-					sq.And{
-						sq.Expr(`access.id IS NULL`),
-						sq.Expr(`
-							(list.subscriber_permissions | list.account_permissions) & ? > 0`,
-							model.ACCESS_BROWSE,
-						),
-					},
+					sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+					sq.Expr(`list.default_access & ? > 0`, model.ACCESS_BROWSE),
 				},
 			})
 		threads, cursor = thread.QueryWithCursor(ctx, tx, query, cursor)
@@ -1996,33 +1926,12 @@ func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *cor
 			LeftJoin(`access ON
 				access.list_id = list.id AND
 				access.user_id = ?`, user.UserID).
-			LeftJoin(`subscription sub ON
-				sub.list_id = list.id AND
-				sub.user_id = ?`, user.UserID).
 			Where(sq.And{
 				sq.Expr(`email.sender_id = ?`, obj.ID),
 				sq.Or{
-					// List owner, or
 					sq.Expr(`list.owner_id = ?`, user.UserID),
-					// ACL entry exists, or
-					sq.And{
-						sq.Expr(`access.id IS NOT NULL`),
-						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
-					},
-					// Subscribers, or
-					sq.And{
-						sq.Expr(`access.id IS NULL`),
-						sq.Expr(`sub.id IS NULL`),
-						sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
-					},
-					// Or:
-					sq.And{
-						sq.Expr(`access.id IS NULL`),
-						sq.Expr(`
-							(list.subscriber_permissions | list.account_permissions) & ? > 0`,
-							model.ACCESS_BROWSE,
-						),
-					},
+					sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+					sq.Expr(`list.default_access & ? > 0`, model.ACCESS_BROWSE),
 				},
 			})
 		patches, cursor = patch.QueryWithCursor(ctx, tx, query, cursor)

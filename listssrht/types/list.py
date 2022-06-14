@@ -1,8 +1,15 @@
 import re
 import sqlalchemy as sa
+import sqlalchemy_utils as sau
+from enum import Enum
 from srht.flagtype import FlagType
 from srht.database import Base
 from listssrht.types.listaccess import ListAccess
+
+class Visibility(Enum):
+    PUBLIC = 'PUBLIC'
+    UNLISTED = 'UNLISTED'
+    PRIVATE = 'PRIVATE'
 
 class List(Base):
     __tablename__ = 'list'
@@ -14,26 +21,12 @@ class List(Base):
     updated = sa.Column(sa.DateTime, nullable=False)
     name = sa.Column(sa.String(128), nullable=False)
     description = sa.Column(sa.Unicode(2048))
+    visibility = sa.Column(sau.ChoiceType(Visibility), nullable=False)
     import_in_progress = sa.Column(
             sa.Boolean, nullable=False, server_default='f')
 
-    nonsubscriber_permissions = sa.Column(FlagType(ListAccess),
+    default_access = sa.Column(FlagType(ListAccess),
             nullable=False, server_default=str(ListAccess.normal.value))
-    """
-    Permissions granted to users who are not subscribed or logged in.
-    """
-
-    subscriber_permissions = sa.Column(FlagType(ListAccess),
-            nullable=False, server_default=str(ListAccess.normal.value))
-    """
-    Permissions granted to users who are subscribed to the list.
-    """
-
-    account_permissions = sa.Column(FlagType(ListAccess),
-            nullable=False, server_default=str(ListAccess.normal.value))
-    """
-    Permissions granted to holders of sr.ht accounts.
-    """
 
     permit_mimetypes = sa.Column(sa.Unicode, nullable=False,
             server_default="text/*,application/pgp-signature,application/pgp-keys")
@@ -89,9 +82,9 @@ class List(Base):
                 "updated": self.updated,
                 "description": self.description,
                 "permissions": {
-                    "nonsubscriber": permissions(self.nonsubscriber_permissions),
-                    "subscriber": permissions(self.subscriber_permissions),
-                    "account": permissions(self.account_permissions),
+                    "nonsubscriber": permissions(self.default_access),
+                    "subscriber": permissions(self.default_access),
+                    "account": permissions(self.default_access),
                 },
             } if not short else {})
         }

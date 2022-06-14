@@ -185,12 +185,8 @@ def _update_patchset_status(dest, sender, patchset, status):
         access = ListAccess.all
     elif acl:
         access = acl.permissions
-    elif isinstance(sender, User) and (Subscription.query
-            .filter(Subscription.user_id == sender.id)).count():
-        access = dest.subscriber_permissions | dest.account_permissions
     else:
-        access = (dest.account_permissions
-                if isinstance(sender, User) else dest.nonsubscriber_permissions)
+        access = dest.default_access
 
     if ListAccess.moderate not in access:
         print("Patchset update requested, but user has insufficient permissions")
@@ -346,7 +342,7 @@ def _subscribe(dest, mail):
     sender = parseaddr(mail["From"])
     user = User.query.filter(User.email == sender[1]).one_or_none()
     if user:
-        perms = dest.account_permissions
+        perms = dest.default_access
         sub = Subscription.query.filter(
             Subscription.list_id == dest.id,
             Subscription.user_id == user.id).one_or_none()
@@ -356,7 +352,7 @@ def _subscribe(dest, mail):
         if access:
             perms = access.permissions
     else:
-        perms = dest.nonsubscriber_permissions
+        perms = dest.default_access
         sub = Subscription.query.filter(
             Subscription.list_id == dest.id,
             Subscription.email == sender[1]).one_or_none()

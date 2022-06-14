@@ -111,9 +111,7 @@ class MailHandler:
                 '''SELECT
                        "id",
                        "owner_id",
-                       "nonsubscriber_permissions",
-                       "subscriber_permissions",
-                       "account_permissions",
+                       "default_access",
                        "permit_mimetypes",
                        "reject_mimetypes"
                    FROM "list"
@@ -260,12 +258,9 @@ class MailHandler:
             send_error_for.delay(mail_b64, unknown_mailing_list_error.format(
                         sender, posting_domain, posting_domain))
             return "250 Mailing list not found, but sending bounce out of band"
-        (dest_id, owner_id,
-                nonsub_perms, sub_perms, external_perms,
+        (dest_id, owner_id, default_access,
                 permit_mimetypes, reject_mimetypes) = dest
-        nonsub_perms = ListAccess(nonsub_perms)
-        sub_perms = ListAccess(sub_perms)
-        external_perms = ListAccess(external_perms)
+        default_access = ListAccess(default_access)
 
         fetch_email = await self.fetch_email(conn)
         in_reply_to = mail.get("In-Reply-To")
@@ -308,23 +303,10 @@ class MailHandler:
                 print("Rejected: your account is not allowed to post to this list")
                 return "500 Rejected. Your account is not allowed to post to this list."
         else:
-            fetch_sub = await self.fetch_subscription(conn)
-            sub = await fetch_sub.fetchval(_from[1], user_id)
-
-            if access not in nonsub_perms and not sub:
+            if access not in default_access:
                 user_errors_processed.inc()
-                print("Rejected: non-subscribers are not allowed to post")
-                return "500 Rejected. Non-subscribers are not allowed to post to this list."
-
-            if access not in sub_perms and sub:
-                user_errors_processed.inc()
-                print("Rejected: non-subscribers are not allowed to post")
+                print("Rejected: default ACL does not allow posting")
                 return "500 Rejected. You are not allowed to post to this list."
-
-            if access not in external_perms and not user_id:
-                user_errors_processed.inc()
-                print("Rejected: non-users are not allowed to post")
-                return "500 Rejected. Users without an account are not allowed to post to this list."
 
         forwards_processed.inc()
         print("Message accepted: {}".format(mail.get("Subject")))

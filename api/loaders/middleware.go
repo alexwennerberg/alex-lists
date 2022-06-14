@@ -190,39 +190,18 @@ func fetchMailingListsByID(ctx context.Context) func(ids []int) ([]*model.Mailin
 				Column(`COALESCE(
 					access.permissions,
 					CASE WHEN list.owner_id = ?
-					THEN ?
-					ELSE CASE WHEN sub.id IS NOT NULL
-						THEN list.subscriber_permissions
-						ELSE null END
-					END,
-					list.nonsubscriber_permissions | list.account_permissions)`,
+						THEN ?
+						ELSE list.default_access
+					END)`,
 					user.UserID, model.ACCESS_ALL).
 				Column(`access.id`).
 				Column(`sub.id`).
 				Where(sq.And{
 					sq.Expr(`list.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
-						// List owner, or
 						sq.Expr(`list.owner_id = ?`, user.UserID),
-						// ACL entry exists, or
-						sq.And{
-							sq.Expr(`access.id IS NOT NULL`),
-							sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
-						},
-						// Subscribers, or
-						sq.And{
-							sq.Expr(`access.id IS NULL`),
-							sq.Expr(`sub.id IS NULL`),
-							sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
-						},
-						// Or:
-						sq.And{
-							sq.Expr(`access.id IS NULL`),
-							sq.Expr(`
-								(list.subscriber_permissions | list.account_permissions) & ? > 0`,
-								model.ACCESS_BROWSE,
-							),
-						},
+						sq.Expr(`list.visibility != 'PRIVATE'`),
+						sq.Expr(`access.permissions > 0`),
 					},
 				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
@@ -235,7 +214,7 @@ func fetchMailingListsByID(ctx context.Context) func(ids []int) ([]*model.Mailin
 				list := model.MailingList{}
 				if err := rows.Scan(append(
 					database.Scan(ctx, &list),
-					&list.Permissions,
+					&list.Access,
 					&list.AccessID,
 					&list.SubscriptionID,
 				)...); err != nil {
@@ -353,37 +332,16 @@ func fetchMailingListsByOwnerName(ctx context.Context) func(names [][2]string) (
 				Column(`COALESCE(
 					access.permissions,
 					CASE WHEN list.owner_id = ?
-					THEN ?
-					ELSE CASE WHEN sub.id IS NOT NULL
-						THEN list.subscriber_permissions
-						ELSE null END
-					END,
-					list.nonsubscriber_permissions | list.account_permissions)`,
+						THEN ?
+						ELSE list.default_access
+					END)`,
 					user.UserID, model.ACCESS_ALL).
 				Column(`access.id`).
 				Column(`sub.id`).
 				Where(sq.Or{
-					// List owner, or
 					sq.Expr(`list.owner_id = ?`, user.UserID),
-					// ACL entry exists, or
-					sq.And{
-						sq.Expr(`access.id IS NOT NULL`),
-						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
-					},
-					// Subscribers, or
-					sq.And{
-						sq.Expr(`access.id IS NULL`),
-						sq.Expr(`sub.id IS NULL`),
-						sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
-					},
-					// Or:
-					sq.And{
-						sq.Expr(`access.id IS NULL`),
-						sq.Expr(`
-							(list.subscriber_permissions | list.account_permissions) & ? > 0`,
-							model.ACCESS_BROWSE,
-						),
-					},
+					sq.Expr(`list.visibility != 'PRIVATE'`),
+					sq.Expr(`access.permissions > 0`),
 				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
 				panic(err)
@@ -399,7 +357,7 @@ func fetchMailingListsByOwnerName(ctx context.Context) func(names [][2]string) (
 				if err := rows.Scan(append(
 					database.Scan(ctx, &list),
 					&ownerName,
-					&list.Permissions,
+					&list.Access,
 					&list.AccessID,
 					&list.SubscriptionID)...); err != nil {
 					panic(err)
@@ -446,27 +404,9 @@ func fetchEmailsByID(ctx context.Context) func(ids []int) ([]*model.Email, []err
 				Where(sq.And{
 					sq.Expr(`email.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
-						// List owner, or
 						sq.Expr(`list.owner_id = ?`, user.UserID),
-						// ACL entry exists, or
-						sq.And{
-							sq.Expr(`access.id IS NOT NULL`),
-							sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
-						},
-						// Subscribers, or
-						sq.And{
-							sq.Expr(`access.id IS NULL`),
-							sq.Expr(`sub.id IS NULL`),
-							sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
-						},
-						// Or:
-						sq.And{
-							sq.Expr(`access.id IS NULL`),
-							sq.Expr(`
-								(list.subscriber_permissions | list.account_permissions) & ? > 0`,
-								model.ACCESS_BROWSE,
-							),
-						},
+						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+						sq.Expr(`list.default_access & ? > 0`, model.ACCESS_BROWSE),
 					},
 				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
@@ -523,27 +463,9 @@ func fetchEmailsByMessageID(ctx context.Context) func(ids []string) ([]*model.Em
 				Where(sq.And{
 					sq.Expr(`email.message_id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
-						// List owner, or
 						sq.Expr(`list.owner_id = ?`, user.UserID),
-						// ACL entry exists, or
-						sq.And{
-							sq.Expr(`access.id IS NOT NULL`),
-							sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
-						},
-						// Subscribers, or
-						sq.And{
-							sq.Expr(`access.id IS NULL`),
-							sq.Expr(`sub.id IS NULL`),
-							sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
-						},
-						// Or:
-						sq.And{
-							sq.Expr(`access.id IS NULL`),
-							sq.Expr(`
-								(list.subscriber_permissions | list.account_permissions) & ? > 0`,
-								model.ACCESS_BROWSE,
-							),
-						},
+						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+						sq.Expr(`list.default_access & ? > 0`, model.ACCESS_BROWSE),
 					},
 				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
@@ -688,27 +610,9 @@ func fetchPatchsetsByID(ctx context.Context) func(ids []int) ([]*model.Patchset,
 				Where(sq.And{
 					sq.Expr(`patch.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
-						// List owner, or
 						sq.Expr(`list.owner_id = ?`, user.UserID),
-						// ACL entry exists, or
-						sq.And{
-							sq.Expr(`access.id IS NOT NULL`),
-							sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
-						},
-						// Subscribers, or
-						sq.And{
-							sq.Expr(`access.id IS NULL`),
-							sq.Expr(`sub.id IS NULL`),
-							sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
-						},
-						// Or:
-						sq.And{
-							sq.Expr(`access.id IS NULL`),
-							sq.Expr(`
-								(list.subscriber_permissions | list.account_permissions) & ? > 0`,
-								model.ACCESS_BROWSE,
-							),
-						},
+						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+						sq.Expr(`list.default_access & ? > 0`, model.ACCESS_BROWSE),
 					},
 				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {

@@ -40,27 +40,9 @@ func deliverListWebhook(ctx context.Context, listID int,
 		Where(sq.And{
 			sq.Expr(`sub.list_id = ?`, listID),
 			sq.Or{
-				// List owner, or
 				sq.Expr(`list.owner_id = sub.user_id`),
-				// ACL entry exists, or
-				sq.And{
-					sq.Expr(`access.id IS NOT NULL`),
-					sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
-				},
-				// Subscribers, or
-				sq.And{
-					sq.Expr(`access.id IS NULL`),
-					sq.Expr(`lsub.id IS NULL`),
-					sq.Expr(`list.nonsubscriber_permissions & ? > 0`, model.ACCESS_BROWSE),
-				},
-				// Or:
-				sq.And{
-					sq.Expr(`access.id IS NULL`),
-					sq.Expr(`
-						(list.subscriber_permissions | list.account_permissions) & ? > 0`,
-						model.ACCESS_BROWSE,
-					),
-				},
+				sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+				sq.Expr(`list.default_access & ? > 0`, model.ACCESS_BROWSE),
 			},
 		})
 	q.Schedule(ctx, query, "list", event.String(),

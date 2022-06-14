@@ -14,9 +14,8 @@ def user_emails_GET(username):
     user = get_user(username)
     emails = Email.query.filter(Email.sender_id == user.id)
     if current_token.user_id != user.id:
-        emails = emails.join(List, List.id == Email.list_id).filter(or_(
-            List.account_permissions > 0,
-            List.nonsubscriber_permissions > 0))
+        emails = emails.join(List, List.id == Email.list_id).filter(
+            List.default_access > 0)
     return paginated_response(Email.id,
             emails.order_by(Email.created.desc()), short=True)
 

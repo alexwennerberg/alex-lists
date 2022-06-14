@@ -94,12 +94,8 @@ func main() {
 				LEFT JOIN subscription sub ON sub.list_id = list.id
 				WHERE email.id = $1 OR email.thread_id = $1 AND (
 					list.owner_id = $2 OR
-					(access.id IS NOT NULL AND access.permissions & $3 > 0) OR
-					(access.id IS NULL
-						AND sub.id IS NULL
-						AND list.nonsubscriber_permissions & $3 > 0) OR
-					(access.id IS NULL AND
-						(list.subscriber_permissions | list.account_permissions) & $3 > 0))
+					access.permissions & $3 > 0 OR
+					list.default_access & $3 > 0)
 				ORDER BY email.id
 			`, id, auth.ForContext(r.Context()).UserID, model.ACCESS_BROWSE)
 			if err != nil {
@@ -131,12 +127,8 @@ func main() {
 				LEFT JOIN subscription sub ON sub.list_id = list.id
 				WHERE email.patchset_id = $1 AND email.is_patch AND (
 					list.owner_id = $2 OR
-					(access.id IS NOT NULL AND access.permissions & $3 > 0) OR
-					(access.id IS NULL
-						AND sub.id IS NULL
-						AND list.nonsubscriber_permissions & $3 > 0) OR
-					(access.id IS NULL AND
-						(list.subscriber_permissions | list.account_permissions) & $3 > 0))
+					access.permissions & $3 > 0 OR
+					list.default_access & $3 > 0)
 				ORDER BY email.patch_index, email.id
 			`, id, auth.ForContext(r.Context()).UserID, model.ACCESS_BROWSE)
 			if err != nil {
@@ -179,12 +171,8 @@ func main() {
 				LEFT JOIN subscription sub ON sub.list_id = list.id
 				WHERE email.list_id = $1 AND email.created >= $2 AND (
 					list.owner_id = $3 OR
-					(access.id IS NOT NULL AND access.permissions & $4 > 0) OR
-					(access.id IS NULL
-						AND sub.id IS NULL
-						AND list.nonsubscriber_permissions & $4 > 0) OR
-					(access.id IS NULL AND
-						(list.subscriber_permissions | list.account_permissions) & $4 > 0))
+					access.permissions & $4 > 0 OR
+					list.default_access & $4 > 0)
 				ORDER BY email.created
 			`, id, since, auth.ForContext(r.Context()).UserID, model.ACCESS_BROWSE)
 			if err != nil {

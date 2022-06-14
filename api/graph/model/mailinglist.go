@@ -24,24 +24,22 @@ const (
 )
 
 type MailingList struct {
-	ID          int       `json:"id"`
-	Created     time.Time `json:"created"`
-	Updated     time.Time `json:"updated"`
-	Name        string    `json:"name"`
-	Description *string   `json:"description"`
-	Importing   bool      `json:"importing"`
+	ID          int        `json:"id"`
+	Created     time.Time  `json:"created"`
+	Updated     time.Time  `json:"updated"`
+	Name        string     `json:"name"`
+	Description *string    `json:"description"`
+	Visibility  Visibility `json:"visibility"`
+	Importing   bool       `json:"importing"`
 
 	OwnerID       int
 	RawPermitMime string
 	RawRejectMime string
 
-	Permissions    int
+	Access         int
+	DefaultAccess  uint
 	AccessID       *int
 	SubscriptionID *int
-
-	RawNonsubscriber uint
-	RawSubscriber    uint
-	RawIdentified    uint
 
 	alias  string
 	fields *database.ModelFields
@@ -61,30 +59,12 @@ func (list *MailingList) RejectMime() []string {
 	return strings.Split(list.RawRejectMime, ",")
 }
 
-func (list *MailingList) Nonsubscriber() *GeneralACL {
+func (list *MailingList) DefaultACL() *GeneralACL {
 	return &GeneralACL{
-		Browse:   list.RawNonsubscriber&ACCESS_BROWSE > 0,
-		Reply:    list.RawNonsubscriber&ACCESS_REPLY > 0,
-		Post:     list.RawNonsubscriber&ACCESS_POST > 0,
-		Moderate: list.RawNonsubscriber&ACCESS_MODERATE > 0,
-	}
-}
-
-func (list *MailingList) Subscriber() *GeneralACL {
-	return &GeneralACL{
-		Browse:   list.RawSubscriber&ACCESS_BROWSE > 0,
-		Reply:    list.RawSubscriber&ACCESS_REPLY > 0,
-		Post:     list.RawSubscriber&ACCESS_POST > 0,
-		Moderate: list.RawSubscriber&ACCESS_MODERATE > 0,
-	}
-}
-
-func (list *MailingList) Identified() *GeneralACL {
-	return &GeneralACL{
-		Browse:   list.RawIdentified&ACCESS_BROWSE > 0,
-		Reply:    list.RawIdentified&ACCESS_REPLY > 0,
-		Post:     list.RawIdentified&ACCESS_POST > 0,
-		Moderate: list.RawIdentified&ACCESS_MODERATE > 0,
+		Browse:   list.DefaultAccess&ACCESS_BROWSE > 0,
+		Reply:    list.DefaultAccess&ACCESS_REPLY > 0,
+		Post:     list.DefaultAccess&ACCESS_POST > 0,
+		Moderate: list.DefaultAccess&ACCESS_MODERATE > 0,
 	}
 }
 
@@ -112,11 +92,10 @@ func (list *MailingList) Fields() *database.ModelFields {
 			{"name", "name", &list.Name},
 			{"description", "description", &list.Description},
 			{"import_in_progress", "importing", &list.Importing},
-			{"permit_mimetypes", "permit_mime", &list.RawPermitMime},
-			{"reject_mimetypes", "reject_mime", &list.RawRejectMime},
-			{"nonsubscriber_permissions", "nonsubscriber", &list.RawNonsubscriber},
-			{"subscriber_permissions", "subscriber", &list.RawSubscriber},
-			{"account_permissions", "identified", &list.RawIdentified},
+			{"permit_mimetypes", "permitMime", &list.RawPermitMime},
+			{"reject_mimetypes", "rejectMime", &list.RawRejectMime},
+			{"visibility", "visibility", &list.Visibility},
+			{"default_access", "defaultACL", &list.DefaultAccess},
 
 			// Always fetch:
 			{"id", "", &list.ID},
@@ -151,12 +130,9 @@ func (list *MailingList) QueryWithCursor(ctx context.Context,
 		Column(`COALESCE(
 			access.permissions,
 			CASE WHEN list.owner_id = ?
-			THEN ?
-			ELSE CASE WHEN sub.id IS NOT NULL
-				THEN list.subscriber_permissions
-				ELSE null END
-			END,
-			list.nonsubscriber_permissions | list.account_permissions)`,
+				THEN ?
+				ELSE list.default_access
+			END)`,
 			user.UserID, ACCESS_ALL).
 		Column(`access.id`).
 		Column(`sub.id`).
@@ -172,7 +148,7 @@ func (list *MailingList) QueryWithCursor(ctx context.Context,
 	for rows.Next() {
 		var list MailingList
 		if err := rows.Scan(append(database.Scan(ctx, &list),
-			&list.Permissions,
+			&list.Access,
 			&list.AccessID,
 			&list.SubscriptionID)...); err != nil {
 			panic(err)

@@ -51,7 +51,7 @@ def info_POST(owner_name, list_name):
     rewrite = lambda value: None if value == "" else value
     input = {
         key: rewrite(valid.source[key]) for key in [
-            "description"
+            "description", "visibility"
         ] if valid.source.get(key) is not None
     }
 
@@ -180,7 +180,7 @@ def acl_POST(owner_name, list_name):
         else:
             acl.email = username
     acl.permissions = _process_access(valid, "acl")
-    if ListAccess.browse in ml.nonsubscriber_permissions:
+    if ListAccess.browse in ml.default_access:
         acl.permissions |= ListAccess.browse
     db.session.add(acl)
     db.session.commit()

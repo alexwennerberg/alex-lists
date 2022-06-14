@@ -92,6 +92,12 @@ type Mailbox implements Entity {
   address: String!
 }
 
+enum Visibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
 type MailingList {
   id: Int!
   created: Time!
@@ -101,6 +107,7 @@ type MailingList {
 
   # Markdown
   description: String
+  visibility: Visibility!
 
   """
   List of globs for permitted or rejected mimetypes on this list
@@ -134,12 +141,8 @@ type MailingList {
 
   "Access control list entries for this mailing list"
   acl(cursor: Cursor): MailingListACLCursor! @access(scope: ACLS, kind: RO)
-  "Permissions which apply to any non-subscriber"
-  nonsubscriber: GeneralACL!
-  "Permissions which apply to any subscriber"
-  subscriber: GeneralACL!
-  "Permissions which apply to any authenticated account holder"
-  identified: GeneralACL!
+
+  defaultACL: GeneralACL!
 
   """
   Returns a list of mailing list webhook subscriptions. For clients
@@ -644,6 +647,7 @@ type Query {
 # TODO: Allow users to change the name of a mailing list
 input MailingListInput {
   description: String
+  visibility: Visibility
 
   """
   List of globs for permitted or rejected mimetypes on this list
@@ -677,7 +681,8 @@ type Mutation {
   "Creates a new mailing list"
   createMailingList(
     name: String!,
-    description: String): MailingList! @access(scope: LISTS, kind: RW)
+    description: String,
+    visibility: Visibility!): MailingList! @access(scope: LISTS, kind: RW)
 
   "Updates a mailing list."
   updateMailingList(

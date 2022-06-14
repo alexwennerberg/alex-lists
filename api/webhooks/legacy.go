@@ -62,9 +62,9 @@ func DeliverLegacyUserListEvent(
 		Updated:     list.Updated,
 		Description: list.Description,
 	}
-	payload.Permissions.Nonsubscriber = encodePermissions(list.RawNonsubscriber)
-	payload.Permissions.Subscriber = encodePermissions(list.RawSubscriber)
-	payload.Permissions.Account = encodePermissions(list.RawIdentified)
+	payload.Permissions.Nonsubscriber = encodePermissions(list.DefaultAccess)
+	payload.Permissions.Subscriber = encodePermissions(list.DefaultAccess)
+	payload.Permissions.Account = encodePermissions(list.DefaultAccess)
 
 	// TODO: User groups
 	user := auth.ForContext(ctx)
@@ -100,9 +100,9 @@ func DeliverLegacyListEvent(
 		Updated:     list.Updated,
 		Description: list.Description,
 	}
-	payload.Permissions.Nonsubscriber = encodePermissions(list.RawNonsubscriber)
-	payload.Permissions.Subscriber = encodePermissions(list.RawSubscriber)
-	payload.Permissions.Account = encodePermissions(list.RawIdentified)
+	payload.Permissions.Nonsubscriber = encodePermissions(list.DefaultAccess)
+	payload.Permissions.Subscriber = encodePermissions(list.DefaultAccess)
+	payload.Permissions.Account = encodePermissions(list.DefaultAccess)
 
 	// TODO: User groups
 	user := auth.ForContext(ctx)

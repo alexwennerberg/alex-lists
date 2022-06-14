@@ -1,6 +1,6 @@
 import pkg_resources
 from flask import abort
-from listssrht.blueprints.archives import get_list as _get_list
+from listssrht.blueprints.archives import get_list as _get_list, get_access
 from listssrht.types import Email, User, Subscription, ListAccess
 from listssrht.webhooks import UserWebhook
 from srht.flask import csrf_bypass
@@ -25,15 +25,6 @@ def get_list(owner_name, list_name):
     if not ml:
         abort(404)
     return owner, ml, access
-
-def get_access(ml, user):
-    if user.id == ml.owner_id:
-        access = ListAccess.all
-    elif Subscription.query .filter(Subscription.user_id == user.id).count():
-        access = ml.subscriber_permissions | ml.account_permissions
-    else:
-        access = ml.account_permissions
-    return access
 
 def get_email(email_id):
     """Fetches an email by email ID or message ID"""

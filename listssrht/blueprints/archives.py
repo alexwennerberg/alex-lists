@@ -10,7 +10,7 @@ from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from listssrht.filters import post_address
-from listssrht.types import List, User, Email, Subscription, ListAccess, Access
+from listssrht.types import List, User, Email, Subscription, ListAccess, Access, Visibility
 from listssrht.types import Patchset, PatchsetStatus
 from listssrht.process import forward_thread
 from listssrht.webhooks import ListWebhook, UserWebhook
@@ -38,27 +38,36 @@ def get_list(owner_name, list_name, current_user=current_user):
     ml = (List.query
             .filter(List.name.ilike(list_name.replace('_', '\\_')))
             .filter(List.owner_id == owner.id)
+            .one_or_none()
         )
-    if current_user:
-        ml = ml.outerjoin(Access, Access.list_id == List.id)
-    ml = ml.one_or_none()
     if not ml:
         return None, None, None
-    if current_user:
-        acl = next((acl for acl in ml.acls
-            if acl.user_id == current_user.id), None)
-        if current_user.id == ml.owner_id:
-            access = ListAccess.all
-        elif acl:
-            access = acl.permissions
-        elif (Subscription.query
-                .filter(Subscription.user_id == current_user.id)).count():
-            access = ml.subscriber_permissions | ml.account_permissions
-        else:
-            access = ml.account_permissions
-    else:
-        access = ml.nonsubscriber_permissions
+    access = get_access(ml, user=current_user)
+    if access == ListAccess.none and ml.visibility == Visibility.PRIVATE:
+        abort(401)
     return owner, ml, access
+
+def get_access(ml, user=None):
+    user = user or current_user
+
+    # Anonymous
+    if not user:
+        if ml.visibility == Visibility.PRIVATE:
+            return ListAccess.none
+        return ml.default_access
+
+    # Owner
+    if user.id == ml.owner_id:
+        return ListAccess.all
+
+    # ACL entry?
+    user_access = Access.query.filter_by(list=ml, user=user).first()
+    if user_access:
+        return user_access.permissions
+
+    if ml.visibility == Visibility.PRIVATE:
+        return ListAccess.none
+    return ml.default_access
 
 def apply_search(query, search):
     if not search:
@@ -173,8 +182,6 @@ def archive(owner_name, list_name):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
         abort(404)
-    if access.value == 0:
-        abort(403)
     threads = (Email.query
             .filter(Email.list_id == ml.id)
         ).order_by(Email.updated.desc())

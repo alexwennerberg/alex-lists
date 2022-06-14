@@ -1,7 +1,7 @@
 from flask import current_app, Blueprint, abort, request
 from listssrht.blueprints.api import get_user, get_list
 from listssrht.blueprints.archives import apply_search
-from listssrht.types import List, Email, ListAccess, Subscription
+from listssrht.types import List, Email, ListAccess, Subscription, Visibility
 from listssrht.webhooks import ListWebhook, UserWebhook
 from sqlalchemy import or_
 from srht.api import paginated_response
@@ -19,9 +19,7 @@ def user_lists_GET(username):
     user = get_user(username)
     lists = List.query.filter(List.owner_id == user.id)
     if current_token.user_id != user.id:
-        lists = lists.filter(or_(
-            List.account_permissions > 0,
-            List.nonsubscriber_permissions > 0))
+        lists = lists.filter(List.visibility == Visibility.PUBLIC)
     return paginated_response(List.id, lists)
 
 @lists.route("/api/lists", methods=["POST"])
@@ -36,7 +34,7 @@ def user_lists_POST():
 
     resp = exec_gql(current_app.site, """
         mutation CreateMailingList($name: String!, $description: String) {
-            createMailingList(name: $name, description: $description) {
+            createMailingList(name: $name, description: $description, visibility: PUBLIC) {
                 id
                 name
                 owner {
@@ -48,17 +46,7 @@ def user_lists_POST():
                 created
                 updated
                 description
-                nonsubscriber {
-                    browse
-                    reply
-                    post
-                }
-                subscriber {
-                    browse
-                    reply
-                    post
-                }
-                identified {
+                defaultACL {
                     browse
                     reply
                     post
@@ -77,13 +65,11 @@ def user_lists_POST():
     ] if acl[key]]
 
     resp["permissions"] = {
-        "nonsubscriber": permList(resp["nonsubscriber"]),
-        "subscriber": permList(resp["subscriber"]),
-        "account": permList(resp["identified"]),
+        "nonsubscriber": permList(resp["defaultACL"]),
+        "subscriber": permList(resp["defaultACL"]),
+        "account": permList(resp["defaultACL"]),
     }
-    del resp["nonsubscriber"]
-    del resp["subscriber"]
-    del resp["identified"]
+    del resp["defaultACL"]
 
     return resp, 201
 
@@ -142,17 +128,7 @@ def user_lists_by_name_PUT(list_name):
                 created
                 updated
                 description
-                nonsubscriber {
-                    browse
-                    reply
-                    post
-                }
-                subscriber {
-                    browse
-                    reply
-                    post
-                }
-                identified {
+                defaultACL {
                     browse
                     reply
                     post
@@ -171,13 +147,11 @@ def user_lists_by_name_PUT(list_name):
     ] if acl[key]]
 
     resp["permissions"] = {
-        "nonsubscriber": permList(resp["nonsubscriber"]),
-        "subscriber": permList(resp["subscriber"]),
-        "account": permList(resp["identified"]),
+        "nonsubscriber": permList(resp["defaultACL"]),
+        "subscriber": permList(resp["defaultACL"]),
+        "account": permList(resp["defaultACL"]),
     }
-    del resp["nonsubscriber"]
-    del resp["subscriber"]
-    del resp["identified"]
+    del resp["defaultACL"]
 
     return resp
 
