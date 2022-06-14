@@ -55,37 +55,15 @@
           </p>
           <div class="event-list">
             <div class="event">
-              <h4>Non-subscriber Permissions</h4>
+              <h4>Default Permissions</h4>
               <p>
-                Permissions granted to users who are not subscribed or logged
-                in to a sr.ht account. Any permission granted to anonymous
-                users are granted to subscribers and account holders as well,
-                unless explicitly revoked from that user.
+                These permissions are used for anyone who does not have a more
+                specific access configuration.
               </p>
               {% for a in access_type_list %}
-              {{ perm_checkbox(a, ml.nonsubscriber_permissions , "nonsub") }}
+              {{ perm_checkbox(a, ml.nonsubscriber_permissions , "default") }}
               {% endfor %}
-              {{ valid.summary("list_nonsubscriber_access") }}
-            </div>
-            <div class="event">
-              <h4>Subscriber Permissions</h4>
-              <p>
-                Permissions granted to users who are subscribed to the list.
-              </p>
-              {% for a in access_type_list %}
-              {{ perm_checkbox(a, ml.subscriber_permissions , "sub") }}
-              {% endfor %}
-              {{ valid.summary("list_subscriber_access") }}
-            </div>
-            <div class="event">
-              <h4>Account Holder Permissions</h4>
-              <p>
-                Permissions granted to logged in holders of sr.ht accounts.
-              </p>
-              {% for a in access_type_list %}
-              {{ perm_checkbox(a, ml.account_permissions, "account") }}
-              {% endfor %}
-              {{ valid.summary("list_account_access") }}
+              {{ valid.summary("list_default_access") }}
             </div>
           </div>
         </div>

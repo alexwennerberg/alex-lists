@@ -3,6 +3,7 @@ from flask import current_app, send_file, session
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query
+from srht.graphql import exec_gql
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from listssrht.blueprints.archives import get_list
@@ -47,23 +48,27 @@ def info_POST(owner_name, list_name):
         abort(403)
 
     valid = Validation(request)
-    list_desc = valid.optional("list_desc")
-    if list_desc == "":
-        list_desc = None
-    valid.expect(not list_desc or len(list_desc) < 2048,
-            "Description must be between 16 and 2048 characters.",
-            field="list_desc")
+    rewrite = lambda value: None if value == "" else value
+    input = {
+        key: rewrite(valid.source[key]) for key in [
+            "description"
+        ] if valid.source.get(key) is not None
+    }
+
+    exec_gql(current_app.site, """
+        mutation UpdateMailingList($id: Int!, $input: MailingListInput!) {
+            updateMailingList(id: $id, input: $input) {
+                id
+            }
+        }
+    """, valid=valid, id=ml.id, input=input)
 
     if not valid.ok:
         return render_template("settings-info.html", list=ml, owner=owner,
                 access_type_list=ListAccess, access_help_map=access_help_map,
                 view="info", **valid.kwargs)
 
-    ml.description = list_desc
-    ListWebhook.deliver(ListWebhook.Events.list_update,
-            ml.to_dict(), ListWebhook.Subscription.list_id == ml.id)
-    db.session.commit()
-    return redirect(url_for("archives.archive",
+    return redirect(url_for("settings.info_GET",
         owner_name=owner_name, list_name=list_name))
 
 @settings.route("/<owner_name>/<list_name>/settings/access")
@@ -98,19 +103,26 @@ def access_POST(owner_name, list_name):
         abort(403)
 
     valid = Validation(request)
+    access = _process_access(valid, "default")
+    input = {
+        perm: ((access & ListAccess[perm].value) != 0) for perm in [
+            "browse", "reply", "post", "moderate",
+        ]
+    }
 
-    ml.nonsubscriber_permissions = _process_access(valid, "nonsub")
-    ml.subscriber_permissions = _process_access(valid, "sub")
-    ml.account_permissions = _process_access(valid, "account")
-    if ListAccess.browse in ml.nonsubscriber_permissions:
-        ml.subscriber_permissions |= ListAccess.browse
-        ml.account_permissions |= ListAccess.browse
-    ml.subscriber_permissions |= ml.nonsubscriber_permissions
-    ml.account_permissions |= ml.nonsubscriber_permissions
+    exec_gql(current_app.site, """
+        mutation UpdateMailingListACL($id: Int!, $input: ACLInput!) {
+            updateMailingListACL(listID: $id, input: $input) {
+                id
+            }
+        }
+    """, valid=valid, id=ml.id, input=input)
 
-    ListWebhook.deliver(ListWebhook.Events.list_update,
-            ml.to_dict(), ListWebhook.Subscription.list_id == ml.id)
-    db.session.commit()
+    if not valid.ok:
+        return render_template("settings-access.html", view="access",
+                ml=ml, owner=owner, access_type_list=ListAccess,
+                access_help_map=access_help_map, **valid.kwargs)
+
     return redirect(url_for("settings.access_GET",
         owner_name=owner_name, list_name=list_name))
 
@@ -216,10 +228,27 @@ def content_POST(owner_name, list_name):
         abort(403)
 
     valid = Validation(request)
-    ml.permit_mimetypes = valid.optional("permit_mimetypes")
-    ml.reject_mimetypes = valid.optional("reject_mimetypes")
+    rewrite = lambda value: [] if value == "" else value.split(",")
+    input = {
+        key: rewrite(valid.source[key]) for key in [
+            "permitMime", "rejectMime"
+        ] if valid.source.get(key) is not None
+    }
 
-    db.session.commit()
+    exec_gql(current_app.site, """
+        mutation UpdateMailingList($id: Int!, $input: MailingListInput!) {
+            updateMailingList(id: $id, input: $input) {
+                id
+            }
+        }
+    """, valid=valid, id=ml.id, input=input)
+
+    if not valid.ok:
+        return render_template("settings-content.html",
+                view="content", ml=ml, owner=owner,
+                always_reject=list(filter(None, cfg("lists.sr.ht::worker", "reject-mimetypes").split(","))),
+                **valid.kwargs)
+
     return redirect(url_for("settings.content_GET",
         owner_name=owner_name, list_name=list_name))
 

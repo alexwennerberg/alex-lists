@@ -1,11 +1,12 @@
 from email.mime.text import MIMEText
 from email.utils import parseaddr, formatdate, make_msgid
-from flask import Blueprint, render_template, request, redirect, url_for, abort
+from flask import current_app, Blueprint, render_template, request, redirect, url_for, abort
 from flask import session
 from srht.config import cfg, cfgi
 from srht.database import db
 from srht.oauth import UserType, current_user, loginrequired
 from srht.flask import paginate_query
+from srht.graphql import exec_gql
 from srht.search import search_by
 from srht.validation import Validation
 from sqlalchemy import or_
@@ -108,24 +109,29 @@ def create_list_POST():
         abort(401)
 
     valid = Validation(request)
-    ml = List(current_user, valid)
+    name = valid.require("name", friendly_name="Name")
+    description = valid.optional("description")
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)
-    db.session.add(ml)
-    db.session.flush()
-    UserWebhook.deliver(UserWebhook.Events.list_create,
-            ml.to_dict(), UserWebhook.Subscription.user_id == ml.owner_id)
 
-    # Auto-subscribe the owner
-    sub = Subscription()
-    sub.user_id = current_user.id
-    sub.list_id = ml.id
-    db.session.add(sub)
-    db.session.commit()
+    resp = exec_gql(current_app.site, """
+        mutation CreateMailingList($name: String!, $description: String) {
+            createMailingList(name: $name, description: $description) {
+                name
+                owner {
+                    canonicalName
+                }
+            }
+        }
+    """, valid=valid, name=name, description=description)
 
+    if not valid.ok:
+        return render_template("create.html", **valid.kwargs)
+
+    resp = resp["createMailingList"]
     return redirect(url_for("archives.archive",
-            owner_name=current_user.canonical_name,
-            list_name=ml.name))
+            owner_name=resp["owner"]["canonicalName"],
+            list_name=resp["name"]))
 
 @user.route("/lists/create-mirror")
 @loginrequired

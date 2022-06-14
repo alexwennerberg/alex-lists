@@ -11,29 +11,29 @@
       <form method="POST">
         {{csrf_token()}}
         <div class="form-group">
-          <label for="list_name">
+          <label for="name">
             Name
             <span class="text-muted">(you can't edit this)</p>
           </label>
           <input
             type="text"
-            name="list_name"
-            id="list_name"
+            name="name"
+            id="name"
             class="form-control"
             value="{{ ml.name }}"
             disabled />
         </div>
-        <div class="form-group {{valid.cls("list_desc")}}">
-          <label for="list_desc">Description</label>
+        <div class="form-group {{valid.cls("description")}}">
+          <label for="description">Description</label>
           <textarea
-            name="list_desc"
-            id="list_desc"
+            name="description"
+            id="description"
             class="form-control"
             placeholder="Markdown supported"
             rows="10"
-            aria-describedby="list_desc-help"
-          >{{list_desc or ml.description or ""}}</textarea>
-          {{ valid.summary("list_desc") }}
+            aria-describedby="description-help"
+          >{{description or ml.description or ""}}</textarea>
+          {{ valid.summary("description") }}
         </div>
         {{ valid.summary() }}
         <span class="pull-right">

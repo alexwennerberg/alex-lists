@@ -1,5 +1,6 @@
 from srht.config import cfg, cfgi
 from srht.database import DbSession, db
+from srht.graphql import exec_gql
 if not hasattr(db, "session"):
     db = DbSession(cfg("lists.sr.ht", "connection-string"))
     import listssrht.types
@@ -707,9 +708,9 @@ def forward_thread(list_id, thread_id, recipient):
 
 @task
 def delete_list(list_id):
-    from listssrht.webhooks import ListWebhook
     ml = List.query.filter(List.id == list_id).one_or_none()
-    ListWebhook.deliver(ListWebhook.Events.list_delete,
-            ml.to_dict(), ListWebhook.Subscription.list_id == ml.id)
-    db.engine.execute(f"DELETE FROM list WHERE id = {ml.id};")
-    db.session.commit()
+    exec_gql("lists.sr.ht", """
+        mutation DeleteMailingList($id: Int!) {
+            deleteMailingList(id: $id) { id }
+        }
+    """, user=ml.owner, id=ml.id)

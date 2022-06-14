@@ -11,18 +11,18 @@
       <form method="POST">
         {{csrf_token()}}
         <div class="form-group">
-          <label for="permit_mimetypes">
+          <label for="permitMime">
             Permitted mimetypes
           </label>
           <input
             type="text"
-            name="permit_mimetypes"
-            id="permit_mimetypes"
+            name="permitMime"
+            id="permitMime"
             class="form-control"
             value="{{ ml.permit_mimetypes }}"
-            aria-describedby="permit_mimetypes-help" />
+            aria-describedby="permitMime-help" />
           <p
-            id="permit_mimetypes-help"
+            id="permitMime-help"
             class="form-text text-muted"
           >
             Comma separated list of mimetypes, <a
@@ -31,21 +31,21 @@
               target="_blank"
             >fnmatch</a> for wildcards.
           </p>
-          {{ valid.summary("permit_mimetypes") }}
+          {{ valid.summary("permitMime") }}
         </div>
         <div class="form-group">
-          <label for="reject_mimetypes">
+          <label for="rejectMime">
             Rejected mimetypes
           </label>
           <input
             type="text"
-            name="reject_mimetypes"
-            id="reject_mimetypes"
+            name="rejectMime"
+            id="rejectMime"
             class="form-control"
             value="{{ ml.reject_mimetypes }}"
-            aria-describedby="reject_mimetypes-help" />
+            aria-describedby="rejectMime-help" />
           <p
-            id="reject_mimetypes-help"
+            id="rejectMime-help"
             class="form-text text-muted"
           >
             Comma separated list of mimetypes, <a
@@ -66,7 +66,7 @@
               always rejected.
             {% endif %}
           </p>
-          {{ valid.summary("reject_mimetypes") }}
+          {{ valid.summary("rejectMime") }}
         </div>
         {{ valid.summary() }}
         <span class="pull-right">
