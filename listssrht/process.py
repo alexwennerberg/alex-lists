@@ -322,10 +322,24 @@ def _webhooks(dest, mail):
     from listssrht.webhooks import UserWebhook, ListWebhook
     ListWebhook.deliver(ListWebhook.Events.post_received, mail.to_dict(),
             ListWebhook.Subscription.list_id == dest.id)
+    exec_gql("lists.sr.ht", """
+        mutation TriggerListEmailWebhooks($listId: Int!, $emailId: Int!) {
+            triggerListEmailWebhooks(listId: $listId, emailId: $emailId) {
+                id
+            }
+        }
+    """, user=mail.list.owner, listId=mail.list_id, emailId=mail.id)
     if mail.sender:
         UserWebhook.deliver(UserWebhook.Events.email_received,
                 mail.to_dict(),
                 UserWebhook.Subscription.user_id == mail.sender.id)
+        exec_gql("lists.sr.ht", """
+            mutation TriggerUserEmailWebhooks($emailId: Int!) {
+                triggerUserEmailWebhooks(emailId: $emailId) {
+                    id
+                }
+            }
+        """, user=mail.sender, emailId=mail.id)
 
 def _subscribe(dest, mail):
     sender = parseaddr(mail["From"])
@@ -567,14 +581,14 @@ def dispatch_message(address, list_id, mail_b64):
                 archived, mail = _mirror(dest, mail)
                 if not archived:
                     return
-                _webhooks(dest, archived)
                 db.session.commit()
+                _webhooks(dest, archived)
             else:
                 archived, mail = _archive(dest, mail)
                 if not archived:
                     return
-                _webhooks(dest, archived)
                 db.session.commit()
+                _webhooks(dest, archived)
                 _forward(dest, mail)
         elif command == "subscribe":
             _subscribe(dest, mail)

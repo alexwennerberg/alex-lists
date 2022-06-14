@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	git.sr.ht/~emersion/go-emailthreads v0.0.0-20220412093310-4fd792e343ba
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20220113153027-e7ae287d2fec
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20220530120843-d0bf1153ada4
 	git.sr.ht/~sircmpwn/getopt v1.0.0 // indirect
 	git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9 // indirect
 	github.com/99designs/gqlgen v0.17.2
@@ -16,7 +16,7 @@ require (
 	github.com/emersion/go-sasl v0.0.0-20211008083017-0b9dcfb154ac // indirect
 	github.com/fernet/fernet-go v0.0.0-20211208181803-9f70042a33ee // indirect
 	github.com/go-chi/chi v4.1.2+incompatible
-	github.com/google/uuid v1.3.0 // indirect
+	github.com/google/uuid v1.3.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/lib/pq v1.10.4
 	github.com/matryer/moq v0.2.6 // indirect

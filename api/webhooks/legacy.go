@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
+	"git.sr.ht/~sircmpwn/core-go/webhooks"
 	sq "github.com/Masterminds/squirrel"
 
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
@@ -52,7 +53,7 @@ func DeliverLegacyUserListEvent(
 	list *model.MailingList,
 	event string,
 ) {
-	queue := LegacyQueueForContext(ctx)
+	queue := webhooks.LegacyForContext(ctx)
 
 	payload := ListWebhookPayload{
 		ID:          list.ID,
@@ -90,7 +91,7 @@ func DeliverLegacyListEvent(
 	list *model.MailingList,
 	event string,
 ) {
-	queue := LegacyQueueForContext(ctx)
+	queue := webhooks.LegacyForContext(ctx)
 
 	payload := ListWebhookPayload{
 		ID:          list.ID,

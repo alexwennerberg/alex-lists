@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"net/url"
 	"strings"
@@ -17,7 +18,9 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
+	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/core-go/valid"
+	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
@@ -25,6 +28,7 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
+	"github.com/google/uuid"
 	"github.com/lib/pq"
 )
 
@@ -271,6 +275,71 @@ func (r *mailingListResolver) ACL(ctx context.Context, obj *model.MailingList, c
 	return &model.MailingListACLCursor{acls, cursor}, nil
 }
 
+func (r *mailingListResolver) Webhooks(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var subs []model.WebhookSubscription
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		sub := (&model.MailingListWebhookSubscription{}).As(`sub`)
+		query := database.
+			Select(ctx, sub).
+			From(`gql_list_wh_sub sub`).
+			Where(sq.And{sq.Expr(`list_id = ?`, obj.ID), filter})
+		subs, cursor = sub.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
+}
+
+func (r *mailingListResolver) Webhook(ctx context.Context, obj *model.MailingList, id int) (model.WebhookSubscription, error) {
+	var sub model.MailingListWebhookSubscription
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := database.
+			Select(ctx, &sub).
+			From(`gql_list_wh_sub`).
+			Where(sq.And{
+				sq.Expr(`id = ?`, id),
+				sq.Expr(`list_id = ?`, obj.ID),
+				filter,
+			}).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(database.Scan(ctx, &sub)...); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("No mailing list webhook by ID %d found for this user", id)
+		}
+		return nil, err
+	}
+
+	return &sub, nil
+}
+
 func (r *mailingListACLResolver) List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)
 }
@@ -294,6 +363,151 @@ func (r *mailingListACLResolver) Entity(ctx context.Context, obj *model.MailingL
 
 func (r *mailingListSubscriptionResolver) List(ctx context.Context, obj *model.MailingListSubscription) (*model.MailingList, error) {
 	// XXX: We could use an unsafe resolver here if we wrote one
+	return loaders.ForContext(ctx).MailingListsByID.Load(obj.ListID)
+}
+
+func (r *mailingListWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.MailingListWebhookSubscription) (*model.OAuthClient, error) {
+	if obj.ClientID == nil {
+		return nil, nil
+	}
+	return &model.OAuthClient{
+		UUID: *obj.ClientID,
+	}, nil
+}
+
+func (r *mailingListWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.MailingListWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var deliveries []*model.WebhookDelivery
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		d := (&model.WebhookDelivery{}).
+			WithName(`list`).
+			As(`delivery`)
+		query := database.
+			Select(ctx, d).
+			From(`gql_list_wh_delivery delivery`).
+			Where(`delivery.subscription_id = ?`, obj.ID)
+		deliveries, cursor = d.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
+}
+
+func (r *mailingListWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.MailingListWebhookSubscription, event model.WebhookEvent) (string, error) {
+	payloadUUID := uuid.New()
+	webhook := corewebhooks.WebhookContext{
+		User:        auth.ForContext(ctx),
+		PayloadUUID: payloadUUID,
+		Name:        "list",
+		Event:       event.String(),
+		Subscription: &corewebhooks.WebhookSubscription{
+			ID:         obj.ID,
+			URL:        obj.URL,
+			Query:      obj.Query,
+			AuthMethod: obj.AuthMethod,
+			TokenHash:  obj.TokenHash,
+			Grants:     obj.Grants,
+			ClientID:   obj.ClientID,
+			Expires:    obj.Expires,
+			NodeID:     obj.NodeID,
+		},
+	}
+
+	auth := auth.ForContext(ctx)
+	switch event {
+	case model.WebhookEventListUpdated, model.WebhookEventListDeleted:
+		desc := "Sample mailing list for testing webhooks"
+		webhook.Payload = &model.MailingListEvent{
+			UUID:  payloadUUID.String(),
+			Event: event,
+			Date:  time.Now().UTC(),
+			List: &model.MailingList{
+				ID:          -1,
+				Created:     time.Now().UTC(),
+				Updated:     time.Now().UTC(),
+				Name:        "sample-list",
+				Description: &desc,
+				Visibility:  model.VisibilityPublic,
+
+				OwnerID:        auth.UserID,
+				RawPermitMime:  "",
+				RawRejectMime:  "",
+				Access:         model.ACCESS_ALL,
+				DefaultAccess:  model.ACCESS_ALL,
+				AccessID:       nil,
+				SubscriptionID: nil,
+			},
+		}
+	case model.WebhookEventEmailReceived:
+		email := &model.Email{
+			ID:        -1,
+			Received:  time.Now().UTC(),
+			Body:      "Sample email body\r\n",
+			Subject:   "Sample email",
+			MessageID: "970701.32784@example.com",
+			InReplyTo: nil,
+			Patch: model.Patch{
+				Index:   nil,
+				Count:   nil,
+				Version: nil,
+				Prefix:  nil,
+				Subject: nil,
+			},
+			MailingListID: -1,
+			PatchsetID:    nil,
+			ThreadID:      nil,
+			ParentID:      nil,
+			SenderID:      nil,
+
+			RawEnvelope: []byte("Mime-Version: 1.0\r\nContent-Transfer-Encoding: quoted-printable\r\nContent-Type: text/plain; charset=UTF-8\r\nSubject: Sample email\r\nFrom: <someone@example.com>\r\nTo: <sample-list@example.com>\r\nDate: Tue, 14 Jun 2022 09:31:03 +0000\r\nMessage-Id: <970701.32784@example.com>\r\n\r\nSample email body\r\n"),
+			RawHeader:   mail.Header{},
+		}
+		email.Populate()
+		webhook.Payload = &model.EmailEvent{
+			UUID:  payloadUUID.String(),
+			Event: event,
+			Date:  time.Now().UTC(),
+			Email: email,
+		}
+	case model.WebhookEventPatchsetReceived:
+		webhook.Payload = &model.PatchsetEvent{
+			UUID:  payloadUUID.String(),
+			Event: event,
+			Date:  time.Now().UTC(),
+			Patchset: &model.Patchset{
+				ID:             -1,
+				Created:        time.Now().UTC(),
+				Updated:        time.Now().UTC(),
+				Subject:        "Sample patchset",
+				Prefix:         nil,
+				Version:        1,
+				MailingListID:  -1,
+				CoverLetterID:  nil,
+				SupersededByID: nil,
+				RawStatus:      "proposed",
+			},
+		}
+	default:
+		return "", fmt.Errorf("Unsupported event %s", event.String())
+	}
+
+	subctx := corewebhooks.Context(ctx, webhook.Payload)
+	bytes, err := webhook.Exec(subctx, server.ForContext(ctx).Schema)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
+func (r *mailingListWebhookSubscriptionResolver) List(ctx context.Context, obj *model.MailingListWebhookSubscription) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.ListID)
 }
 
@@ -354,6 +568,7 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 	}
 
 	webhooks.DeliverLegacyUserListEvent(ctx, &list, "list:create")
+	webhooks.DeliverUserMailingListEvent(ctx, model.WebhookEventListCreated, &list)
 
 	return &list, nil
 }
@@ -420,6 +635,8 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 	}
 
 	webhooks.DeliverLegacyListEvent(ctx, &list, "list:update")
+	webhooks.DeliverUserMailingListEvent(ctx, model.WebhookEventListUpdated, &list)
+	webhooks.DeliverMailingListEvent(ctx, model.WebhookEventListUpdated, &list)
 
 	return &list, nil
 }
@@ -449,6 +666,8 @@ func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*mode
 		// We need to do this here so that it picks up the subscription list
 		// before the cascade sets their list_id columns to null.
 		webhooks.DeliverLegacyListEvent(ctx, &list, "list:delete")
+		webhooks.DeliverUserMailingListEvent(ctx, model.WebhookEventListDeleted, &list)
+		webhooks.DeliverMailingListEvent(ctx, model.WebhookEventListDeleted, &list)
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
@@ -578,6 +797,10 @@ func (r *mutationResolver) UpdateMailingListACL(ctx context.Context, listID int,
 		}
 		return nil, err
 	}
+
+	webhooks.DeliverLegacyListEvent(ctx, &list, "list:update")
+	webhooks.DeliverUserMailingListEvent(ctx, model.WebhookEventListUpdated, &list)
+	webhooks.DeliverMailingListEvent(ctx, model.WebhookEventListUpdated, &list)
 	return &list, nil
 }
 
@@ -780,6 +1003,255 @@ func (r *mutationResolver) MailingListUnsubscribe(ctx context.Context, listID in
 		return nil, err
 	}
 	return &sub, nil
+}
+
+func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.UserWebhookInput) (model.WebhookSubscription, error) {
+	schema := server.ForContext(ctx).Schema
+	if err := corewebhooks.Validate(schema, config.Query); err != nil {
+		return nil, err
+	}
+
+	user := auth.ForContext(ctx)
+	ac, err := corewebhooks.NewAuthConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var sub model.UserWebhookSubscription
+	if len(config.Events) == 0 {
+		return nil, fmt.Errorf("Must specify at least one event")
+	}
+	events := make([]string, len(config.Events))
+	for i, ev := range config.Events {
+		events[i] = ev.String()
+		// TODO: gqlgen does not support doing anything useful with directives
+		// on enums at the time of writing, so we have to do a little bit of
+		// manual fuckery
+		var access string
+		switch ev {
+		case model.WebhookEventListCreated, model.WebhookEventListUpdated,
+			model.WebhookEventListDeleted:
+			access = "LISTS"
+		case model.WebhookEventEmailReceived:
+			access = "EMAILS"
+		case model.WebhookEventPatchsetReceived:
+			access = "PATCHES"
+		default:
+			return nil, fmt.Errorf("Unsupported event %s", ev.String())
+		}
+		if !user.Grants.Has(access, auth.RO) {
+			return nil, fmt.Errorf("Insufficient access granted for webhook event %s", ev.String())
+		}
+	}
+
+	u, err := url.Parse(config.URL)
+	if err != nil {
+		return nil, err
+	} else if u.Host == "" {
+		return nil, fmt.Errorf("Cannot use URL without host")
+	} else if u.Scheme != "http" && u.Scheme != "https" {
+		return nil, fmt.Errorf("Cannot use non-HTTP or HTTPS URL")
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO gql_user_wh_sub (
+				created, events, url, query,
+				auth_method,
+				token_hash, grants, client_id, expires,
+				node_id,
+				user_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+			) RETURNING id, url, query, events, user_id;`,
+			pq.Array(events), config.URL, config.Query,
+			ac.AuthMethod,
+			ac.TokenHash, ac.Grants, ac.ClientID, ac.Expires, // OAUTH2
+			ac.NodeID, // INTERNAL
+			user.UserID)
+
+		if err := row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &sub, nil
+}
+
+func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
+	var sub model.UserWebhookSubscription
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := sq.Delete(`gql_user_wh_sub`).
+			PlaceholderFormat(sq.Dollar).
+			Where(sq.And{sq.Expr(`id = ?`, id), filter}).
+			Suffix(`RETURNING id, url, query, events, user_id`).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("No user webhook by ID %d found for this user", id)
+		}
+		return nil, err
+	}
+
+	return &sub, nil
+}
+
+func (r *mutationResolver) CreateMailingListWebhook(ctx context.Context, listID int, config model.MailingListWebhookInput) (model.WebhookSubscription, error) {
+	schema := server.ForContext(ctx).Schema
+	if err := corewebhooks.Validate(schema, config.Query); err != nil {
+		return nil, err
+	}
+
+	user := auth.ForContext(ctx)
+	ac, err := corewebhooks.NewAuthConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var sub model.MailingListWebhookSubscription
+	if len(config.Events) == 0 {
+		return nil, fmt.Errorf("Must specify at least one event")
+	}
+	events := make([]string, len(config.Events))
+	for i, ev := range config.Events {
+		events[i] = ev.String()
+		// TODO: gqlgen does not support doing anything useful with directives
+		// on enums at the time of writing, so we have to do a little bit of
+		// manual fuckery
+		var access string
+		switch ev {
+		case model.WebhookEventListUpdated, model.WebhookEventListDeleted:
+			access = "LISTS"
+		case model.WebhookEventEmailReceived:
+			access = "EMAILS"
+		case model.WebhookEventPatchsetReceived:
+			access = "PATCHES"
+		default:
+			return nil, fmt.Errorf("Unsupported event %s", ev.String())
+		}
+		if !user.Grants.Has(access, auth.RO) {
+			return nil, fmt.Errorf("Insufficient access granted for webhook event %s", ev.String())
+		}
+	}
+
+	u, err := url.Parse(config.URL)
+	if err != nil {
+		return nil, err
+	} else if u.Host == "" {
+		return nil, fmt.Errorf("Cannot use URL without host")
+	} else if u.Scheme != "http" && u.Scheme != "https" {
+		return nil, fmt.Errorf("Cannot use non-HTTP or HTTPS URL")
+	}
+
+	list, err := loaders.ForContext(ctx).MailingListsByID.Load(listID)
+	if err != nil {
+		return nil, err
+	} else if list == nil {
+		return nil, errors.New("Access denied")
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO gql_list_wh_sub (
+				created, events, url, query,
+				auth_method,
+				token_hash, grants, client_id, expires,
+				node_id,
+				user_id,
+				list_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11
+			) RETURNING id, url, query, events, user_id, list_id;`,
+			pq.Array(events), config.URL, config.Query,
+			ac.AuthMethod,
+			ac.TokenHash, ac.Grants, ac.ClientID, ac.Expires, // OAUTH2
+			ac.NodeID, // INTERNAL
+			user.UserID,
+			list.ID)
+
+		if err := row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID, &sub.ListID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &sub, nil
+}
+
+func (r *mutationResolver) DeleteMailingListWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
+	var sub model.MailingListWebhookSubscription
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := sq.Delete(`gql_list_wh_sub`).
+			PlaceholderFormat(sq.Dollar).
+			Where(sq.And{sq.Expr(`id = ?`, id), filter}).
+			Suffix(`RETURNING id, url, query, events, user_id, list_id`).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID, &sub.ListID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("No mailing list webhook by ID %d found for this user", id)
+		}
+		return nil, err
+	}
+
+	return &sub, nil
+}
+
+func (r *mutationResolver) TriggerUserEmailWebhooks(ctx context.Context, emailID int) (*model.Email, error) {
+	email, err := loaders.ForContext(ctx).EmailsByID.Load(emailID)
+	if err != nil {
+		return nil, err
+	}
+	webhooks.DeliverUserEmailEvent(ctx, model.WebhookEventEmailReceived, email)
+	return email, nil
+}
+
+func (r *mutationResolver) TriggerListEmailWebhooks(ctx context.Context, listID int, emailID int) (*model.Email, error) {
+	email, err := loaders.ForContext(ctx).EmailsByID.Load(emailID)
+	if err != nil {
+		return nil, err
+	}
+	webhooks.DeliverListEmailEvent(ctx, listID, model.WebhookEventEmailReceived, email)
+	if email.PatchsetID != nil {
+		patchset, err := loaders.ForContext(ctx).PatchsetsByID.Load(*email.PatchsetID)
+		if err != nil {
+			return nil, err
+		}
+		webhooks.DeliverListPatchsetEvent(ctx, listID, model.WebhookEventPatchsetReceived, patchset)
+	}
+	return email, nil
 }
 
 func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (model.Entity, error) {
@@ -1064,6 +1536,79 @@ func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cur
 	}
 
 	return &model.ActivitySubscriptionCursor{subs, cursor}, nil
+}
+
+func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var subs []model.WebhookSubscription
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		sub := (&model.UserWebhookSubscription{}).As(`sub`)
+		query := database.
+			Select(ctx, sub).
+			From(`gql_user_wh_sub sub`).
+			Where(filter)
+		subs, cursor = sub.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
+}
+
+func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
+	var sub model.UserWebhookSubscription
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := database.
+			Select(ctx, &sub).
+			From(`gql_user_wh_sub`).
+			Where(sq.And{sq.Expr(`id = ?`, id), filter}).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(database.Scan(ctx, &sub)...); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("No user webhook by ID %d found for this user", id)
+		}
+		return nil, err
+	}
+
+	return &sub, nil
+}
+
+func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, error) {
+	raw, err := corewebhooks.Payload(ctx)
+	if err != nil {
+		return nil, err
+	}
+	payload, ok := raw.(model.WebhookPayload)
+	if !ok {
+		panic("Invalid webhook payload context")
+	}
+	return payload, nil
 }
 
 func (r *threadResolver) Sender(ctx context.Context, obj *model.Thread) (model.Entity, error) {
@@ -1489,6 +2034,191 @@ func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *cor
 	return &model.PatchsetCursor{patches, cursor}, nil
 }
 
+func (r *userWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.UserWebhookSubscription) (*model.OAuthClient, error) {
+	if obj.ClientID == nil {
+		return nil, nil
+	}
+	return &model.OAuthClient{
+		UUID: *obj.ClientID,
+	}, nil
+}
+
+func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.UserWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var deliveries []*model.WebhookDelivery
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		d := (&model.WebhookDelivery{}).
+			WithName(`user`).
+			As(`delivery`)
+		query := database.
+			Select(ctx, d).
+			From(`gql_user_wh_delivery delivery`).
+			Where(`delivery.subscription_id = ?`, obj.ID)
+		deliveries, cursor = d.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
+}
+
+func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.UserWebhookSubscription, event model.WebhookEvent) (string, error) {
+	payloadUUID := uuid.New()
+	webhook := corewebhooks.WebhookContext{
+		User:        auth.ForContext(ctx),
+		PayloadUUID: payloadUUID,
+		Name:        "user",
+		Event:       event.String(),
+		Subscription: &corewebhooks.WebhookSubscription{
+			ID:         obj.ID,
+			URL:        obj.URL,
+			Query:      obj.Query,
+			AuthMethod: obj.AuthMethod,
+			TokenHash:  obj.TokenHash,
+			Grants:     obj.Grants,
+			ClientID:   obj.ClientID,
+			Expires:    obj.Expires,
+			NodeID:     obj.NodeID,
+		},
+	}
+
+	auth := auth.ForContext(ctx)
+	switch event {
+	case model.WebhookEventListCreated, model.WebhookEventListUpdated,
+		model.WebhookEventListDeleted:
+		desc := "Sample mailing list for testing webhooks"
+		webhook.Payload = &model.MailingListEvent{
+			UUID:  payloadUUID.String(),
+			Event: event,
+			Date:  time.Now().UTC(),
+			List: &model.MailingList{
+				ID:          -1,
+				Created:     time.Now().UTC(),
+				Updated:     time.Now().UTC(),
+				Name:        "sample-list",
+				Description: &desc,
+				Visibility:  model.VisibilityPublic,
+
+				OwnerID:        auth.UserID,
+				RawPermitMime:  "",
+				RawRejectMime:  "",
+				Access:         model.ACCESS_ALL,
+				DefaultAccess:  model.ACCESS_ALL,
+				AccessID:       nil,
+				SubscriptionID: nil,
+			},
+		}
+	case model.WebhookEventEmailReceived:
+		email := &model.Email{
+			ID:        -1,
+			Received:  time.Now().UTC(),
+			Body:      "Sample email body\r\n",
+			Subject:   "Sample email",
+			MessageID: "970701.32784@example.com",
+			InReplyTo: nil,
+			Patch: model.Patch{
+				Index:   nil,
+				Count:   nil,
+				Version: nil,
+				Prefix:  nil,
+				Subject: nil,
+			},
+			MailingListID: -1,
+			PatchsetID:    nil,
+			ThreadID:      nil,
+			ParentID:      nil,
+			SenderID:      nil,
+
+			RawEnvelope: []byte("Mime-Version: 1.0\r\nContent-Transfer-Encoding: quoted-printable\r\nContent-Type: text/plain; charset=UTF-8\r\nSubject: Sample email\r\nFrom: <someone@example.com>\r\nTo: <sample-list@example.com>\r\nDate: Tue, 14 Jun 2022 09:31:03 +0000\r\nMessage-Id: <970701.32784@example.com>\r\n\r\nSample email body\r\n"),
+			RawHeader:   mail.Header{},
+		}
+		email.Populate()
+		webhook.Payload = &model.EmailEvent{
+			UUID:  payloadUUID.String(),
+			Event: event,
+			Date:  time.Now().UTC(),
+			Email: email,
+		}
+	case model.WebhookEventPatchsetReceived:
+		webhook.Payload = &model.PatchsetEvent{
+			UUID:  payloadUUID.String(),
+			Event: event,
+			Date:  time.Now().UTC(),
+			Patchset: &model.Patchset{
+				ID:             -1,
+				Created:        time.Now().UTC(),
+				Updated:        time.Now().UTC(),
+				Subject:        "Sample patchset",
+				Prefix:         nil,
+				Version:        1,
+				MailingListID:  -1,
+				CoverLetterID:  nil,
+				SupersededByID: nil,
+				RawStatus:      "proposed",
+			},
+		}
+	default:
+		return "", fmt.Errorf("Unsupported event %s", event.String())
+	}
+
+	subctx := corewebhooks.Context(ctx, webhook.Payload)
+	bytes, err := webhook.Exec(subctx, server.ForContext(ctx).Schema)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}
+
+func (r *webhookDeliveryResolver) Subscription(ctx context.Context, obj *model.WebhookDelivery) (model.WebhookSubscription, error) {
+	if obj.Name == "" {
+		panic("WebhookDelivery without name")
+	}
+
+	// XXX: This could use a loader but it's unlikely to be a bottleneck
+	var sub model.WebhookSubscription
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		// XXX: This needs some work to generalize to other kinds of webhooks
+		var subscription interface {
+			model.WebhookSubscription
+			database.Model
+		} = nil
+		switch obj.Name {
+		case "user":
+			subscription = (&model.UserWebhookSubscription{}).As(`sub`)
+		case "list":
+			subscription = (&model.MailingListWebhookSubscription{}).As(`sub`)
+		default:
+			panic(fmt.Errorf("unknown webhook name %q", obj.Name))
+		}
+		// Note: No filter needed because, if we have access to the delivery,
+		// we also have access to the subscription.
+		row := database.
+			Select(ctx, subscription).
+			From(`gql_`+obj.Name+`_wh_sub sub`).
+			Where(`sub.id = ?`, obj.SubscriptionID).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(database.Scan(ctx, subscription)...); err != nil {
+			return err
+		}
+		sub = subscription
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return sub, nil
+}
+
 // Email returns api.EmailResolver implementation.
 func (r *Resolver) Email() api.EmailResolver { return &emailResolver{r} }
 
@@ -1501,6 +2231,11 @@ func (r *Resolver) MailingListACL() api.MailingListACLResolver { return &mailing
 // MailingListSubscription returns api.MailingListSubscriptionResolver implementation.
 func (r *Resolver) MailingListSubscription() api.MailingListSubscriptionResolver {
 	return &mailingListSubscriptionResolver{r}
+}
+
+// MailingListWebhookSubscription returns api.MailingListWebhookSubscriptionResolver implementation.
+func (r *Resolver) MailingListWebhookSubscription() api.MailingListWebhookSubscriptionResolver {
+	return &mailingListWebhookSubscriptionResolver{r}
 }
 
 // Mutation returns api.MutationResolver implementation.
@@ -1521,13 +2256,24 @@ func (r *Resolver) Thread() api.ThreadResolver { return &threadResolver{r} }
 // User returns api.UserResolver implementation.
 func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 
+// UserWebhookSubscription returns api.UserWebhookSubscriptionResolver implementation.
+func (r *Resolver) UserWebhookSubscription() api.UserWebhookSubscriptionResolver {
+	return &userWebhookSubscriptionResolver{r}
+}
+
+// WebhookDelivery returns api.WebhookDeliveryResolver implementation.
+func (r *Resolver) WebhookDelivery() api.WebhookDeliveryResolver { return &webhookDeliveryResolver{r} }
+
 type emailResolver struct{ *Resolver }
 type mailingListResolver struct{ *Resolver }
 type mailingListACLResolver struct{ *Resolver }
 type mailingListSubscriptionResolver struct{ *Resolver }
+type mailingListWebhookSubscriptionResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type patchsetResolver struct{ *Resolver }
 type patchsetToolResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type threadResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
+type userWebhookSubscriptionResolver struct{ *Resolver }
+type webhookDeliveryResolver struct{ *Resolver }
