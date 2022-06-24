@@ -264,10 +264,13 @@ def _archive(dest, envelope, do_webhooks=True):
     for child in children:
         child.parent_id = mail.id
         if child.thread_id != thread.id:
-            ex_threads.update({ child.thread_id })
+            ex_thread_id = child.thread_id if child.thread_id else child.id
+            ex_threads.update({ ex_thread_id })
         child.thread_id = thread.id
-    (Email.__table__.update().where(Email.thread_id in ex_threads)
-            .values(thread_id=thread.id))
+    if len(ex_threads) > 0:
+        db.session.execute(Email.__table__.update()
+                .where(Email.thread_id.in_(ex_threads))
+                .values(thread_id=thread.id))
 
     db.session.flush()
     # Update thread nreplies & nparticipants
