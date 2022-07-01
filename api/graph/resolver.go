@@ -54,36 +54,38 @@ func getMailText(mr *mail.Reader) (string, error) {
 	}
 }
 
-func toThreadBlockList(out *[]*model.ThreadBlock, block *emailthreads.Block,
+func toThreadBlockList(out *[]*model.ThreadBlock, blocks []*emailthreads.Block,
 	parent *emailthreads.Block, sources map[*emailthreads.Message]*model.Email,
 	indexes map[*emailthreads.Block]int) {
 
-	threadBlock := &model.ThreadBlock{
-		Key:    fmt.Sprintf("%v:%v-%v", sources[block.Source].ID, block.SourceStart, block.SourceEnd),
-		Body:   block.Body(),
-		Source: sources[block.Source],
-		SourceRange: &model.ByteRange{
-			Start: block.SourceStart,
-			End:   block.SourceEnd,
-		},
-	}
+	for _, block := range blocks {
+		threadBlock := &model.ThreadBlock{
+			Key:    fmt.Sprintf("%v:%v-%v", sources[block.Source].ID, block.SourceStart, block.SourceEnd),
+			Body:   block.Body(),
+			Source: sources[block.Source],
+			SourceRange: &model.ByteRange{
+				Start: block.SourceStart,
+				End:   block.SourceEnd,
+			},
+		}
 
-	if parent != nil {
-		i := indexes[parent]
-		threadBlock.Parent = &i
-		if block.ParentStart >= 0 {
-			threadBlock.ParentRange = &model.ByteRange{
-				Start: block.ParentStart,
-				End:   block.ParentEnd,
+		if parent != nil {
+			i := indexes[parent]
+			threadBlock.Parent = &i
+			if block.ParentStart >= 0 {
+				threadBlock.ParentRange = &model.ByteRange{
+					Start: block.ParentStart,
+					End:   block.ParentEnd,
+				}
 			}
 		}
-	}
 
-	indexes[block] = len(*out)
-	*out = append(*out, threadBlock)
+		indexes[block] = len(*out)
+		*out = append(*out, threadBlock)
 
-	for _, child := range block.Children {
-		toThreadBlockList(out, child, block, sources, indexes)
-		threadBlock.Children = append(threadBlock.Children, indexes[child])
+		toThreadBlockList(out, block.Children, block, sources, indexes)
+		for _, child := range block.Children {
+			threadBlock.Children = append(threadBlock.Children, indexes[child])
+		}
 	}
 }

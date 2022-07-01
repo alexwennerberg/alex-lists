@@ -1784,7 +1784,7 @@ func (r *threadResolver) Blocks(ctx context.Context, obj *model.Thread) ([]*mode
 		return nil, nil
 	}
 
-	root, err := emailthreads.Parse(messages)
+	blockTrees, err := emailthreads.Parse(messages)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse thread: %v", err)
 	}
@@ -1796,7 +1796,7 @@ func (r *threadResolver) Blocks(ctx context.Context, obj *model.Thread) ([]*mode
 
 	var blocks []*model.ThreadBlock
 	indexes := make(map[*emailthreads.Block]int)
-	toThreadBlockList(&blocks, root, nil, sources, indexes)
+	toThreadBlockList(&blocks, blockTrees, nil, sources, indexes)
 
 	return blocks, nil
 }
