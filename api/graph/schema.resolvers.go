@@ -1742,7 +1742,7 @@ func (r *threadResolver) Blocks(ctx context.Context, obj *model.Thread) ([]*mode
 		query := database.
 			Select(ctx, new(model.Email).As(`email`)).
 			From(`email`).
-			Where(`email.thread_id = ?`, obj.ID).
+			Where(`email.id = ? OR email.thread_id = ?`, obj.ID, obj.ID).
 			OrderBy(`email.created`)
 
 		rows, err := query.RunWith(tx).QueryContext(ctx)
