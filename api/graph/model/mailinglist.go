@@ -3,6 +3,7 @@ package model
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -121,18 +122,18 @@ func (list *MailingList) QueryWithCursor(ctx context.Context,
 	}
 	user := auth.ForContext(ctx)
 	q = q.
-		LeftJoin(`access ON
-			access.list_id = list.id AND
-			access.user_id = ?`, user.UserID).
-		LeftJoin(`subscription sub ON
-			sub.list_id = list.id AND
-			sub.user_id = ?`, user.UserID).
-		Column(`COALESCE(
+		LeftJoin(fmt.Sprintf(`access ON
+			access.list_id = %s.id AND
+			access.user_id = ?`, list.alias), user.UserID).
+		LeftJoin(fmt.Sprintf(`subscription sub ON
+			sub.list_id = %s.id AND
+			sub.user_id = ?`, list.alias), user.UserID).
+		Column(fmt.Sprintf(`COALESCE(
 			access.permissions,
-			CASE WHEN list.owner_id = ?
+			CASE WHEN %s.owner_id = ?
 				THEN ?
-				ELSE list.default_access
-			END)`,
+				ELSE %s.default_access
+			END)`, list.alias, list.alias),
 			user.UserID, ACCESS_ALL).
 		Column(`access.id`).
 		Column(`sub.id`).

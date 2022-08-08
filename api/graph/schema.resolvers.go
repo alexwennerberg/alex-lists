@@ -1490,11 +1490,11 @@ func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Curs
 		Isolation: 0,
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
-		list := (&model.MailingList{})
+		list := (&model.MailingList{}).As(`mailing_list`)
 		query := database.
 			Select(ctx, list).
-			From(`list`).
-			Where(`list.owner_id = ?`, auth.ForContext(ctx).UserID)
+			From(`list mailing_list`).
+			Where(`mailing_list.owner_id = ?`, auth.ForContext(ctx).UserID)
 		lists, cursor = list.QueryWithCursor(ctx, tx, query, cursor)
 		return nil
 	}); err != nil {
