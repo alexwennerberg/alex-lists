@@ -1,0 +1,305 @@
+CREATE TYPE auth_method AS ENUM (
+	'OAUTH_LEGACY',
+	'OAUTH2',
+	'COOKIE',
+	'INTERNAL',
+	'WEBHOOK'
+);
+
+CREATE TYPE list_webhook_event AS ENUM (
+	'LIST_UPDATED',
+	'LIST_DELETED',
+	'EMAIL_RECEIVED',
+	'PATCHSET_RECEIVED'
+);
+
+CREATE TYPE visibility AS ENUM (
+	'PUBLIC',
+	'UNLISTED',
+	'PRIVATE'
+);
+
+CREATE TYPE webhook_event AS ENUM (
+	'LIST_CREATED',
+	'LIST_UPDATED',
+	'LIST_DELETED',
+	'EMAIL_RECEIVED'
+);
+
+CREATE TABLE "user" (
+	id serial PRIMARY KEY,
+	username character varying(256),
+	created timestamp without time zone NOT NULL,
+	updated timestamp without time zone NOT NULL,
+	session character varying(128),
+	oauth_token character varying(256),
+	oauth_token_expires timestamp without time zone,
+	oauth_token_scopes character varying,
+	email character varying(256) NOT NULL,
+	user_type character varying DEFAULT 'active_non_paying'::character varying NOT NULL,
+	url character varying(256),
+	location character varying(256),
+	bio character varying(4096),
+	oauth_revocation_token character varying(256),
+	suspension_notice character varying(4096),
+	CONSTRAINT user_username_unique UNIQUE (username)
+);
+
+CREATE INDEX ix_user_username ON "user" USING btree (username);
+
+CREATE TABLE list (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	updated timestamp without time zone NOT NULL,
+	name character varying(128) NOT NULL,
+	description character varying(2048),
+	owner_id integer NOT NULL REFERENCES "user"(id),
+	default_access integer DEFAULT 7 NOT NULL,
+	mirror_id integer REFERENCES list(id),
+	permit_mimetypes character varying DEFAULT 'text/*,application/pgp-signature,application/pgp-keys'::character varying NOT NULL,
+	reject_mimetypes character varying DEFAULT ''::character varying NOT NULL,
+	import_in_progress boolean DEFAULT false NOT NULL,
+	visibility visibility NOT NULL,
+	CONSTRAINT uq_list_owner_id_name UNIQUE (owner_id, name)
+);
+
+CREATE TABLE access (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	updated timestamp without time zone NOT NULL,
+	email character varying,
+	user_id integer REFERENCES "user"(id),
+	list_id integer NOT NULL REFERENCES list(id) ON DELETE CASCADE,
+	permissions integer DEFAULT 7 NOT NULL,
+	CONSTRAINT uq_access_list_id_email UNIQUE (list_id, email),
+	CONSTRAINT uq_access_list_id_user_id UNIQUE (list_id, user_id)
+);
+
+CREATE TABLE email (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	updated timestamp without time zone NOT NULL,
+
+	subject character varying(2048) NOT NULL,
+	message_id character varying(2048) NOT NULL,
+	message_date timestamp without time zone,
+	envelope character varying NOT NULL,
+	headers json NOT NULL,
+	body character varying NOT NULL,
+
+	list_id integer NOT NULL REFERENCES list(id) ON DELETE CASCADE,
+	parent_id integer REFERENCES email(id),
+	thread_id integer REFERENCES email(id),
+	sender_id integer REFERENCES "user"(id),
+
+	is_patch boolean NOT NULL,
+	is_request_pull boolean NOT NULL,
+	nreplies integer DEFAULT 0,
+	nparticipants integer DEFAULT 1,
+	in_reply_to character varying(2048),
+
+	patchset_id integer,
+	patch_index integer,
+	patch_count integer,
+	patch_version integer,
+	patch_prefix character varying,
+	patch_subject character varying,
+	superseded_by_id integer REFERENCES email(id),
+
+	CONSTRAINT uq_email_list_message_id UNIQUE (list_id, message_id)
+);
+
+-- TODO: Remove me
+CREATE TABLE mirror (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	updated timestamp without time zone NOT NULL,
+	configure_attempts integer DEFAULT 0 NOT NULL,
+	configured boolean DEFAULT false NOT NULL,
+	mailer_sender character varying,
+	list_subscribe character varying,
+	list_unsubscribe character varying,
+	list_post character varying
+);
+
+CREATE TABLE patchset (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	updated timestamp without time zone NOT NULL,
+	subject character varying(2048) NOT NULL,
+	prefix character varying,
+	version integer NOT NULL,
+	status character varying DEFAULT 'proposed'::character varying NOT NULL,
+	list_id integer NOT NULL REFERENCES list(id) ON DELETE CASCADE,
+	cover_letter_id integer REFERENCES email(id),
+	superseded_by_id integer REFERENCES patchset(id),
+	submitter character varying,
+	message_id character varying,
+	reply_to character varying
+);
+
+ALTER TABLE email
+	ADD CONSTRAINT email_patchset_id_fkey
+	FOREIGN KEY (patchset_id)
+	REFERENCES patchset(id) ON DELETE CASCADE;
+
+CREATE TABLE patchset_tool (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	updated timestamp without time zone NOT NULL,
+	patchset_id integer REFERENCES patchset(id) ON DELETE CASCADE,
+	icon character varying DEFAULT 'pending'::character varying NOT NULL,
+	details character varying NOT NULL,
+	key character varying(128) NOT NULL
+);
+
+CREATE INDEX ix_patchset_tool_key ON patchset_tool USING btree (key);
+
+CREATE TABLE subscription (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	updated timestamp without time zone NOT NULL,
+	email character varying(512),
+	list_id integer NOT NULL REFERENCES list(id) ON DELETE CASCADE,
+	user_id integer REFERENCES "user"(id),
+	CONSTRAINT subscription_email_xor_user_id
+		CHECK ((((email IS NULL) OR (user_id IS NULL)) AND ((email IS NOT NULL) OR (user_id IS NOT NULL)))),
+	CONSTRAINT subscription_list_id_email_unique UNIQUE (list_id, email),
+	CONSTRAINT subscription_list_id_user_id_unique UNIQUE (list_id, user_id)
+);
+
+-- GraphQL webhooks
+CREATE TABLE gql_user_wh_sub (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	events webhook_event[] NOT NULL,
+	url character varying NOT NULL,
+	query character varying NOT NULL,
+	auth_method auth_method NOT NULL,
+	token_hash character varying(128),
+	grants character varying,
+	client_id uuid,
+	expires timestamp without time zone,
+	node_id character varying,
+	user_id integer NOT NULL REFERENCES "user"(id),
+	CONSTRAINT gql_user_wh_sub_auth_method_check CHECK ((auth_method = ANY (ARRAY['OAUTH2'::auth_method, 'INTERNAL'::auth_method]))),
+	CONSTRAINT gql_user_wh_sub_check CHECK (((auth_method = 'OAUTH2'::auth_method) = (token_hash IS NOT NULL))),
+	CONSTRAINT gql_user_wh_sub_check1 CHECK (((auth_method = 'OAUTH2'::auth_method) = (expires IS NOT NULL))),
+	CONSTRAINT gql_user_wh_sub_check2 CHECK (((auth_method = 'INTERNAL'::auth_method) = (node_id IS NOT NULL))),
+	CONSTRAINT gql_user_wh_sub_events_check CHECK ((array_length(events, 1) > 0))
+);
+
+CREATE INDEX gql_user_wh_sub_token_hash_idx ON gql_user_wh_sub USING btree (token_hash);
+
+CREATE TABLE gql_user_wh_delivery (
+	id serial PRIMARY KEY,
+	uuid uuid NOT NULL,
+	date timestamp without time zone NOT NULL,
+	event webhook_event NOT NULL,
+	subscription_id integer NOT NULL REFERENCES gql_user_wh_sub(id) ON DELETE CASCADE,
+	request_body character varying NOT NULL,
+	response_body character varying,
+	response_headers character varying,
+	response_status integer
+);
+
+CREATE TABLE gql_list_wh_sub (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	events list_webhook_event[] NOT NULL,
+	url character varying NOT NULL,
+	query character varying NOT NULL,
+	auth_method auth_method NOT NULL,
+	token_hash character varying(128),
+	grants character varying,
+	client_id uuid,
+	expires timestamp without time zone,
+	node_id character varying,
+	user_id integer NOT NULL REFERENCES "user"(id),
+	list_id integer REFERENCES list(id) ON DELETE CASCADE,
+	CONSTRAINT gql_list_wh_sub_auth_method_check
+		CHECK ((auth_method = ANY (ARRAY['OAUTH2'::auth_method, 'INTERNAL'::auth_method]))),
+	CONSTRAINT gql_list_wh_sub_check
+		CHECK (((auth_method = 'OAUTH2'::auth_method) = (token_hash IS NOT NULL))),
+	CONSTRAINT gql_list_wh_sub_check1
+		CHECK (((auth_method = 'OAUTH2'::auth_method) = (expires IS NOT NULL))),
+	CONSTRAINT gql_list_wh_sub_check2
+		CHECK (((auth_method = 'INTERNAL'::auth_method) = (node_id IS NOT NULL))),
+	CONSTRAINT gql_list_wh_sub_events_check
+		CHECK ((array_length(events, 1) > 0))
+);
+
+CREATE INDEX gql_list_wh_sub_token_hash_idx ON gql_list_wh_sub USING btree (token_hash);
+
+CREATE TABLE gql_list_wh_delivery (
+	id serial PRIMARY KEY,
+	uuid uuid NOT NULL,
+	date timestamp without time zone NOT NULL,
+	event list_webhook_event NOT NULL,
+	subscription_id integer NOT NULL REFERENCES gql_list_wh_sub(id) ON DELETE CASCADE,
+	request_body character varying NOT NULL,
+	response_body character varying,
+	response_headers character varying,
+	response_status integer
+);
+
+-- Legacy OAuth
+CREATE TABLE oauthtoken (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	updated timestamp without time zone NOT NULL,
+	expires timestamp without time zone NOT NULL,
+	token_hash character varying(128) NOT NULL,
+	token_partial character varying(8) NOT NULL,
+	scopes character varying(512) NOT NULL,
+	user_id integer REFERENCES "user"(id)
+);
+
+-- Legacy webhooks
+CREATE TABLE list_webhook_subscription (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	url character varying(2048) NOT NULL,
+	events character varying NOT NULL,
+	user_id integer REFERENCES "user"(id),
+	token_id integer REFERENCES oauthtoken(id),
+	list_id integer REFERENCES list(id) ON DELETE CASCADE
+);
+
+CREATE TABLE list_webhook_delivery (
+	id serial PRIMARY KEY,
+	uuid uuid NOT NULL,
+	created timestamp without time zone NOT NULL,
+	event character varying(256) NOT NULL,
+	url character varying(2048) NOT NULL,
+	payload character varying(65536) NOT NULL,
+	payload_headers character varying(16384) NOT NULL,
+	response character varying(65536),
+	response_status integer NOT NULL,
+	response_headers character varying(16384),
+	subscription_id integer NOT NULL
+		REFERENCES list_webhook_subscription(id) ON DELETE CASCADE
+);
+
+CREATE TABLE user_webhook_subscription (
+	id serial PRIMARY KEY,
+	created timestamp without time zone NOT NULL,
+	url character varying(2048) NOT NULL,
+	events character varying NOT NULL,
+	user_id integer REFERENCES "user"(id),
+	token_id integer REFERENCES oauthtoken(id)
+);
+
+CREATE TABLE user_webhook_delivery (
+	id serial PRIMARY KEY,
+	uuid uuid NOT NULL,
+	created timestamp without time zone NOT NULL,
+	event character varying(256) NOT NULL,
+	url character varying(2048) NOT NULL,
+	payload character varying(65536) NOT NULL,
+	payload_headers character varying(16384) NOT NULL,
+	response character varying(65536),
+	response_status integer NOT NULL,
+	response_headers character varying(16384),
+	subscription_id integer NOT NULL REFERENCES user_webhook_subscription(id)
+);
