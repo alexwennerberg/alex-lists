@@ -216,7 +216,7 @@ CREATE TABLE gql_list_wh_sub (
 	expires timestamp without time zone,
 	node_id character varying,
 	user_id integer NOT NULL REFERENCES "user"(id),
-	list_id integer REFERENCES list(id) ON DELETE CASCADE,
+	list_id integer REFERENCES list(id) ON DELETE SET NULL,
 	CONSTRAINT gql_list_wh_sub_auth_method_check
 		CHECK ((auth_method = ANY (ARRAY['OAUTH2'::auth_method, 'INTERNAL'::auth_method]))),
 	CONSTRAINT gql_list_wh_sub_check
