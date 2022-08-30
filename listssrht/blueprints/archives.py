@@ -7,7 +7,7 @@ from srht.config import cfg
 from srht.database import db
 from srht.search import search_by
 from srht.flask import paginate_query
-from srht.oauth import current_user, loginrequired
+from srht.oauth import current_user, loginrequired, UserType
 from srht.validation import Validation
 from listssrht.filters import post_address
 from listssrht.types import List, User, Email, Subscription, ListAccess, Access, Visibility
@@ -58,6 +58,10 @@ def get_access(ml, user=None):
 
     # Owner
     if user.id == ml.owner_id:
+        return ListAccess.all
+
+    # Admin
+    if user.user_type == UserType.admin:
         return ListAccess.all
 
     # ACL entry?
