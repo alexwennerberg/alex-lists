@@ -431,4 +431,4 @@ def export_archive(owner_name, list_name):
     f = open(path, "rb")
     os.unlink(path)
     return send_file(f, as_attachment=True,
-            attachment_filename=f"{owner.username}-{list_name}.mbox")
+            download_name=f"{owner.username}-{list_name}.mbox")

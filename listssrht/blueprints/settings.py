@@ -1,5 +1,5 @@
 from flask import Blueprint, render_template, abort, request, redirect, url_for
-from flask import current_app, send_file, session
+from flask import current_app, session
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query
