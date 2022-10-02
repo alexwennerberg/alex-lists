@@ -57,7 +57,7 @@ CREATE TABLE list (
 	default_access integer DEFAULT 7 NOT NULL,
 	mirror_id integer REFERENCES list(id),
 	permit_mimetypes character varying DEFAULT 'text/*,application/pgp-signature,application/pgp-keys'::character varying NOT NULL,
-	reject_mimetypes character varying DEFAULT ''::character varying NOT NULL,
+	reject_mimetypes character varying DEFAULT 'text/html'::character varying NOT NULL,
 	import_in_progress boolean DEFAULT false NOT NULL,
 	visibility visibility NOT NULL,
 	CONSTRAINT uq_list_owner_id_name UNIQUE (owner_id, name)

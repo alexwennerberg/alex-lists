@@ -197,23 +197,31 @@ class MailHandler:
         sender = sender[0] or sender[1]
         permit_mimetypes = permit_mimetypes.split(",")
         reject_mimetypes = reject_mimetypes.split(",") + always_reject
+        # check the email for plaintext part
         for part in mail.walk():
             content_type = part.get_content_type()
             if content_type == "text/plain":
                 found_textpart = True
+                break
+        # check if the email is permitted or not
+        # rejection occur if any forbidden mimetype is present or if any
+        # non-permitted part is present, except for text/html which is ignored
+        # if there is also a text/plain part and it is not forbidden
+        for part in mail.walk():
+            content_type = part.get_content_type()
             if fnmatch(content_type, "multipart/*"):
                 continue
+            # check whether the type is permitted
             permit = False
             for whitelist in permit_mimetypes:
                 if fnmatch(content_type, whitelist):
                     permit = True
                     break
             if not permit:
-                if content_type == "text/html":
+                if content_type == "text/html" and not found_textpart:
                     return html_error.format(sender)
                 else:
-                    return forbidden_mimetype_error.format(
-                            sender, content_type)
+                    return forbidden_mimetype_error.format(sender, content_type)
             for blacklist in reject_mimetypes:
                 if fnmatch(content_type, blacklist):
                     if content_type == "text/html":
