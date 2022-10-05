@@ -1740,7 +1740,7 @@ func (r *threadResolver) Blocks(ctx context.Context, obj *model.Thread) ([]*mode
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
 		query := database.
-			Select(ctx, new(model.Email).As(`email`)).
+			SelectAll(new(model.Email)).
 			From(`email`).
 			Where(`email.id = ? OR email.thread_id = ?`, obj.ID, obj.ID).
 			OrderBy(`email.created`)
@@ -1753,7 +1753,7 @@ func (r *threadResolver) Blocks(ctx context.Context, obj *model.Thread) ([]*mode
 
 		for rows.Next() {
 			var email model.Email
-			if err := rows.Scan(database.Scan(ctx, &email)...); err != nil {
+			if err := rows.Scan(database.ScanAll(&email)...); err != nil {
 				return err
 			}
 			email.Populate()
