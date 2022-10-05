@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	git.sr.ht/~emersion/go-emailthreads v0.0.0-20220426123715-fd44f472f510
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20220530120843-d0bf1153ada4
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20220922085005-bb33e3e74975
 	git.sr.ht/~sircmpwn/getopt v1.0.0 // indirect
 	git.sr.ht/~sircmpwn/go-bare v0.0.0-20210406120253-ab86bc2846d9 // indirect
 	github.com/99designs/gqlgen v0.17.2
