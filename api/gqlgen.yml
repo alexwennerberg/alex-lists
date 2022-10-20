@@ -63,3 +63,5 @@ models:
   MailingListInput:
     model:
       - "map[string]interface{}"
+
+omit_getters: true

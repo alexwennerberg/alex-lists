@@ -32,6 +32,7 @@ import (
 	"github.com/lib/pq"
 )
 
+// Sender is the resolver for the sender field.
 func (r *emailResolver) Sender(ctx context.Context, obj *model.Email) (model.Entity, error) {
 	if obj.SenderID != nil {
 		return loaders.ForContext(ctx).UsersByID.Load(*obj.SenderID)
@@ -49,6 +50,7 @@ func (r *emailResolver) Sender(ctx context.Context, obj *model.Email) (model.Ent
 	}, nil
 }
 
+// Date is the resolver for the date field.
 func (r *emailResolver) Date(ctx context.Context, obj *model.Email) (*time.Time, error) {
 	date, err := obj.RawHeader.Date()
 	if err != nil {
@@ -57,6 +59,7 @@ func (r *emailResolver) Date(ctx context.Context, obj *model.Email) (*time.Time,
 	return &date, nil
 }
 
+// Header is the resolver for the header field.
 func (r *emailResolver) Header(ctx context.Context, obj *model.Email, want string) ([]string, error) {
 	var values []string
 	iter := obj.RawHeader.FieldsByKey(want)
@@ -70,6 +73,7 @@ func (r *emailResolver) Header(ctx context.Context, obj *model.Email, want strin
 	return values, nil
 }
 
+// AddressList is the resolver for the addressList field.
 func (r *emailResolver) AddressList(ctx context.Context, obj *model.Email, want string) ([]*model.Mailbox, error) {
 	list, err := obj.RawHeader.AddressList(want)
 	if err != nil {
@@ -85,6 +89,7 @@ func (r *emailResolver) AddressList(ctx context.Context, obj *model.Email, want 
 	return addrs, nil
 }
 
+// Envelope is the resolver for the envelope field.
 func (r *emailResolver) Envelope(ctx context.Context, obj *model.Email) (*model.URL, error) {
 	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
 	uri := fmt.Sprintf("%s/query/email/%d", origin, obj.ID)
@@ -95,6 +100,7 @@ func (r *emailResolver) Envelope(ctx context.Context, obj *model.Email) (*model.
 	return &model.URL{url}, nil
 }
 
+// Thread is the resolver for the thread field.
 func (r *emailResolver) Thread(ctx context.Context, obj *model.Email) (*model.Thread, error) {
 	// Regarding the use of an unsafe loader: if you have access to the email
 	// object, you have access to the thread also.
@@ -104,6 +110,7 @@ func (r *emailResolver) Thread(ctx context.Context, obj *model.Email) (*model.Th
 	return loaders.ForContext(ctx).ThreadsByIDUnsafe.Load(*obj.ThreadID)
 }
 
+// Parent is the resolver for the parent field.
 func (r *emailResolver) Parent(ctx context.Context, obj *model.Email) (*model.Email, error) {
 	if obj.ParentID == nil {
 		return nil, nil
@@ -113,6 +120,7 @@ func (r *emailResolver) Parent(ctx context.Context, obj *model.Email) (*model.Em
 	return loaders.ForContext(ctx).EmailsByIDUnsafe.Load(*obj.ParentID)
 }
 
+// Patchset is the resolver for the patchset field.
 func (r *emailResolver) Patchset(ctx context.Context, obj *model.Email) (*model.Patchset, error) {
 	if obj.PatchsetID == nil {
 		return nil, nil
@@ -122,14 +130,17 @@ func (r *emailResolver) Patchset(ctx context.Context, obj *model.Email) (*model.
 	return loaders.ForContext(ctx).PatchsetsByIDUnsafe.Load(*obj.PatchsetID)
 }
 
+// List is the resolver for the list field.
 func (r *emailResolver) List(ctx context.Context, obj *model.Email) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)
 }
 
+// Owner is the resolver for the owner field.
 func (r *mailingListResolver) Owner(ctx context.Context, obj *model.MailingList) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
+// Threads is the resolver for the threads field.
 func (r *mailingListResolver) Threads(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.ThreadCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -155,6 +166,7 @@ func (r *mailingListResolver) Threads(ctx context.Context, obj *model.MailingLis
 	return &model.ThreadCursor{threads, cursor}, nil
 }
 
+// Emails is the resolver for the emails field.
 func (r *mailingListResolver) Emails(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -180,6 +192,7 @@ func (r *mailingListResolver) Emails(ctx context.Context, obj *model.MailingList
 	return &model.EmailCursor{emails, cursor}, nil
 }
 
+// Patches is the resolver for the patches field.
 func (r *mailingListResolver) Patches(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.PatchsetCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -204,6 +217,7 @@ func (r *mailingListResolver) Patches(ctx context.Context, obj *model.MailingLis
 	return &model.PatchsetCursor{patches, cursor}, nil
 }
 
+// Access is the resolver for the access field.
 func (r *mailingListResolver) Access(ctx context.Context, obj *model.MailingList) (model.ACL, error) {
 	if obj.AccessID != nil {
 		return loaders.ForContext(ctx).ACLsByID.Load(*obj.AccessID)
@@ -217,6 +231,7 @@ func (r *mailingListResolver) Access(ctx context.Context, obj *model.MailingList
 	}, nil
 }
 
+// Subscription is the resolver for the subscription field.
 func (r *mailingListResolver) Subscription(ctx context.Context, obj *model.MailingList) (*model.MailingListSubscription, error) {
 	if obj.SubscriptionID == nil {
 		return nil, nil
@@ -228,6 +243,7 @@ func (r *mailingListResolver) Subscription(ctx context.Context, obj *model.Maili
 	return sub.(*model.MailingListSubscription), nil
 }
 
+// Archive is the resolver for the archive field.
 func (r *mailingListResolver) Archive(ctx context.Context, obj *model.MailingList) (*model.URL, error) {
 	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
 	uri := fmt.Sprintf("%s/query/list/%d.mbox", origin, obj.ID)
@@ -238,6 +254,7 @@ func (r *mailingListResolver) Archive(ctx context.Context, obj *model.MailingLis
 	return &model.URL{url}, nil
 }
 
+// Last30days is the resolver for the last30days field.
 func (r *mailingListResolver) Last30days(ctx context.Context, obj *model.MailingList) (*model.URL, error) {
 	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
 	uri := fmt.Sprintf("%s/query/list/%d.mbox?since=30", origin, obj.ID)
@@ -248,6 +265,7 @@ func (r *mailingListResolver) Last30days(ctx context.Context, obj *model.Mailing
 	return &model.URL{url}, nil
 }
 
+// ACL is the resolver for the acl field.
 func (r *mailingListResolver) ACL(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.MailingListACLCursor, error) {
 	if obj.OwnerID != auth.ForContext(ctx).UserID {
 		return nil, fmt.Errorf("Access denied")
@@ -275,6 +293,7 @@ func (r *mailingListResolver) ACL(ctx context.Context, obj *model.MailingList, c
 	return &model.MailingListACLCursor{acls, cursor}, nil
 }
 
+// Webhooks is the resolver for the webhooks field.
 func (r *mailingListResolver) Webhooks(ctx context.Context, obj *model.MailingList, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -304,6 +323,7 @@ func (r *mailingListResolver) Webhooks(ctx context.Context, obj *model.MailingLi
 	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
 }
 
+// Webhook is the resolver for the webhook field.
 func (r *mailingListResolver) Webhook(ctx context.Context, obj *model.MailingList, id int) (model.WebhookSubscription, error) {
 	var sub model.MailingListWebhookSubscription
 
@@ -340,10 +360,12 @@ func (r *mailingListResolver) Webhook(ctx context.Context, obj *model.MailingLis
 	return &sub, nil
 }
 
+// List is the resolver for the list field.
 func (r *mailingListACLResolver) List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)
 }
 
+// Entity is the resolver for the entity field.
 func (r *mailingListACLResolver) Entity(ctx context.Context, obj *model.MailingListACL) (model.Entity, error) {
 	if obj.UserID != nil {
 		return loaders.ForContext(ctx).UsersByID.Load(*obj.UserID)
@@ -361,11 +383,13 @@ func (r *mailingListACLResolver) Entity(ctx context.Context, obj *model.MailingL
 	}
 }
 
+// List is the resolver for the list field.
 func (r *mailingListSubscriptionResolver) List(ctx context.Context, obj *model.MailingListSubscription) (*model.MailingList, error) {
 	// XXX: We could use an unsafe resolver here if we wrote one
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.ListID)
 }
 
+// Client is the resolver for the client field.
 func (r *mailingListWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.MailingListWebhookSubscription) (*model.OAuthClient, error) {
 	if obj.ClientID == nil {
 		return nil, nil
@@ -375,6 +399,7 @@ func (r *mailingListWebhookSubscriptionResolver) Client(ctx context.Context, obj
 	}, nil
 }
 
+// Deliveries is the resolver for the deliveries field.
 func (r *mailingListWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.MailingListWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -401,6 +426,7 @@ func (r *mailingListWebhookSubscriptionResolver) Deliveries(ctx context.Context,
 	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
 }
 
+// Sample is the resolver for the sample field.
 func (r *mailingListWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.MailingListWebhookSubscription, event model.WebhookEvent) (string, error) {
 	payloadUUID := uuid.New()
 	webhook := corewebhooks.WebhookContext{
@@ -507,10 +533,12 @@ func (r *mailingListWebhookSubscriptionResolver) Sample(ctx context.Context, obj
 	return string(bytes), nil
 }
 
+// List is the resolver for the list field.
 func (r *mailingListWebhookSubscriptionResolver) List(ctx context.Context, obj *model.MailingListWebhookSubscription) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.ListID)
 }
 
+// CreateMailingList is the resolver for the createMailingList field.
 func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, description *string, visibility model.Visibility) (*model.MailingList, error) {
 	valid := valid.New(ctx)
 	valid.Expect(listNameRE.MatchString(name), "Name must match %s", listNameRE.String()).
@@ -572,6 +600,7 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 	return &list, nil
 }
 
+// UpdateMailingList is the resolver for the updateMailingList field.
 func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input map[string]interface{}) (*model.MailingList, error) {
 	valid := valid.New(ctx).WithInput(input)
 	query := sq.Update(`list`).PlaceholderFormat(sq.Dollar)
@@ -642,6 +671,7 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 	return &list, nil
 }
 
+// DeleteMailingList is the resolver for the deleteMailingList field.
 func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*model.MailingList, error) {
 	var list model.MailingList
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -678,6 +708,7 @@ func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*mode
 	return &list, nil
 }
 
+// UpdateUserACL is the resolver for the updateUserACL field.
 func (r *mutationResolver) UpdateUserACL(ctx context.Context, listID int, userID int, input model.ACLInput) (*model.MailingListACL, error) {
 	bits := ACLInputBits(input)
 	var acl model.MailingListACL
@@ -722,6 +753,7 @@ func (r *mutationResolver) UpdateUserACL(ctx context.Context, listID int, userID
 	return &acl, nil
 }
 
+// UpdateSenderACL is the resolver for the updateSenderACL field.
 func (r *mutationResolver) UpdateSenderACL(ctx context.Context, listID int, address string, input model.ACLInput) (*model.MailingListACL, error) {
 	bits := ACLInputBits(input)
 	var acl model.MailingListACL
@@ -766,6 +798,7 @@ func (r *mutationResolver) UpdateSenderACL(ctx context.Context, listID int, addr
 	return &acl, nil
 }
 
+// UpdateMailingListACL is the resolver for the updateMailingListACL field.
 func (r *mutationResolver) UpdateMailingListACL(ctx context.Context, listID int, input model.ACLInput) (*model.MailingList, error) {
 	bits := ACLInputBits(input)
 	var list model.MailingList
@@ -797,6 +830,7 @@ func (r *mutationResolver) UpdateMailingListACL(ctx context.Context, listID int,
 	return &list, nil
 }
 
+// DeleteACL is the resolver for the deleteACL field.
 func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.MailingListACL, error) {
 	var acl model.MailingListACL
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -825,6 +859,7 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.Mailin
 	return &acl, nil
 }
 
+// UpdatePatchset is the resolver for the updatePatchset field.
 func (r *mutationResolver) UpdatePatchset(ctx context.Context, id int, status model.PatchsetStatus) (*model.Patchset, error) {
 	var patchset model.Patchset
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -859,6 +894,7 @@ func (r *mutationResolver) UpdatePatchset(ctx context.Context, id int, status mo
 	return &patchset, nil
 }
 
+// CreateTool is the resolver for the createTool field.
 func (r *mutationResolver) CreateTool(ctx context.Context, patchsetID int, details string, icon model.ToolIcon) (*model.PatchsetTool, error) {
 	var tool model.PatchsetTool
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -896,6 +932,7 @@ func (r *mutationResolver) CreateTool(ctx context.Context, patchsetID int, detai
 	return &tool, nil
 }
 
+// UpdateTool is the resolver for the updateTool field.
 func (r *mutationResolver) UpdateTool(ctx context.Context, id int, details *string, icon *model.ToolIcon) (*model.PatchsetTool, error) {
 	var tool model.PatchsetTool
 	query := sq.Update(`patchset_tool`).PlaceholderFormat(sq.Dollar)
@@ -935,6 +972,7 @@ func (r *mutationResolver) UpdateTool(ctx context.Context, id int, details *stri
 	return &tool, nil
 }
 
+// MailingListSubscribe is the resolver for the mailingListSubscribe field.
 func (r *mutationResolver) MailingListSubscribe(ctx context.Context, listID int) (*model.MailingListSubscription, error) {
 	var sub model.MailingListSubscription
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -977,6 +1015,7 @@ func (r *mutationResolver) MailingListSubscribe(ctx context.Context, listID int)
 	return &sub, nil
 }
 
+// MailingListUnsubscribe is the resolver for the mailingListUnsubscribe field.
 func (r *mutationResolver) MailingListUnsubscribe(ctx context.Context, listID int) (*model.MailingListSubscription, error) {
 	var sub model.MailingListSubscription
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -995,6 +1034,7 @@ func (r *mutationResolver) MailingListUnsubscribe(ctx context.Context, listID in
 	return &sub, nil
 }
 
+// CreateUserWebhook is the resolver for the createUserWebhook field.
 func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.UserWebhookInput) (model.WebhookSubscription, error) {
 	schema := server.ForContext(ctx).Schema
 	if err := corewebhooks.Validate(schema, config.Query); err != nil {
@@ -1073,6 +1113,7 @@ func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.U
 	return &sub, nil
 }
 
+// DeleteUserWebhook is the resolver for the deleteUserWebhook field.
 func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
 	var sub model.UserWebhookSubscription
 
@@ -1103,6 +1144,7 @@ func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model
 	return &sub, nil
 }
 
+// CreateMailingListWebhook is the resolver for the createMailingListWebhook field.
 func (r *mutationResolver) CreateMailingListWebhook(ctx context.Context, listID int, config model.MailingListWebhookInput) (model.WebhookSubscription, error) {
 	schema := server.ForContext(ctx).Schema
 	if err := corewebhooks.Validate(schema, config.Query); err != nil {
@@ -1189,6 +1231,7 @@ func (r *mutationResolver) CreateMailingListWebhook(ctx context.Context, listID 
 	return &sub, nil
 }
 
+// DeleteMailingListWebhook is the resolver for the deleteMailingListWebhook field.
 func (r *mutationResolver) DeleteMailingListWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
 	var sub model.MailingListWebhookSubscription
 
@@ -1219,6 +1262,7 @@ func (r *mutationResolver) DeleteMailingListWebhook(ctx context.Context, id int)
 	return &sub, nil
 }
 
+// TriggerUserEmailWebhooks is the resolver for the triggerUserEmailWebhooks field.
 func (r *mutationResolver) TriggerUserEmailWebhooks(ctx context.Context, emailID int) (*model.Email, error) {
 	email, err := loaders.ForContext(ctx).EmailsByID.Load(emailID)
 	if err != nil {
@@ -1228,6 +1272,7 @@ func (r *mutationResolver) TriggerUserEmailWebhooks(ctx context.Context, emailID
 	return email, nil
 }
 
+// TriggerListEmailWebhooks is the resolver for the triggerListEmailWebhooks field.
 func (r *mutationResolver) TriggerListEmailWebhooks(ctx context.Context, listID int, emailID int) (*model.Email, error) {
 	email, err := loaders.ForContext(ctx).EmailsByID.Load(emailID)
 	if err != nil {
@@ -1244,6 +1289,7 @@ func (r *mutationResolver) TriggerListEmailWebhooks(ctx context.Context, listID 
 	return email, nil
 }
 
+// Submitter is the resolver for the submitter field.
 func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (model.Entity, error) {
 	// XXX: It would be nice if we didn't have to fetch the thread details in
 	// order to get the patchset submitter. The database has a submitter field
@@ -1302,6 +1348,7 @@ func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (
 	return submitter, nil
 }
 
+// CoverLetter is the resolver for the coverLetter field.
 func (r *patchsetResolver) CoverLetter(ctx context.Context, obj *model.Patchset) (*model.Email, error) {
 	if obj.CoverLetterID == nil {
 		return nil, nil
@@ -1309,6 +1356,7 @@ func (r *patchsetResolver) CoverLetter(ctx context.Context, obj *model.Patchset)
 	return loaders.ForContext(ctx).EmailsByID.Load(*obj.CoverLetterID)
 }
 
+// Thread is the resolver for the thread field.
 func (r *patchsetResolver) Thread(ctx context.Context, obj *model.Patchset) (*model.Thread, error) {
 	var thread model.Thread
 
@@ -1336,15 +1384,18 @@ func (r *patchsetResolver) Thread(ctx context.Context, obj *model.Patchset) (*mo
 	return &thread, nil
 }
 
+// SupersededBy is the resolver for the supersededBy field.
 func (r *patchsetResolver) SupersededBy(ctx context.Context, obj *model.Patchset) (*model.Patchset, error) {
 	// TODO: This feature has not been completed
 	return nil, nil
 }
 
+// List is the resolver for the list field.
 func (r *patchsetResolver) List(ctx context.Context, obj *model.Patchset) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)
 }
 
+// Patches is the resolver for the patches field.
 func (r *patchsetResolver) Patches(ctx context.Context, obj *model.Patchset, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1370,6 +1421,7 @@ func (r *patchsetResolver) Patches(ctx context.Context, obj *model.Patchset, cur
 	return &model.EmailCursor{emails, cursor}, nil
 }
 
+// Tools is the resolver for the tools field.
 func (r *patchsetResolver) Tools(ctx context.Context, obj *model.Patchset) ([]*model.PatchsetTool, error) {
 	var tools []*model.PatchsetTool
 
@@ -1406,6 +1458,7 @@ func (r *patchsetResolver) Tools(ctx context.Context, obj *model.Patchset) ([]*m
 	return tools, nil
 }
 
+// Mbox is the resolver for the mbox field.
 func (r *patchsetResolver) Mbox(ctx context.Context, obj *model.Patchset) (*model.URL, error) {
 	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
 	uri := fmt.Sprintf("%s/query/patchset/%d.mbox", origin, obj.ID)
@@ -1416,10 +1469,12 @@ func (r *patchsetResolver) Mbox(ctx context.Context, obj *model.Patchset) (*mode
 	return &model.URL{url}, nil
 }
 
+// Patchset is the resolver for the patchset field.
 func (r *patchsetToolResolver) Patchset(ctx context.Context, obj *model.PatchsetTool) (*model.Patchset, error) {
 	return loaders.ForContext(ctx).PatchsetsByID.Load(obj.PatchsetID)
 }
 
+// Version is the resolver for the version field.
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	return &model.Version{
 		Major:           0,
@@ -1429,6 +1484,7 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	}, nil
 }
 
+// Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	user := auth.ForContext(ctx)
 	return &model.User{
@@ -1443,22 +1499,27 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	}, nil
 }
 
+// User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, id int) (*model.User, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(id)
 }
 
+// UserByName is the resolver for the userByName field.
 func (r *queryResolver) UserByName(ctx context.Context, username string) (*model.User, error) {
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
+// MailingList is the resolver for the mailingList field.
 func (r *queryResolver) MailingList(ctx context.Context, id int) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByID.Load(id)
 }
 
+// MailingListByName is the resolver for the mailingListByName field.
 func (r *queryResolver) MailingListByName(ctx context.Context, name string) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByName.Load(name)
 }
 
+// MailingListByOwner is the resolver for the mailingListByOwner field.
 func (r *queryResolver) MailingListByOwner(ctx context.Context, ownerName string, listName string) (*model.MailingList, error) {
 	if strings.HasPrefix(ownerName, "~") {
 		ownerName = ownerName[1:]
@@ -1468,18 +1529,22 @@ func (r *queryResolver) MailingListByOwner(ctx context.Context, ownerName string
 	return loaders.ForContext(ctx).MailingListsByOwnerName.Load([2]string{ownerName, listName})
 }
 
+// Email is the resolver for the email field.
 func (r *queryResolver) Email(ctx context.Context, id int) (*model.Email, error) {
 	return loaders.ForContext(ctx).EmailsByID.Load(id)
 }
 
+// Message is the resolver for the message field.
 func (r *queryResolver) Message(ctx context.Context, messageID string) (*model.Email, error) {
 	return loaders.ForContext(ctx).EmailsByMessageID.Load(messageID)
 }
 
+// Patchset is the resolver for the patchset field.
 func (r *queryResolver) Patchset(ctx context.Context, id int) (*model.Patchset, error) {
 	return loaders.ForContext(ctx).PatchsetsByID.Load(id)
 }
 
+// MailingLists is the resolver for the mailingLists field.
 func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1504,6 +1569,7 @@ func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Curs
 	return &model.MailingListCursor{lists, cursor}, nil
 }
 
+// Subscriptions is the resolver for the subscriptions field.
 func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cursor) (*model.ActivitySubscriptionCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1528,6 +1594,7 @@ func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cur
 	return &model.ActivitySubscriptionCursor{subs, cursor}, nil
 }
 
+// UserWebhooks is the resolver for the userWebhooks field.
 func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1557,6 +1624,7 @@ func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Curs
 	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
 }
 
+// UserWebhook is the resolver for the userWebhook field.
 func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
 	var sub model.UserWebhookSubscription
 
@@ -1589,6 +1657,7 @@ func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookS
 	return &sub, nil
 }
 
+// Webhook is the resolver for the webhook field.
 func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, error) {
 	raw, err := corewebhooks.Payload(ctx)
 	if err != nil {
@@ -1601,6 +1670,7 @@ func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, erro
 	return payload, nil
 }
 
+// Sender is the resolver for the sender field.
 func (r *threadResolver) Sender(ctx context.Context, obj *model.Thread) (model.Entity, error) {
 	if obj.SenderID != nil {
 		return loaders.ForContext(ctx).UsersByID.Load(*obj.SenderID)
@@ -1618,14 +1688,17 @@ func (r *threadResolver) Sender(ctx context.Context, obj *model.Thread) (model.E
 	}, nil
 }
 
+// Root is the resolver for the root field.
 func (r *threadResolver) Root(ctx context.Context, obj *model.Thread) (*model.Email, error) {
 	return loaders.ForContext(ctx).EmailsByID.Load(obj.ID)
 }
 
+// List is the resolver for the list field.
 func (r *threadResolver) List(ctx context.Context, obj *model.Thread) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)
 }
 
+// Descendants is the resolver for the descendants field.
 func (r *threadResolver) Descendants(ctx context.Context, obj *model.Thread, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1651,6 +1724,7 @@ func (r *threadResolver) Descendants(ctx context.Context, obj *model.Thread, cur
 	return &model.EmailCursor{emails, cursor}, nil
 }
 
+// Mailto is the resolver for the mailto field.
 func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string, error) {
 	var (
 		header    mail.Header
@@ -1720,6 +1794,7 @@ func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string,
 	return url.String(), nil
 }
 
+// Mbox is the resolver for the mbox field.
 func (r *threadResolver) Mbox(ctx context.Context, obj *model.Thread) (*model.URL, error) {
 	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
 	uri := fmt.Sprintf("%s/query/thread/%d.mbox", origin, obj.ID)
@@ -1730,6 +1805,7 @@ func (r *threadResolver) Mbox(ctx context.Context, obj *model.Thread) (*model.UR
 	return &model.URL{url}, nil
 }
 
+// Blocks is the resolver for the blocks field.
 func (r *threadResolver) Blocks(ctx context.Context, obj *model.Thread) ([]*model.ThreadBlock, error) {
 	var (
 		messages []emailthreads.Message
@@ -1801,6 +1877,7 @@ func (r *threadResolver) Blocks(ctx context.Context, obj *model.Thread) ([]*mode
 	return blocks, nil
 }
 
+// Lists is the resolver for the lists field.
 func (r *userResolver) Lists(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1833,6 +1910,7 @@ func (r *userResolver) Lists(ctx context.Context, obj *model.User, cursor *corem
 	return &model.MailingListCursor{lists, cursor}, nil
 }
 
+// Emails is the resolver for the emails field.
 func (r *userResolver) Emails(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.EmailCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1869,6 +1947,7 @@ func (r *userResolver) Emails(ctx context.Context, obj *model.User, cursor *core
 	return &model.EmailCursor{emails, cursor}, nil
 }
 
+// Threads is the resolver for the threads field.
 func (r *userResolver) Threads(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.ThreadCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1906,6 +1985,7 @@ func (r *userResolver) Threads(ctx context.Context, obj *model.User, cursor *cor
 	return &model.ThreadCursor{threads, cursor}, nil
 }
 
+// Patches is the resolver for the patches field.
 func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.PatchsetCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1943,6 +2023,7 @@ func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *cor
 	return &model.PatchsetCursor{patches, cursor}, nil
 }
 
+// Client is the resolver for the client field.
 func (r *userWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.UserWebhookSubscription) (*model.OAuthClient, error) {
 	if obj.ClientID == nil {
 		return nil, nil
@@ -1952,6 +2033,7 @@ func (r *userWebhookSubscriptionResolver) Client(ctx context.Context, obj *model
 	}, nil
 }
 
+// Deliveries is the resolver for the deliveries field.
 func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.UserWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -1978,6 +2060,7 @@ func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *m
 	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
 }
 
+// Sample is the resolver for the sample field.
 func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.UserWebhookSubscription, event model.WebhookEvent) (string, error) {
 	payloadUUID := uuid.New()
 	webhook := corewebhooks.WebhookContext{
@@ -2085,6 +2168,7 @@ func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model
 	return string(bytes), nil
 }
 
+// Subscription is the resolver for the subscription field.
 func (r *webhookDeliveryResolver) Subscription(ctx context.Context, obj *model.WebhookDelivery) (model.WebhookSubscription, error) {
 	if obj.Name == "" {
 		panic("WebhookDelivery without name")
