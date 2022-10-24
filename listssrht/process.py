@@ -633,56 +633,6 @@ def send_error_for(mail_b64, error):
     smtp.quit()
 
 @task
-def import_mbox(spool, list_id):
-    ml = List.query.filter(List.id == list_id).one_or_none()
-    if not ml:
-        print(f"Warning: unable to import mbox for unknown list {list_id}")
-        return
-    with tempfile.NamedTemporaryFile() as f:
-        f.write(base64.b64decode(spool.encode()))
-        f.flush()
-        try:
-            factory = lambda f: email.message_from_bytes(f.read(), policy=policy)
-            mbox = mailbox.mbox(f.name, factory=factory)
-        except:
-            print("Error opening this file. Is it in mbox format?")
-            ml.import_in_progress = False
-            db.session.commit()
-            # TODO: tell the user?
-            return
-
-        db.session.skip_autoupdate = True  # we want to use dates from the mbox
-        for msg in mbox.values():
-            try:
-                msg_id = msg.get("Message-ID")
-                if not msg_id:
-                    continue
-                msg_id = msg_id.strip()
-                existing = (Email.query
-                        .filter(Email.message_id == msg_id)
-                        .filter(Email.list_id == ml.id)).count()
-                if existing != 0:
-                    continue # Drop messages with a duplicate message ID
-                mail, _ = _archive(ml, msg, do_webhooks=False)
-                date = msg.get("Date")
-                if not date:
-                    continue
-                date = parsedate_to_datetime(date)
-                if not date:
-                    continue
-                date = date.astimezone(timezone.utc)
-                mail.created = date
-                mail.updated = date
-                db.session.commit()
-            except Exception as ex:
-                print(ex)
-                print(f"Skipping email {msg_id} due to exception")
-                db.session.rollback()
-                continue # plow on forward
-    ml.import_in_progress = False
-    db.session.commit()
-
-@task
 def forward_thread(list_id, thread_id, recipient):
     thread = (Email.query
             .filter(or_(Email.thread_id == thread_id, Email.id == thread_id))

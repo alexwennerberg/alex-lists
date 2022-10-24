@@ -13,6 +13,7 @@ length of time; applications should submit a new GraphQL query each time they
 wish to access the data at the provided URL.
 """
 scalar URL
+scalar Upload
 
 "Used to provide a human-friendly description of an access scope"
 directive @scopehelp(details: String!) on ENUM_VALUE
@@ -732,6 +733,9 @@ type Mutation {
 
   "Deletes a mailing list subscription"
   mailingListUnsubscribe(listID: Int!): MailingListSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
+
+  "Imports a mail spool (must be in the Mbox format)"
+  importMailingListSpool(listID: Int!, spool: Upload!): Boolean! @access(scope: LISTS, kind: RW)
 
   """
   Creates a new user webhook subscription. When an event from the

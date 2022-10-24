@@ -13,6 +13,7 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/core-go/webhooks"
+	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/emersion/go-mbox"
 	_ "github.com/emersion/go-message/charset"
@@ -22,6 +23,7 @@ import (
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/lists"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
 )
 
@@ -43,6 +45,7 @@ func main() {
 		scopes[i] = s.String()
 	}
 
+	listsQueue := work.NewQueue("lists")
 	webhookQueue := webhooks.NewQueue(schema)
 	legacyWebhooks := webhooks.NewLegacyQueue()
 
@@ -50,10 +53,11 @@ func main() {
 		WithDefaultMiddleware().
 		WithMiddleware(
 			loaders.Middleware,
+			lists.Middleware(listsQueue),
 			webhooks.Middleware(webhookQueue),
 			webhooks.LegacyMiddleware(legacyWebhooks),
 		).
-		WithQueues(webhookQueue.Queue, legacyWebhooks.Queue).
+		WithQueues(listsQueue, webhookQueue.Queue, legacyWebhooks.Queue).
 		WithSchema(schema, scopes)
 
 	// Bulk transfer endpoints

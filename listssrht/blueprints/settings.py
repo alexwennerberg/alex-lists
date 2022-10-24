@@ -3,12 +3,12 @@ from flask import current_app, session
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query
-from srht.graphql import exec_gql
+from srht.graphql import exec_gql, GraphQLOperation, GraphQLUpload
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from listssrht.blueprints.archives import get_list
 from listssrht.types import Access, Email, List, ListAccess, User
-from listssrht.process import import_mbox, delete_list
+from listssrht.process import delete_list
 from listssrht.webhooks import ListWebhook
 import base64
 import email
@@ -282,18 +282,24 @@ def import_POST(owner_name, list_name):
         return render_template("settings-import-export.html",
                 view="import/export", ml=ml, owner=owner, **valid.kwargs)
 
-    spool = spool.stream.read()
+    op = GraphQLOperation("""
+        mutation ImportMailingListSpool($listID: Int!, $spool: Upload!) {
+            importMailingListSpool(listID: $listID, spool: $spool)
+        }
+    """)
 
-    valid.expect(len(spool) > 0, "Mail spool is empty", field="spool")
+    spool = GraphQLUpload(
+        spool.filename,
+        spool.stream,
+        "application/octet-stream",
+    )
+    op.var("listID", ml.id)
+    op.var("spool", spool)
+    op.execute("lists.sr.ht", valid=valid)
+
     if not valid.ok:
         return render_template("settings-import-export.html",
                 view="import/export", ml=ml, owner=owner, **valid.kwargs)
-
-    spool = base64.b64encode(spool).decode()
-    ml.import_in_progress = True
-    db.session.commit()
-
-    import_mbox.delay(spool, ml.id)
 
     return redirect(url_for("archives.archive",
         owner_name=owner_name, list_name=list_name))

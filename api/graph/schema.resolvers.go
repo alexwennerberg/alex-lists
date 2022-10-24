@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"io"
 	"net/url"
 	"strings"
 	"time"
@@ -23,8 +24,10 @@ import (
 	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/lists"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/webhooks"
+	"github.com/99designs/gqlgen/graphql"
 	sq "github.com/Masterminds/squirrel"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
@@ -1032,6 +1035,31 @@ func (r *mutationResolver) MailingListUnsubscribe(ctx context.Context, listID in
 		return nil, err
 	}
 	return &sub, nil
+}
+
+// ImportMailingListSpool is the resolver for the importMailingListSpool field.
+func (r *mutationResolver) ImportMailingListSpool(ctx context.Context, listID int, spool graphql.Upload) (bool, error) {
+	const limit = 104857600 // 100 MiB
+	if spool.Size > limit {
+		return false, errors.New("Mailing list spool must not exceed 30 MiB in size")
+	}
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			UPDATE list
+			SET import_in_progress = true
+			WHERE id = $1 AND owner_id = $2
+		`, listID, auth.ForContext(ctx).UserID)
+		return err
+	}); err != nil {
+		return false, err
+	}
+
+	b, err := io.ReadAll(io.LimitReader(spool.File, limit))
+	if err != nil {
+		return false, err
+	}
+	lists.ImportMailingListSpool(ctx, listID, bytes.NewReader(b))
+	return true, nil
 }
 
 // CreateUserWebhook is the resolver for the createUserWebhook field.
