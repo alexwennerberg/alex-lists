@@ -27,7 +27,6 @@ type Loaders struct {
 	EmailsByIDUnsafe        EmailsByIDLoader
 	EmailsByMessageID       EmailsByMessageIDLoader
 	MailingListsByID        MailingListsByIDLoader
-	MailingListsByName      MailingListsByNameLoader
 	MailingListsByOwnerName MailingListsByOwnerNameLoader
 	PatchsetsByID           PatchsetsByIDLoader
 	PatchsetsByIDUnsafe     PatchsetsByIDLoader
@@ -228,59 +227,6 @@ func fetchMailingListsByID(ctx context.Context) func(ids []int) ([]*model.Mailin
 
 			for i, id := range ids {
 				lists[i] = listsByID[id]
-			}
-			return nil
-		}); err != nil {
-			panic(err)
-		}
-		return lists, nil
-	}
-}
-
-func fetchMailingListsByName(ctx context.Context) func(names []string) ([]*model.MailingList, []error) {
-	return func(names []string) ([]*model.MailingList, []error) {
-		lists := make([]*model.MailingList, len(names))
-		if err := database.WithTx(ctx, &sql.TxOptions{
-			Isolation: 0,
-			ReadOnly:  true,
-		}, func(tx *sql.Tx) error {
-			var (
-				err  error
-				rows *sql.Rows
-			)
-			user := auth.ForContext(ctx)
-			query := database.
-				Select(ctx, (&model.MailingList{}).As(`list`)).
-				From(`list`).
-				LeftJoin(`subscription sub ON
-					sub.list_id = list.id AND
-					sub.user_id = ?`, user.UserID).
-				Column(`sub.id`).
-				Where(sq.And{
-					sq.Expr(`list.name = ANY(?)`, pq.Array(names)),
-					sq.Expr(`list.owner_id = ?`, user.UserID),
-				})
-			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
-				panic(err)
-			}
-			defer rows.Close()
-
-			listsByName := map[string]*model.MailingList{}
-			for rows.Next() {
-				list := model.MailingList{}
-				if err := rows.Scan(append(
-					database.Scan(ctx, &list),
-					&list.SubscriptionID)...); err != nil {
-					panic(err)
-				}
-				listsByName[list.Name] = &list
-			}
-			if err = rows.Err(); err != nil {
-				panic(err)
-			}
-
-			for i, name := range names {
-				lists[i] = listsByName[name]
 			}
 			return nil
 		}); err != nil {
@@ -759,11 +705,6 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchMailingListsByID(r.Context()),
-			},
-			MailingListsByName: MailingListsByNameLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchMailingListsByName(r.Context()),
 			},
 			MailingListsByOwnerName: MailingListsByOwnerNameLoader{
 				maxBatch: 100,

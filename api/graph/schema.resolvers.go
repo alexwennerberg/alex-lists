@@ -1540,11 +1540,6 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
-// MailingListByName is the resolver for the mailingListByName field.
-func (r *queryResolver) MailingListByName(ctx context.Context, name string) (*model.MailingList, error) {
-	return loaders.ForContext(ctx).MailingListsByName.Load(name)
-}
-
 // Email is the resolver for the email field.
 func (r *queryResolver) Email(ctx context.Context, id int) (*model.Email, error) {
 	return loaders.ForContext(ctx).EmailsByID.Load(id)
@@ -1558,31 +1553,6 @@ func (r *queryResolver) Message(ctx context.Context, messageID string) (*model.E
 // Patchset is the resolver for the patchset field.
 func (r *queryResolver) Patchset(ctx context.Context, id int) (*model.Patchset, error) {
 	return loaders.ForContext(ctx).PatchsetsByID.Load(id)
-}
-
-// MailingLists is the resolver for the mailingLists field.
-func (r *queryResolver) MailingLists(ctx context.Context, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
-	if cursor == nil {
-		cursor = coremodel.NewCursor(nil)
-	}
-
-	var lists []*model.MailingList
-	if err := database.WithTx(ctx, &sql.TxOptions{
-		Isolation: 0,
-		ReadOnly:  true,
-	}, func(tx *sql.Tx) error {
-		list := (&model.MailingList{}).As(`mailing_list`)
-		query := database.
-			Select(ctx, list).
-			From(`list mailing_list`).
-			Where(`mailing_list.owner_id = ?`, auth.ForContext(ctx).UserID)
-		lists, cursor = list.QueryWithCursor(ctx, tx, query, cursor)
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-
-	return &model.MailingListCursor{lists, cursor}, nil
 }
 
 // Subscriptions is the resolver for the subscriptions field.

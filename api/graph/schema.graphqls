@@ -603,9 +603,6 @@ type Query {
   "Looks up a specific user"
   user(username: String!): User @access(scope: PROFILE, kind: RO)
 
-  "Looks up a specific mailing list"
-  mailingListByName(name: String!): MailingList @access(scope: LISTS, kind: RO)
-
   "Looks up a specific email by its ID"
   email(id: Int!): Email @access(scope: EMAILS, kind: RO)
   """
@@ -615,9 +612,6 @@ type Query {
   message(messageID: String!): Email @access(scope: EMAILS, kind: RO)
   "Looks up a patchset by ID"
   patchset(id: Int!): Patchset @access(scope: EMAILS, kind: RO)
-
-  "List of mailing lists that the authenticated user has ownership of"
-  mailingLists(cursor: Cursor): MailingListCursor! @access(scope: LISTS, kind: RO)
 
   "List of subscriptions of the authenticated user"
   subscriptions(cursor: Cursor): ActivitySubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
