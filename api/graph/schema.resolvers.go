@@ -1540,11 +1540,6 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
-// MailingList is the resolver for the mailingList field.
-func (r *queryResolver) MailingList(ctx context.Context, id int) (*model.MailingList, error) {
-	return loaders.ForContext(ctx).MailingListsByID.Load(id)
-}
-
 // MailingListByName is the resolver for the mailingListByName field.
 func (r *queryResolver) MailingListByName(ctx context.Context, name string) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByName.Load(name)
