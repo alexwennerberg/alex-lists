@@ -1908,6 +1908,11 @@ func (r *threadResolver) Blocks(ctx context.Context, obj *model.Thread) ([]*mode
 	return blocks, nil
 }
 
+// List is the resolver for the list field.
+func (r *userResolver) List(ctx context.Context, obj *model.User, name string) (*model.MailingList, error) {
+	return loaders.ForContext(ctx).MailingListsByOwnerName.Load([2]string{obj.Username, name})
+}
+
 // Lists is the resolver for the lists field.
 func (r *userResolver) Lists(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.MailingListCursor, error) {
 	if cursor == nil {
