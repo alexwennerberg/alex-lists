@@ -606,7 +606,6 @@ type Query {
   "Looks up a specific mailing list"
   mailingList(id: Int!): MailingList @access(scope: LISTS, kind: RO)
   mailingListByName(name: String!): MailingList @access(scope: LISTS, kind: RO)
-  mailingListByOwner(ownerName: String!, listName: String!): MailingList @access(scope: LISTS, kind: RO)
 
   "Looks up a specific email by its ID"
   email(id: Int!): Email @access(scope: EMAILS, kind: RO)

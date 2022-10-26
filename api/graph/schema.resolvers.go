@@ -1550,16 +1550,6 @@ func (r *queryResolver) MailingListByName(ctx context.Context, name string) (*mo
 	return loaders.ForContext(ctx).MailingListsByName.Load(name)
 }
 
-// MailingListByOwner is the resolver for the mailingListByOwner field.
-func (r *queryResolver) MailingListByOwner(ctx context.Context, ownerName string, listName string) (*model.MailingList, error) {
-	if strings.HasPrefix(ownerName, "~") {
-		ownerName = ownerName[1:]
-	} else {
-		return nil, fmt.Errorf("Expected owner to be a canonical name")
-	}
-	return loaders.ForContext(ctx).MailingListsByOwnerName.Load([2]string{ownerName, listName})
-}
-
 // Email is the resolver for the email field.
 func (r *queryResolver) Email(ctx context.Context, id int) (*model.Email, error) {
 	return loaders.ForContext(ctx).EmailsByID.Load(id)
