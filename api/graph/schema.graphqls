@@ -600,8 +600,7 @@ type Query {
   me: User! @access(scope: PROFILE, kind: RO)
 
   "Looks up a specific user"
-  user(id: Int!): User @access(scope: PROFILE, kind: RO)
-  userByName(username: String!): User @access(scope: PROFILE, kind: RO)
+  user(username: String!): User @access(scope: PROFILE, kind: RO)
 
   "Looks up a specific mailing list"
   mailingList(id: Int!): MailingList @access(scope: LISTS, kind: RO)

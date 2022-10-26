@@ -1536,12 +1536,7 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 }
 
 // User is the resolver for the user field.
-func (r *queryResolver) User(ctx context.Context, id int) (*model.User, error) {
-	return loaders.ForContext(ctx).UsersByID.Load(id)
-}
-
-// UserByName is the resolver for the userByName field.
-func (r *queryResolver) UserByName(ctx context.Context, username string) (*model.User, error) {
+func (r *queryResolver) User(ctx context.Context, username string) (*model.User, error) {
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
