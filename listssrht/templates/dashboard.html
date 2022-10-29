@@ -61,7 +61,7 @@
             {% if current_user %}
             <a href="mailto:{{
                 email.parsed().get('From')
-              }}&in-reply-to={{
+              }}?in-reply-to={{
                 quote(email.message_id)
               }}">{{ email.parsed().get('From') }}</a>
             {% else %}
