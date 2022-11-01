@@ -772,5 +772,5 @@ type Mutation {
   """
   Deletes the authenticated user's account. Internal use only.
   """
-  deleteUser: Int!
+  deleteUser: Int! @internal
 }
