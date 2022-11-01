@@ -20,6 +20,7 @@ import (
 	"github.com/emersion/go-message/mail"
 	"github.com/go-chi/chi"
 
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/account"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
@@ -46,6 +47,7 @@ func main() {
 	}
 
 	listsQueue := work.NewQueue("lists")
+	accountQueue := work.NewQueue("account")
 	webhookQueue := webhooks.NewQueue(schema)
 	legacyWebhooks := webhooks.NewLegacyQueue()
 
@@ -54,10 +56,16 @@ func main() {
 		WithMiddleware(
 			loaders.Middleware,
 			lists.Middleware(listsQueue),
+			account.Middleware(accountQueue),
 			webhooks.Middleware(webhookQueue),
 			webhooks.LegacyMiddleware(legacyWebhooks),
 		).
-		WithQueues(listsQueue, webhookQueue.Queue, legacyWebhooks.Queue).
+		WithQueues(
+			listsQueue,
+			accountQueue,
+			webhookQueue.Queue,
+			legacyWebhooks.Queue,
+		).
 		WithSchema(schema, scopes)
 
 	// Bulk transfer endpoints

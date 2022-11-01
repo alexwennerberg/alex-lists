@@ -53,9 +53,9 @@ CREATE TABLE list (
 	updated timestamp without time zone NOT NULL,
 	name character varying(128) NOT NULL,
 	description character varying(2048),
-	owner_id integer NOT NULL REFERENCES "user"(id),
+	owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	default_access integer DEFAULT 7 NOT NULL,
-	mirror_id integer REFERENCES list(id),
+	mirror_id integer REFERENCES list(id) ON DELETE SET NULL,
 	permit_mimetypes character varying DEFAULT 'text/*,application/pgp-signature,application/pgp-keys'::character varying NOT NULL,
 	reject_mimetypes character varying DEFAULT 'text/html'::character varying NOT NULL,
 	import_in_progress boolean DEFAULT false NOT NULL,
@@ -68,7 +68,7 @@ CREATE TABLE access (
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	email character varying,
-	user_id integer REFERENCES "user"(id),
+	user_id integer REFERENCES "user"(id) ON DELETE CASCADE,
 	list_id integer NOT NULL REFERENCES list(id) ON DELETE CASCADE,
 	permissions integer DEFAULT 7 NOT NULL,
 	CONSTRAINT uq_access_list_id_email UNIQUE (list_id, email),
@@ -88,9 +88,9 @@ CREATE TABLE email (
 	body character varying NOT NULL,
 
 	list_id integer NOT NULL REFERENCES list(id) ON DELETE CASCADE,
-	parent_id integer REFERENCES email(id),
-	thread_id integer REFERENCES email(id),
-	sender_id integer REFERENCES "user"(id),
+	parent_id integer REFERENCES email(id) ON DELETE SET NULL,
+	thread_id integer REFERENCES email(id) ON DELETE SET NULL,
+	sender_id integer REFERENCES "user"(id) ON DELETE SET NULL,
 
 	is_patch boolean NOT NULL,
 	is_request_pull boolean NOT NULL,
@@ -104,7 +104,7 @@ CREATE TABLE email (
 	patch_version integer,
 	patch_prefix character varying,
 	patch_subject character varying,
-	superseded_by_id integer REFERENCES email(id),
+	superseded_by_id integer REFERENCES email(id) ON DELETE SET NULL,
 
 	CONSTRAINT uq_email_list_message_id UNIQUE (list_id, message_id)
 );
@@ -131,8 +131,8 @@ CREATE TABLE patchset (
 	version integer NOT NULL,
 	status character varying DEFAULT 'proposed'::character varying NOT NULL,
 	list_id integer NOT NULL REFERENCES list(id) ON DELETE CASCADE,
-	cover_letter_id integer REFERENCES email(id),
-	superseded_by_id integer REFERENCES patchset(id),
+	cover_letter_id integer REFERENCES email(id) ON DELETE SET NULL,
+	superseded_by_id integer REFERENCES patchset(id) ON DELETE SET NULL,
 	submitter character varying,
 	message_id character varying,
 	reply_to character varying
@@ -161,7 +161,7 @@ CREATE TABLE subscription (
 	updated timestamp without time zone NOT NULL,
 	email character varying(512),
 	list_id integer NOT NULL REFERENCES list(id) ON DELETE CASCADE,
-	user_id integer REFERENCES "user"(id),
+	user_id integer REFERENCES "user"(id) ON DELETE CASCADE,
 	CONSTRAINT subscription_email_xor_user_id
 		CHECK ((((email IS NULL) OR (user_id IS NULL)) AND ((email IS NOT NULL) OR (user_id IS NOT NULL)))),
 	CONSTRAINT subscription_list_id_email_unique UNIQUE (list_id, email),
@@ -181,7 +181,7 @@ CREATE TABLE gql_user_wh_sub (
 	client_id uuid,
 	expires timestamp without time zone,
 	node_id character varying,
-	user_id integer NOT NULL REFERENCES "user"(id),
+	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	CONSTRAINT gql_user_wh_sub_auth_method_check CHECK ((auth_method = ANY (ARRAY['OAUTH2'::auth_method, 'INTERNAL'::auth_method]))),
 	CONSTRAINT gql_user_wh_sub_check CHECK (((auth_method = 'OAUTH2'::auth_method) = (token_hash IS NOT NULL))),
 	CONSTRAINT gql_user_wh_sub_check1 CHECK (((auth_method = 'OAUTH2'::auth_method) = (expires IS NOT NULL))),
@@ -215,7 +215,7 @@ CREATE TABLE gql_list_wh_sub (
 	client_id uuid,
 	expires timestamp without time zone,
 	node_id character varying,
-	user_id integer NOT NULL REFERENCES "user"(id),
+	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	list_id integer REFERENCES list(id) ON DELETE SET NULL,
 	CONSTRAINT gql_list_wh_sub_auth_method_check
 		CHECK ((auth_method = ANY (ARRAY['OAUTH2'::auth_method, 'INTERNAL'::auth_method]))),
@@ -252,7 +252,7 @@ CREATE TABLE oauthtoken (
 	token_hash character varying(128) NOT NULL,
 	token_partial character varying(8) NOT NULL,
 	scopes character varying(512) NOT NULL,
-	user_id integer REFERENCES "user"(id)
+	user_id integer REFERENCES "user"(id) ON DELETE CASCADE
 );
 
 -- Legacy webhooks
@@ -261,8 +261,8 @@ CREATE TABLE list_webhook_subscription (
 	created timestamp without time zone NOT NULL,
 	url character varying(2048) NOT NULL,
 	events character varying NOT NULL,
-	user_id integer REFERENCES "user"(id),
-	token_id integer REFERENCES oauthtoken(id),
+	user_id integer REFERENCES "user"(id), ON DELETE CASCADE
+	token_id integer REFERENCES oauthtoken(id), ON DELETE CASCADE
 	list_id integer REFERENCES list(id) ON DELETE CASCADE
 );
 
@@ -286,8 +286,8 @@ CREATE TABLE user_webhook_subscription (
 	created timestamp without time zone NOT NULL,
 	url character varying(2048) NOT NULL,
 	events character varying NOT NULL,
-	user_id integer REFERENCES "user"(id),
-	token_id integer REFERENCES oauthtoken(id)
+	user_id integer REFERENCES "user"(id) ON DELETE CASCADE,
+	token_id integer REFERENCES oauthtoken(id) ON DELETE CASCADE
 );
 
 CREATE TABLE user_webhook_delivery (
@@ -301,5 +301,5 @@ CREATE TABLE user_webhook_delivery (
 	response character varying(65536),
 	response_status integer NOT NULL,
 	response_headers character varying(16384),
-	subscription_id integer NOT NULL REFERENCES user_webhook_subscription(id)
+	subscription_id integer NOT NULL REFERENCES user_webhook_subscription(id) ON DELETE CASCADE
 );

@@ -768,4 +768,9 @@ type Mutation {
 
   triggerUserEmailWebhooks(emailId: Int!): Email! @internal
   triggerListEmailWebhooks(listId: Int!, emailId: Int!): Email! @internal
+
+  """
+  Deletes the authenticated user's account. Internal use only.
+  """
+  deleteUser: Int!
 }

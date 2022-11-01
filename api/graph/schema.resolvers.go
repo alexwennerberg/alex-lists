@@ -22,6 +22,7 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/core-go/valid"
 	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/account"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/lists"
@@ -1315,6 +1316,13 @@ func (r *mutationResolver) TriggerListEmailWebhooks(ctx context.Context, listID 
 		webhooks.DeliverListPatchsetEvent(ctx, listID, model.WebhookEventPatchsetReceived, patchset)
 	}
 	return email, nil
+}
+
+// DeleteUser is the resolver for the deleteUser field.
+func (r *mutationResolver) DeleteUser(ctx context.Context) (int, error) {
+	user := auth.ForContext(ctx)
+	account.Delete(ctx, user.UserID, user.Username)
+	return user.UserID, nil
 }
 
 // Submitter is the resolver for the submitter field.
