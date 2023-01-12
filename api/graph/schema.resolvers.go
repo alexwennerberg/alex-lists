@@ -869,19 +869,24 @@ func (r *mutationResolver) UpdatePatchset(ctx context.Context, id int, status mo
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			WITH lists AS (
-				SELECT id
+				SELECT list.id
 				FROM list
-				WHERE owner_id = $1
+				LEFT JOIN access
+					ON access.user_id = $1 AND
+					access.list_id = list.id
+				WHERE list.owner_id = $1 OR
+					(access.id IS NOT NULL AND access.permissions & $2 > 0)
 			)
 			UPDATE patchset
 			SET status = $3
 			WHERE
 				list_id in (SELECT id FROM lists) AND
-				id = $2
+				id = $4
 			RETURNING
 				id, created, updated, subject, prefix, version, status,
-				list_id, cover_letter_id, superseded_by_id;
-		`, auth.ForContext(ctx).UserID, id, strings.ToLower(status.String()))
+				list_id, cover_letter_id, superseded_by_id;`,
+			auth.ForContext(ctx).UserID, model.ACCESS_MODERATE,
+			strings.ToLower(status.String()), id)
 		if err := row.Scan(&patchset.ID, &patchset.Created, &patchset.Updated,
 			&patchset.Subject, &patchset.Prefix, &patchset.Version,
 			&patchset.RawStatus, &patchset.MailingListID,
