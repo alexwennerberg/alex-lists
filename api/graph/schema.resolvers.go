@@ -1408,7 +1408,7 @@ func (r *patchsetResolver) Thread(ctx context.Context, obj *model.Patchset) (*mo
 		// Note that no authentication is required here because anyone with
 		// access to the patchset also has access to the thread.
 		row := database.
-			Select(ctx, &thread).
+			Select(ctx, (&model.Thread{}).As(`thread`)).
 			From(`email thread`).
 			Where(`thread.patchset_id = ? AND thread.thread_id IS NULL`, obj.ID).
 			RunWith(tx).
