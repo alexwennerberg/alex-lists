@@ -33,7 +33,6 @@ setup(
   url = 'https://git.sr.ht/~sircmpwn/lists.sr.ht',
   install_requires = [
       'srht',
-      'emailthreads',
       'aiosmtpd',
       'asyncpg',
       'pygit2',

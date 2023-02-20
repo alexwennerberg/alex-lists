@@ -1,11 +1,11 @@
 import bleach
 import email
+from collections import namedtuple
 from email import policy
 from email.utils import parseaddr
-from emailthreads import parse as parse_thread
 from markupsafe import Markup
 from flask import Blueprint, render_template, abort, Response, request, redirect
-from flask import url_for, session
+from flask import current_app, url_for, session
 from listssrht.blueprints.archives import get_list, apply_search
 from listssrht.filters import post_address
 from listssrht.types import List, Email, Patchset, PatchsetStatus, ListAccess
@@ -13,6 +13,7 @@ from listssrht.types import Subscription, PatchsetTool, ToolIcon
 from sqlalchemy import or_
 from srht.database import db
 from srht.flask import paginate_query
+from srht.graphql import exec_gql
 from srht.markdown import markdown
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
@@ -44,6 +45,11 @@ tool_icon_to_icon = {
     ToolIcon.failed: "times",
     ToolIcon.cancelled: "times",
 }
+
+Feedback = namedtuple("Feedback", ["standalone_feedback", "feedback_by_line"])
+FeedbackBlock = namedtuple("FeedbackBlock", ["lines", "source_msg", "source_region"])
+class FeedbackSource:
+    pass
 
 @patches.route("/<owner_name>/<list_name>/patches")
 def patchlist(owner_name, list_name):
@@ -79,21 +85,13 @@ def patchlist(owner_name, list_name):
             status_to_color=status_to_color, parseaddr=parseaddr,
             PatchsetStatus=PatchsetStatus, **pagination)
 
-def _parse_thread(thread):
-    parsed = parse_thread(thread)
-    feedback_by_line = {}
-    standalone_feedback = []
-    for c in parsed.children:
-        if c.index is not None and c.index < len(parsed.lines):
-            if c.index not in feedback_by_line:
-                feedback_by_line[c.index] = [c]
-            else:
-                feedback_by_line[c.index].append(c)
-        else:
-            standalone_feedback.append(c)
-    parsed.standalone_feedback = standalone_feedback
-    parsed.feedback_by_line = feedback_by_line
-    return parsed
+def byte_to_line_index(msg, byte_index):
+    b = msg.body.replace("\r\n", "\n").encode()
+    return b[:byte_index].count("\n".encode())
+
+def get_byte_range(msg, start, end):
+    b = msg.body.replace("\r\n", "\n").encode()
+    return b[start:end].decode()
 
 def gen_cover_letter(patches):
     cover = ""
@@ -152,15 +150,69 @@ def patchset(owner_name, list_name, patchset_id):
     messages = (Email.query
             .filter(Email.thread_id == thread.id)
             .order_by(Email.created)).all()
+
+    messages_by_id = {}
+    messages_by_id[thread.id] = thread
+    for msg in messages:
+        messages_by_id[msg.id] = msg
+
     feedback = dict()
-    for msg in [thread] + thread.descendants:
-        try:
-            feedback[msg.id] = _parse_thread(
-                    [m.parsed() for m in [msg] + msg.replies])
-        except:
-            # This can fail when there are multiple head messages, which is a
-            # weird situation but apparently is possible ¯\_(ツ)_/¯
-            pass
+    resp = exec_gql(current_app.site, """
+        query GetPatchsetThreadBlocks($patchset: Int!) {
+            patchset(id: $patchset) {
+                thread {
+                    blocks {
+                        source {
+                            id
+                        }
+                        sourceRange {
+                            start
+                            end
+                        }
+                        parentRange {
+                            start
+                            end
+                        }
+                    }
+                }
+            }
+        }
+    """, patchset=patchset_id)
+    blocks = resp["patchset"]["thread"]["blocks"]
+    for block in blocks:
+        source_email = messages_by_id[block["source"]["id"]]
+
+        parent_id = source_email.parent_id
+        if parent_id is None:
+            continue
+        parent_email = messages_by_id[parent_id]
+
+        if parent_id in feedback:
+            fb = feedback[parent_id]
+        else:
+            fb = Feedback([], {})
+            feedback[parent_id] = fb
+
+        source_range = block["sourceRange"]
+        source_region = [
+            byte_to_line_index(source_email, source_range["start"]),
+            byte_to_line_index(source_email, source_range["end"]),
+        ]
+
+        body = get_byte_range(source_email, source_range["start"], source_range["end"])
+
+        fb_source = FeedbackSource()
+        fb_source._email = source_email
+        fb_block = FeedbackBlock([body.strip()], fb_source, source_region)
+
+        if block["parentRange"] is not None:
+            line = byte_to_line_index(parent_email, block["parentRange"]["end"])
+            if line not in fb.feedback_by_line:
+                fb.feedback_by_line[line] = [fb_block]
+            else:
+                fb.feedback_by_line[line].append(fb_block)
+        else:
+            fb.standalone_feedback.append(fb_block)
 
     def reply_to(msg):
         params = {
