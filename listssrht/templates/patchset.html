@@ -31,11 +31,7 @@
 {% macro display_msg(msg, body=None, index=0, standalone=True) %}
 {{ msg_header(msg) }}
 
-{% if msg.id in feedback %}
-{% set feedback = feedback[msg.id] %}
-{% else %}
-{% set feedback = None %}
-{% endif %}
+{% set feedback = feedback.get(msg.id) %}
 
 {% if feedback and feedback.feedback_by_line.keys() %}
 {% set last_line = max(feedback.feedback_by_line.keys()) %}
