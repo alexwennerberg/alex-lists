@@ -39,10 +39,6 @@
 
 {% set feedback = feedback.get(msg.id) %}
 
-{% if feedback and feedback.feedback_by_line.keys() %}
-{% set last_line = max(feedback.feedback_by_line.keys()) %}
-{% endif %}
-
 <pre class="message-body">
   {%- for line in (feedback_block.body if feedback_block else format_body(msg)).splitlines() -%}
   {{- line + "\n" -}}
