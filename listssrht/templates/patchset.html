@@ -50,18 +50,14 @@
   {% if feedback %}
   {% for sub in feedback.feedback_by_line[line] %}
   {% set child = sub.source_msg %}
-  <blockquote class="feedback" id="{{child.id}}+{{sub.source_region[0]}}">
+  <blockquote class="feedback" id="feedback-{{sub.key}}">
     {{ display_msg(child, sub.body,
       index=sub.source_region[0], standalone=False) }}
     {# Generate link to next message fragment #}
     {% set next = nextmsg(feedback, child, line) %}
     {% if next %}
     <div style="text-align: right; margin-top: -1rem; margin-bottom: 1rem">
-      {% if msg.is_patch %}
-      <a href="#{{msg.message_id}}-{{max(1, next[0] - 3)}}">
-      {% else %}
-      <a href="#{{next[1].source_msg.id}}+{{next[1].source_region[0]}}">
-      {% endif %}
+      <a href="#feedback-{{next[1].key}}">
         Next {{icon("caret-right")}}
       </a>
     </div>
@@ -148,11 +144,7 @@
           {% set next = nextmsg(fb, msg) %}
           {% if next %}
           <div style="text-align: right; margin-top: -1rem; margin-bottom: 1rem">
-            {% if m.is_patch %}
-            <a href="#{{m.message_id}}-{{max(1, next[0] - 3)}}">
-            {% else %}
-            <a href="#{{next[1].source_msg.id}}+{{next[1].source_region[0]}}">
-            {% endif %}
+            <a href="#feedback-{{next[1].key}}">
               Next {{icon("caret-right")}}
             </a>
           </div>
