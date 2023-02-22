@@ -45,7 +45,6 @@
   {%- set line_index = loop.index + index - 1 -%}
   {%- if feedback and line_index in feedback.feedback_by_line -%}
 </pre>
-  {% if feedback %}
   {% for sub in feedback.feedback_by_line[line_index] %}
   {% set child = sub.source_msg %}
   <blockquote class="feedback" id="feedback-{{sub.key}}">
@@ -62,7 +61,6 @@
     {% endif %}
   </blockquote>
   {% endfor %}
-  {% endif %}
 <pre class="message-body">
   {%- endif -%}
 {%- endfor -%}
