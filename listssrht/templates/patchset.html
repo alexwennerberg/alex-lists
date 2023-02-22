@@ -49,7 +49,7 @@
 </pre>
   {% if feedback %}
   {% for sub in feedback.feedback_by_line[line] %}
-  {% set child = sub.source_msg._email %}
+  {% set child = sub.source_msg %}
   <blockquote class="feedback" id="{{child.id}}+{{sub.source_region[0]}}">
     {{ display_msg(child, body="\n".join(sub.lines),
       index=sub.source_region[0], standalone=False) }}
@@ -60,7 +60,7 @@
       {% if msg.is_patch %}
       <a href="#{{msg.message_id}}-{{max(1, next[0] - 3)}}">
       {% else %}
-      <a href="#{{next[1].source_msg._email.id}}+{{next[1].source_region[0]}}">
+      <a href="#{{next[1].source_msg.id}}+{{next[1].source_region[0]}}">
       {% endif %}
         Next {{icon("caret-right")}}
       </a>
@@ -75,9 +75,9 @@
 </pre>
 {% if any(feedback.standalone_feedback) and standalone %}
 {% for feedback in feedback.standalone_feedback %}
-{% if feedback.source_msg._email not in patches %}
+{% if feedback.source_msg not in patches %}
 <blockquote>
-  {% set msg = feedback.source_msg._email %}
+  {% set msg = feedback.source_msg %}
   {{ msg_header(msg) }}
   <pre class="message-body">{{"\n".join(feedback.lines)}}</pre>
 </blockquote>
@@ -139,7 +139,7 @@
       {% set fb = feedback[m.id] %}
 
       {% for feedback in fb.standalone_feedback %}
-      {% set msg = feedback.source_msg._email %}
+      {% set msg = feedback.source_msg %}
         {% if not msg.is_patch %}
           {{ display_msg(msg,
             body="\n".join(feedback.lines),
@@ -151,7 +151,7 @@
             {% if m.is_patch %}
             <a href="#{{m.message_id}}-{{max(1, next[0] - 3)}}">
             {% else %}
-            <a href="#{{next[1].source_msg._email.id}}+{{next[1].source_region[0]}}">
+            <a href="#{{next[1].source_msg.id}}+{{next[1].source_region[0]}}">
             {% endif %}
               Next {{icon("caret-right")}}
             </a>

@@ -48,8 +48,6 @@ tool_icon_to_icon = {
 
 Feedback = namedtuple("Feedback", ["standalone_feedback", "feedback_by_line"])
 FeedbackBlock = namedtuple("FeedbackBlock", ["lines", "source_msg", "source_region"])
-class FeedbackSource:
-    pass
 
 @patches.route("/<owner_name>/<list_name>/patches")
 def patchlist(owner_name, list_name):
@@ -124,7 +122,7 @@ def nextmsg(feedback, msg, line=-1):
         if line != -1 and l <= line:
             continue
         for candidate in candidate:
-            if candidate.source_msg._email.id == msg.id:
+            if candidate.source_msg.id == msg.id:
                 return l, candidate
     return None
 
@@ -201,9 +199,7 @@ def patchset(owner_name, list_name, patchset_id):
 
         body = get_byte_range(source_email, source_range["start"], source_range["end"])
 
-        fb_source = FeedbackSource()
-        fb_source._email = source_email
-        fb_block = FeedbackBlock([body.strip()], fb_source, source_region)
+        fb_block = FeedbackBlock([body.strip()], source_email, source_region)
 
         if block["parentRange"] is not None:
             line = byte_to_line_index(parent_email, block["parentRange"]["end"])
