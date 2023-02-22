@@ -4,7 +4,7 @@
   {{ patchset.subject }} &mdash; {{ cfg("sr.ht", "site-name") }} lists
 </title>
 {% endblock %}
-{% macro msg_header(msg, showfrom=True) %}
+{% macro msg_header(msg, showfrom=True, feedback_block=None) %}
 <div class="message-header">
   {% if showfrom %}
   <div class="from">
@@ -19,17 +19,23 @@
   </div>
   {% endif %}
   <div class="date">
+    {% if feedback_block %}
+    <a href="#feedback-{{feedback_block.key}}" class="text-muted">
+    {% else %}
     <a
       id="{{ msg.message_id }}"
       href="#{{ msg.message_id }}"
       class="text-muted"
-    >{{ msg.created | date }}</a>
+    >
+    {% endif %}
+      {{ msg.created | date }}
+    </a>
   </div>
 </div>
 {% endmacro %}
 
-{% macro display_msg(msg, body=None, index=0, standalone=True) %}
-{{ msg_header(msg) }}
+{% macro display_msg(msg, index=0, standalone=True, feedback_block=None) %}
+{{ msg_header(msg, feedback_block=feedback_block) }}
 
 {% set feedback = feedback.get(msg.id) %}
 
@@ -38,7 +44,7 @@
 {% endif %}
 
 <pre class="message-body">
-  {%- for line in (body if body else format_body(msg)).splitlines() -%}
+  {%- for line in (feedback_block.body if feedback_block else format_body(msg)).splitlines() -%}
   {{- line + "\n" -}}
   {%- set line = loop.index + index - 1 -%}
   {%- if feedback and line in feedback.feedback_by_line -%}
@@ -47,8 +53,8 @@
   {% for sub in feedback.feedback_by_line[line] %}
   {% set child = sub.source_msg %}
   <blockquote class="feedback" id="feedback-{{sub.key}}">
-    {{ display_msg(child, sub.body,
-      index=sub.source_region[0], standalone=False) }}
+    {{ display_msg(child,
+      index=sub.source_region[0], standalone=False, feedback_block=sub) }}
     {# Generate link to next message fragment #}
     {% set next = nextmsg(feedback, child, line) %}
     {% if next %}
@@ -134,8 +140,8 @@
       {% set msg = feedback.source_msg %}
         {% if not msg.is_patch %}
           {{ display_msg(msg,
-            body=feedback.body,
-            standalone=False) }}
+            standalone=False,
+            feedback_block=feedback) }}
           {# Generate link to next message fragment #}
           {% set next = nextmsg(fb, msg) %}
           {% if next %}
