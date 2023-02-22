@@ -34,7 +34,7 @@
 </div>
 {% endmacro %}
 
-{% macro display_msg(msg, index=0, standalone=True, feedback_block=None) %}
+{% macro display_msg(msg, standalone=True, feedback_block=None) %}
 {{ msg_header(msg, feedback_block=feedback_block) }}
 
 {% set feedback = feedback.get(msg.id) %}
@@ -42,14 +42,14 @@
 <pre class="message-body">
   {%- for line in (feedback_block.body if feedback_block else format_body(msg)).splitlines() -%}
   {{- line + "\n" -}}
-  {%- set line_index = loop.index + index - 1 -%}
+  {%- set line_offset = feedback_block.source_region[0] if feedback_block else 0 -%}
+  {%- set line_index = loop.index + line_offset - 1 -%}
   {%- if feedback and line_index in feedback.feedback_by_line -%}
 </pre>
   {% for sub in feedback.feedback_by_line[line_index] %}
   {% set child = sub.source_msg %}
   <blockquote class="feedback" id="feedback-{{sub.key}}">
-    {{ display_msg(child,
-      index=sub.source_region[0], standalone=False, feedback_block=sub) }}
+    {{ display_msg(child, standalone=False, feedback_block=sub) }}
     {# Generate link to next message fragment #}
     {% set next = nextmsg(feedback, child, line_index) %}
     {% if next %}
@@ -133,9 +133,7 @@
       {% for feedback in fb.standalone_feedback %}
       {% set msg = feedback.source_msg %}
         {% if not msg.is_patch %}
-          {{ display_msg(msg,
-            standalone=False,
-            feedback_block=feedback) }}
+          {{ display_msg(msg, standalone=False, feedback_block=feedback) }}
           {# Generate link to next message fragment #}
           {% set next = nextmsg(fb, msg) %}
           {% if next %}
