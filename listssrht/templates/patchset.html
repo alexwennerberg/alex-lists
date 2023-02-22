@@ -51,7 +51,7 @@
   {% for sub in feedback.feedback_by_line[line] %}
   {% set child = sub.source_msg %}
   <blockquote class="feedback" id="{{child.id}}+{{sub.source_region[0]}}">
-    {{ display_msg(child, body="\n".join(sub.lines),
+    {{ display_msg(child, sub.body,
       index=sub.source_region[0], standalone=False) }}
     {# Generate link to next message fragment #}
     {% set next = nextmsg(feedback, child, line) %}
@@ -79,7 +79,7 @@
 <blockquote>
   {% set msg = feedback.source_msg %}
   {{ msg_header(msg) }}
-  <pre class="message-body">{{"\n".join(feedback.lines)}}</pre>
+  <pre class="message-body">{{feedback.body}}</pre>
 </blockquote>
 {% endif %}
 {% endfor %}
@@ -142,7 +142,7 @@
       {% set msg = feedback.source_msg %}
         {% if not msg.is_patch %}
           {{ display_msg(msg,
-            body="\n".join(feedback.lines),
+            body=feedback.body,
             standalone=False) }}
           {# Generate link to next message fragment #}
           {% set next = nextmsg(fb, msg) %}

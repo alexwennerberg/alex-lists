@@ -47,7 +47,7 @@ tool_icon_to_icon = {
 }
 
 Feedback = namedtuple("Feedback", ["standalone_feedback", "feedback_by_line"])
-FeedbackBlock = namedtuple("FeedbackBlock", ["lines", "source_msg", "source_region"])
+FeedbackBlock = namedtuple("FeedbackBlock", ["body", "source_msg", "source_region"])
 
 @patches.route("/<owner_name>/<list_name>/patches")
 def patchlist(owner_name, list_name):
@@ -199,7 +199,7 @@ def patchset(owner_name, list_name, patchset_id):
 
         body = get_byte_range(source_email, source_range["start"], source_range["end"])
 
-        fb_block = FeedbackBlock([body.strip()], source_email, source_region)
+        fb_block = FeedbackBlock(body.strip(), source_email, source_region)
 
         if block["parentRange"] is not None:
             line = byte_to_line_index(parent_email, block["parentRange"]["end"])
