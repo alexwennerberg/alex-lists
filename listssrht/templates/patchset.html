@@ -42,17 +42,17 @@
 <pre class="message-body">
   {%- for line in (feedback_block.body if feedback_block else format_body(msg)).splitlines() -%}
   {{- line + "\n" -}}
-  {%- set line = loop.index + index - 1 -%}
-  {%- if feedback and line in feedback.feedback_by_line -%}
+  {%- set line_index = loop.index + index - 1 -%}
+  {%- if feedback and line_index in feedback.feedback_by_line -%}
 </pre>
   {% if feedback %}
-  {% for sub in feedback.feedback_by_line[line] %}
+  {% for sub in feedback.feedback_by_line[line_index] %}
   {% set child = sub.source_msg %}
   <blockquote class="feedback" id="feedback-{{sub.key}}">
     {{ display_msg(child,
       index=sub.source_region[0], standalone=False, feedback_block=sub) }}
     {# Generate link to next message fragment #}
-    {% set next = nextmsg(feedback, child, line) %}
+    {% set next = nextmsg(feedback, child, line_index) %}
     {% if next %}
     <div style="text-align: right; margin-top: -1rem; margin-bottom: 1rem">
       <a href="#feedback-{{next[1].key}}">
