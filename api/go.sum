@@ -31,8 +31,8 @@ cloud.google.com/go/storage v1.6.0/go.mod h1:N7U0C8pVQ/+NIKOBQyamJIeKQKkZ+mxpohl
 cloud.google.com/go/storage v1.8.0/go.mod h1:Wv1Oy7z6Yz3DshWRJFhqM/UCfaWIRTdp0RXyy7KQOVs=
 cloud.google.com/go/storage v1.10.0/go.mod h1:FLPqc6j+Ki4BU591ie1oL6qBQGu2Bl/tZ9ullr3+Kg0=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
-git.sr.ht/~emersion/go-emailthreads v0.0.0-20220426123715-fd44f472f510 h1:eHpbVMHnFXmc46RrjkfNtplFpKTkeLR0cLiyl5ezeHE=
-git.sr.ht/~emersion/go-emailthreads v0.0.0-20220426123715-fd44f472f510/go.mod h1:CQUF7XpyupxjwxlNX3PHRCYL+N2COXTRRRS4MgM49R4=
+git.sr.ht/~emersion/go-emailthreads v0.0.0-20230220165133-75c43015b6c2 h1:5CkkRDW3WrCkoitA4euYbIOVyCAoCh2MnBtGt/neTQc=
+git.sr.ht/~emersion/go-emailthreads v0.0.0-20230220165133-75c43015b6c2/go.mod h1:CQUF7XpyupxjwxlNX3PHRCYL+N2COXTRRRS4MgM49R4=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20221025082458-3e69641ef307 h1:KYkDsSLoJZ+LshT7ab/8PMhWyq8X+43+FkT1hR3ee1c=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20221025082458-3e69641ef307/go.mod h1:uUqzeO5OLl/nRZfPk0igIAweRZiVwUmu/OGYfjS9fWc=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20210820133136-d3970e97def3 h1:9WCv5cK67s2SiY/R4DWT/OchEsFnfYDz3lbevKxZ4QI=
@@ -99,8 +99,9 @@ github.com/dgryski/trifles v0.0.0-20200323201526-dd97f9abfb48/go.mod h1:if7Fbed8
 github.com/emersion/go-mbox v1.0.2 h1:tE/rT+lEugK9y0myEymCCHnwlZN04hlXPrbKkxRBA5I=
 github.com/emersion/go-mbox v1.0.2/go.mod h1:Yp9IVuuOYLEuMv4yjgDHvhb5mHOcYH6x92Oas3QqEZI=
 github.com/emersion/go-message v0.14.1/go.mod h1:N1JWdZQ2WRUalmdHAX308CWBq747VJ8oUorFI3VCBwU=
-github.com/emersion/go-message v0.15.0 h1:urgKGqt2JAc9NFJcgncQcohHdiYb803YTH9OQwHBHIY=
 github.com/emersion/go-message v0.15.0/go.mod h1:wQUEfE+38+7EW8p8aZ96ptg6bAb1iwdgej19uXASlE4=
+github.com/emersion/go-message v0.16.0 h1:uZLz8ClLv3V5fSFF/fFdW9jXjrZkXIpE1Fn8fKx7pO4=
+github.com/emersion/go-message v0.16.0/go.mod h1:pDJDgf/xeUIF+eicT6B/hPX/ZbEorKkUMPOxrPVG2eQ=
 github.com/emersion/go-pgpmail v0.2.0 h1:BU9kEGQcDVXi6n0v3JBsWAikyo63xsUGZ1lnVaWa6ks=
 github.com/emersion/go-pgpmail v0.2.0/go.mod h1:8mQ8Rpn+w28DDaiP8HvJuZjSAymaWr87K3zA/bwwkU0=
 github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21/go.mod h1:iL2twTeMvZnrg54ZoPDNfJaJaqy0xIQFuBdrLsmspwQ=
