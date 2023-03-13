@@ -176,7 +176,7 @@ def patchset(owner_name, list_name, patchset_id):
                 }
             }
         }
-    """, patchset=patchset_id)
+    """, user=owner, patchset=patchset_id)
     blocks = resp["patchset"]["thread"]["blocks"]
     for block in blocks:
         source_email = messages_by_id[block["source"]["id"]]
