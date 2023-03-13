@@ -37,7 +37,7 @@ func importMailingListSpool(ctx context.Context, listID int, spool io.Reader) er
 
 			if err := archiveMessage(tx, listID, msg, true); err != nil {
 				// TODO: Collect errors and email them to the user
-				log.Println("Error importing message: %v", err)
+				log.Printf("Error importing message: %v", err)
 				continue
 			}
 		}
