@@ -29,7 +29,7 @@ CREATE TYPE webhook_event AS ENUM (
 
 CREATE TABLE "user" (
 	id serial PRIMARY KEY,
-	username character varying(256),
+	username character varying(256) UNIQUE,
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	session character varying(128),
@@ -42,11 +42,8 @@ CREATE TABLE "user" (
 	location character varying(256),
 	bio character varying(4096),
 	oauth_revocation_token character varying(256),
-	suspension_notice character varying(4096),
-	CONSTRAINT user_username_unique UNIQUE (username)
+	suspension_notice character varying(4096)
 );
-
-CREATE INDEX ix_user_username ON "user" USING btree (username);
 
 CREATE TABLE list (
 	id serial PRIMARY KEY,
@@ -61,7 +58,7 @@ CREATE TABLE list (
 	reject_mimetypes character varying DEFAULT 'text/html'::character varying NOT NULL,
 	import_in_progress boolean DEFAULT false NOT NULL,
 	visibility visibility NOT NULL,
-	CONSTRAINT uq_list_owner_id_name UNIQUE (owner_id, name)
+	UNIQUE (owner_id, name)
 );
 
 CREATE TABLE access (
@@ -72,8 +69,8 @@ CREATE TABLE access (
 	user_id integer REFERENCES "user"(id) ON DELETE CASCADE,
 	list_id integer NOT NULL REFERENCES list(id) ON DELETE CASCADE,
 	permissions integer DEFAULT 7 NOT NULL,
-	CONSTRAINT uq_access_list_id_email UNIQUE (list_id, email),
-	CONSTRAINT uq_access_list_id_user_id UNIQUE (list_id, user_id)
+	UNIQUE (list_id, email),
+	UNIQUE (list_id, user_id)
 );
 
 CREATE TABLE email (
@@ -107,7 +104,7 @@ CREATE TABLE email (
 	patch_subject character varying,
 	superseded_by_id integer REFERENCES email(id) ON DELETE SET NULL,
 
-	CONSTRAINT uq_email_list_message_id UNIQUE (list_id, message_id)
+	UNIQUE (list_id, message_id)
 );
 
 -- TODO: Remove me
@@ -154,7 +151,7 @@ CREATE TABLE patchset_tool (
 	key character varying(128) NOT NULL
 );
 
-CREATE INDEX ix_patchset_tool_key ON patchset_tool USING btree (key);
+CREATE INDEX patchset_tool_key_idx ON patchset_tool USING btree (key);
 
 CREATE TABLE subscription (
 	id serial PRIMARY KEY,
@@ -165,8 +162,8 @@ CREATE TABLE subscription (
 	user_id integer REFERENCES "user"(id) ON DELETE CASCADE,
 	CONSTRAINT subscription_email_xor_user_id
 		CHECK ((((email IS NULL) OR (user_id IS NULL)) AND ((email IS NOT NULL) OR (user_id IS NOT NULL)))),
-	CONSTRAINT subscription_list_id_email_unique UNIQUE (list_id, email),
-	CONSTRAINT subscription_list_id_user_id_unique UNIQUE (list_id, user_id)
+	UNIQUE (list_id, email),
+	UNIQUE (list_id, user_id)
 );
 
 -- GraphQL webhooks

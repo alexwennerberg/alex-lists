@@ -5,15 +5,6 @@ import os
 
 class Subscription(Base):
     __tablename__ = 'subscription'
-    __table_args__ = (
-        sa.UniqueConstraint("list_id", "email",
-            name="subscription_list_id_email_unique"),
-        sa.UniqueConstraint("list_id", "user_id",
-            name="subscription_list_id_user_id_unique"),
-        sa.CheckConstraint("(email IS NULL OR user_id IS NULL) " +
-                "AND (email IS NOT NULL OR user_id IS NOT NULL)",
-            name="subscription_email_xor_user_id"),
-    )
 
     id = sa.Column(sa.Integer, primary_key=True)
     created = sa.Column(sa.DateTime, nullable=False)

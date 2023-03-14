@@ -578,7 +578,7 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 			&list.DefaultAccess); err != nil {
 			if err, ok := err.(*pq.Error); ok &&
 				err.Code == "23505" && // unique_violation
-				err.Constraint == "uq_list_owner_id_name" {
+				err.Constraint == "list_owner_id_name_key" {
 				return fmt.Errorf("A mailing list with this name already exists.")
 			}
 			return err
@@ -713,7 +713,7 @@ func (r *mutationResolver) UpdateUserACL(ctx context.Context, listID int, userID
 				(SELECT id FROM list WHERE id = $1 AND owner_id = $4),
 				$2, $3
 			)
-			ON CONFLICT ON CONSTRAINT uq_access_list_id_user_id
+			ON CONFLICT ON CONSTRAINT access_list_id_user_id_key
 			DO UPDATE SET
 				updated = NOW() at time zone 'utc',
 				permissions = $3
@@ -758,7 +758,7 @@ func (r *mutationResolver) UpdateSenderACL(ctx context.Context, listID int, addr
 				(SELECT id FROM list WHERE id = $1 AND owner_id = $4),
 				$2, $3
 			)
-			ON CONFLICT ON CONSTRAINT uq_access_list_id_email
+			ON CONFLICT ON CONSTRAINT access_list_id_email_key
 			DO UPDATE SET
 				updated = NOW() at time zone 'utc',
 				permissions = $3
@@ -987,7 +987,7 @@ func (r *mutationResolver) MailingListSubscribe(ctx context.Context, listID int)
 				NOW() at time zone 'utc',
 				$1, (SELECT id FROM list)
 			)
-			ON CONFLICT ON CONSTRAINT subscription_list_id_user_id_unique
+			ON CONFLICT ON CONSTRAINT subscription_list_id_user_id_key
 			DO UPDATE SET updated = NOW() at time zone 'utc'
 			RETURNING id, created, user_id, list_id;`,
 			auth.ForContext(ctx).UserID, listID, model.ACCESS_BROWSE)
