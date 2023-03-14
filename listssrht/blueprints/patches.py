@@ -13,7 +13,7 @@ from listssrht.types import Subscription, PatchsetTool, ToolIcon
 from sqlalchemy import or_
 from srht.database import db
 from srht.flask import paginate_query
-from srht.graphql import exec_gql
+from srht.graphql import exec_gql, GraphQLError
 from srht.markdown import markdown
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
@@ -155,29 +155,36 @@ def patchset(owner_name, list_name, patchset_id):
         messages_by_id[msg.id] = msg
 
     feedback = dict()
-    resp = exec_gql(current_app.site, """
-        query GetPatchsetThreadBlocks($patchset: Int!) {
-            patchset(id: $patchset) {
-                thread {
-                    blocks {
-                        key
-                        source {
-                            id
-                        }
-                        sourceRange {
-                            start
-                            end
-                        }
-                        parentRange {
-                            start
-                            end
+    try:
+        resp = exec_gql(current_app.site, """
+            query GetPatchsetThreadBlocks($patchset: Int!) {
+                patchset(id: $patchset) {
+                    thread {
+                        blocks {
+                            key
+                            source {
+                                id
+                            }
+                            sourceRange {
+                                start
+                                end
+                            }
+                            parentRange {
+                                start
+                                end
+                            }
                         }
                     }
                 }
             }
-        }
-    """, user=owner, patchset=patchset_id)
-    blocks = resp["patchset"]["thread"]["blocks"]
+        """, user=owner, patchset=patchset_id)
+        blocks = resp["patchset"]["thread"]["blocks"]
+    except GraphQLError as err:
+        # Can happen when an email in the thread is a bad apple
+        # TODO: grab partial result from GraphQLError.data (gqlgen doesn't
+        # support this yet)
+        print(f"Warning: failed to parse blocks from thread {thread.id}: {err.errors}")
+        blocks = []
     for block in blocks:
         source_email = messages_by_id[block["source"]["id"]]
 
