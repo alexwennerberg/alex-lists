@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"net/url"
 	"strings"
 	"time"
@@ -1827,12 +1828,14 @@ func (r *threadResolver) Blocks(ctx context.Context, obj *model.Thread) ([]*mode
 
 			mr, err := mail.CreateReader(bytes.NewReader(email.RawEnvelope))
 			if err != nil {
-				return fmt.Errorf("failed to create mail reader: %v", err)
+				log.Printf("Failed to create reader for email %v: %v", email.ID, err)
+				continue
 			}
 			header := mr.Header
 			text, err := getMailText(mr)
 			if err != nil {
-				return fmt.Errorf("failed to get mail text: %v", err)
+				log.Printf("Failed to get mail text for email %v: %v", email.ID, err)
+				continue
 			}
 			mr.Close()
 
