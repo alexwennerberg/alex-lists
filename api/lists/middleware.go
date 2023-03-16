@@ -66,3 +66,28 @@ func ImportMailingListSpool(ctx context.Context, listID int, spool io.Reader) {
 	queue.Enqueue(task)
 	log.Printf("Enqueued mail spool import for mailing list %d", listID)
 }
+
+// Deletes a mailing list. Note that this function makes no attempt to verify
+// the authorization of the caller to do so.
+//
+// It can take a while for the cascades to propagate out, so this belongs in a
+// worker rather than blocking the request.
+func DeleteMailingList(ctx context.Context, listID int) {
+	queue, ok := ctx.Value(ctxKey).(*work.Queue)
+	if !ok {
+		panic("No lists worker for this context")
+	}
+	task := work.NewTask(func(ctx context.Context) error {
+		if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+			_, err := tx.ExecContext(
+				ctx, `DELETE FROM list WHERE id = $1;`, listID)
+			return err
+		}); err != nil {
+			return err
+		}
+		log.Printf("Deleted mailing list %d", listID)
+		return nil
+	})
+	queue.Enqueue(task)
+	log.Printf("Enqueued mailing list deletion for list %d", listID)
+}

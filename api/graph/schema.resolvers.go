@@ -678,39 +678,23 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 
 // DeleteMailingList is the resolver for the deleteMailingList field.
 func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*model.MailingList, error) {
-	var list model.MailingList
-	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		// XXX: It would be nice if we generalized database.Scan a little bit
-		// so it can work with queries other than Select. Might call for
-		// forking squirrel to add PostgreSQL-specific features.
-		row := tx.QueryRowContext(ctx, `
-			DELETE FROM list
-			WHERE id = $1 AND owner_id = $2
-			RETURNING
-				id, created, updated, name, description, visibility, owner_id,
-				permit_mimetypes, reject_mimetypes, default_access;`,
-			id, auth.ForContext(ctx).UserID)
-		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
-			&list.Description, &list.Visibility, &list.OwnerID,
-			&list.RawPermitMime, &list.RawRejectMime, &list.DefaultAccess); err != nil {
-			return err
-		}
-		list.Access = model.ACCESS_ALL
-
-		// We need to do this here so that it picks up the subscription list
-		// before the cascade sets their list_id columns to null.
-		webhooks.DeliverLegacyListEvent(ctx, &list, "list:delete")
-		webhooks.DeliverUserMailingListEvent(ctx, model.WebhookEventListDeleted, &list)
-		webhooks.DeliverMailingListEvent(ctx, model.WebhookEventListDeleted, &list)
-		return nil
-	}); err != nil {
-		if err == sql.ErrNoRows {
-			return nil, nil
-		}
+	list, err := loaders.ForContext(ctx).MailingListsByID.Load(id)
+	if err != nil {
 		return nil, err
 	}
 
-	return &list, nil
+	if list.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	// We need to do this here so that it picks up the subscription list
+	// before the cascade sets their list_id columns to null.
+	webhooks.DeliverLegacyListEvent(ctx, list, "list:delete")
+	webhooks.DeliverUserMailingListEvent(ctx, model.WebhookEventListDeleted, list)
+	webhooks.DeliverMailingListEvent(ctx, model.WebhookEventListDeleted, list)
+	lists.DeleteMailingList(ctx, list.ID)
+
+	return list, nil
 }
 
 // UpdateUserACL is the resolver for the updateUserACL field.

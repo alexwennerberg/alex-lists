@@ -8,7 +8,6 @@ from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from listssrht.blueprints.archives import get_list
 from listssrht.types import Access, Email, List, ListAccess, User
-from listssrht.process import delete_list
 from listssrht.webhooks import ListWebhook
 import base64
 import email
@@ -323,6 +322,10 @@ def delete_POST(owner_name, list_name):
         abort(404)
     if ml.owner_id != current_user.id:
         abort(403)
+    exec_gql("lists.sr.ht", """
+        mutation DeleteMailingList($id: Int!) {
+            deleteMailingList(id: $id) { id }
+        }
+    """, user=owner, id=ml.id)
     session["notice"] = f"{ml.name} is being deleted. This may take a few minutes."
-    delete_list.delay(ml.id)
     return redirect(url_for("user.index"))

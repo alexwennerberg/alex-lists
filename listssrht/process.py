@@ -654,12 +654,3 @@ def forward_thread(list_id, thread_id, recipient):
             continue
 
     smtp.quit()
-
-@task
-def delete_list(list_id):
-    ml = List.query.filter(List.id == list_id).one_or_none()
-    exec_gql("lists.sr.ht", """
-        mutation DeleteMailingList($id: Int!) {
-            deleteMailingList(id: $id) { id }
-        }
-    """, user=ml.owner, id=ml.id)
