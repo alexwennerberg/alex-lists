@@ -1288,6 +1288,13 @@ func (r *mutationResolver) TriggerUserEmailWebhooks(ctx context.Context, emailID
 		return nil, err
 	}
 	webhooks.DeliverUserEmailEvent(ctx, model.WebhookEventEmailReceived, email)
+	if email.PatchsetID != nil {
+		patchset, err := loaders.ForContext(ctx).PatchsetsByID.Load(*email.PatchsetID)
+		if err != nil {
+			return nil, err
+		}
+		webhooks.DeliverUserPatchsetEvent(ctx, model.WebhookEventPatchsetReceived, patchset)
+	}
 	return email, nil
 }
 

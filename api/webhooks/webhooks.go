@@ -73,6 +73,18 @@ func DeliverUserEmailEvent(ctx context.Context,
 	deliverUserWebhook(ctx, event, &payload, payloadUUID)
 }
 
+func DeliverUserPatchsetEvent(ctx context.Context,
+	event model.WebhookEvent, patchset *model.Patchset) {
+	payloadUUID := uuid.New()
+	payload := model.PatchsetEvent{
+		UUID:     payloadUUID.String(),
+		Event:    event,
+		Date:     time.Now().UTC(),
+		Patchset: patchset,
+	}
+	deliverUserWebhook(ctx, event, &payload, payloadUUID)
+}
+
 func DeliverMailingListEvent(ctx context.Context,
 	event model.WebhookEvent, list *model.MailingList) {
 	payloadUUID := uuid.New()
