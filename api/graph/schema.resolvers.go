@@ -1284,7 +1284,8 @@ func (r *mutationResolver) DeleteMailingListWebhook(ctx context.Context, id int)
 // TriggerUserEmailWebhooks is the resolver for the triggerUserEmailWebhooks field.
 func (r *mutationResolver) TriggerUserEmailWebhooks(ctx context.Context, emailID int) (*model.Email, error) {
 	email, err := loaders.ForContext(ctx).EmailsByID.Load(emailID)
-	if err != nil {
+	if err != nil || email == nil {
+		// might be nil, nil if e.g. user does not have browse access to archived mail
 		return nil, err
 	}
 	webhooks.DeliverUserEmailEvent(ctx, model.WebhookEventEmailReceived, email)

@@ -758,7 +758,13 @@ type Mutation {
   "Deletes a mailing list webhook."
   deleteMailingListWebhook(id: Int!): WebhookSubscription!
 
-  triggerUserEmailWebhooks(emailId: Int!): Email! @internal
+  """
+  Triggers user webhooks for an email.
+
+  The result can be null if the user does not have browse access to the
+  archived email. In this case, no webhook will be triggered.
+  """
+  triggerUserEmailWebhooks(emailId: Int!): Email @internal
   triggerListEmailWebhooks(listId: Int!, emailId: Int!): Email! @internal
 
   """
