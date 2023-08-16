@@ -102,7 +102,7 @@ func main() {
 				SELECT email.envelope, email.created
 				FROM email
 				JOIN list ON list.id = email.list_id
-				LEFT JOIN access ON access.list_id = list.id
+				LEFT JOIN access ON access.user_id = $2 AND access.list_id = list.id
 				LEFT JOIN subscription sub ON sub.list_id = list.id
 				WHERE email.id = $1 OR email.thread_id = $1 AND (
 					list.owner_id = $2 OR
@@ -135,7 +135,7 @@ func main() {
 				SELECT email.envelope, email.created
 				FROM email
 				JOIN list ON list.id = email.list_id
-				LEFT JOIN access ON access.list_id = list.id
+				LEFT JOIN access ON access.user_id = $2 AND access.list_id = list.id
 				LEFT JOIN subscription sub ON sub.list_id = list.id
 				WHERE email.patchset_id = $1 AND email.is_patch AND (
 					list.owner_id = $2 OR
@@ -179,7 +179,7 @@ func main() {
 				SELECT email.envelope, email.created
 				FROM email
 				JOIN list ON list.id = email.list_id
-				LEFT JOIN access ON access.list_id = list.id
+				LEFT JOIN access ON access.user_id = $3 AND access.list_id = list.id
 				LEFT JOIN subscription sub ON sub.list_id = list.id
 				WHERE email.list_id = $1 AND email.created >= $2 AND (
 					list.owner_id = $3 OR
