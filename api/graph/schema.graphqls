@@ -164,11 +164,11 @@ type OAuthClient {
 }
 
 enum WebhookEvent {
-  LIST_CREATED      @access(scope: LISTS, kind: RO)
-  LIST_UPDATED      @access(scope: LISTS, kind: RO)
-  LIST_DELETED      @access(scope: LISTS, kind: RO)
-  EMAIL_RECEIVED    @access(scope: EMAILS, kind: RO)
-  PATCHSET_RECEIVED @access(scope: PATCHES, kind: RO)
+  LIST_CREATED
+  LIST_UPDATED
+  LIST_DELETED
+  EMAIL_RECEIVED
+  PATCHSET_RECEIVED
 }
 
 interface WebhookSubscription {
