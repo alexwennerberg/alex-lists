@@ -308,6 +308,8 @@ def patchset_bulk_update(owner_name, list_name):
     }
     if request.form.get("search"):
         redirect_url_args["search"] = request.form.get("search")
+    if request.form.get("page"):
+        redirect_url_args["page"] = request.form.get("page")
     return redirect(url_for("patches.patchlist", **redirect_url_args))
 
 def format_mbox(msgs):

@@ -231,6 +231,7 @@
         {% if view == "patches" and ListAccess.moderate in access %}
         {{csrf_token()}}
         <input type="hidden" name="search" value="{{search if search else ""}}" />
+        <input type="hidden" name="page" value="{{page if page else ""}}" />
         <div class="event">
           <label for="select-all" class="checkbox">
             <input
