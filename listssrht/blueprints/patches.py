@@ -302,8 +302,13 @@ def patchset_bulk_update(owner_name, list_name):
     status = PatchsetStatus(request.form.get("status"))
     patchsets.update({ Patchset.status: status }, synchronize_session=False)
     db.session.commit()
-    return redirect(url_for("patches.patchlist",
-        owner_name=owner_name, list_name=list_name))
+    redirect_url_args = {
+        "owner_name": owner_name,
+        "list_name": list_name,
+    }
+    if request.form.get("search"):
+        redirect_url_args["search"] = request.form.get("search")
+    return redirect(url_for("patches.patchlist", **redirect_url_args))
 
 def format_mbox(msgs):
     b = bytes()
