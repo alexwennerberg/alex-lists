@@ -51,7 +51,9 @@ def user_profile(username):
 
     if not current_user or current_user.id != user.id:
         lists = lists.filter(List.visibility == Visibility.PUBLIC)
-        recent = recent.join(List).filter(List.visibility == Visibility.PUBLIC)
+        recent = (recent.join(List)
+                 .filter(List.visibility == Visibility.PUBLIC)
+                 .filter(List.default_access == ListAccess.normal.value))
 
     recent = recent.order_by(Email.created.desc()).limit(10).all()
     lists = lists.order_by(List.updated.desc()).limit(10).all()
