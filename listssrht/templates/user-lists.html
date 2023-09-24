@@ -54,9 +54,13 @@
       </div>
       {{pagination()}}
       {% else %}
+      {% if search %}
+      <p>Nothing found.</p>
+      {% else %}
       <p>
         This user has no mailing lists.
       </p>
+      {% endif %}
       {% endif %}
     </div>
   </div>
