@@ -21,7 +21,6 @@
       {% endif %}
     </div>
     <div class="col-md-8">
-      {% if any(lists) %}
       <form>
         <input
           name="search"
@@ -30,6 +29,7 @@
           class="form-control"
           value="{{ search if search else "" }}" />
       </form>
+      {% if any(lists) %}
       <div class="event-list">
         {% for list in lists %}
         <div class="event">
