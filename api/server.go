@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -99,11 +100,12 @@ func main() {
 			ReadOnly:  true,
 		}, func(tx *sql.Tx) error {
 			rows, err := tx.QueryContext(r.Context(), `
-				SELECT email.envelope, email.created
+				SELECT email.envelope, email.created, patchset.status
 				FROM email
 				JOIN list ON list.id = email.list_id
 				LEFT JOIN access ON access.user_id = $2 AND access.list_id = list.id
 				LEFT JOIN subscription sub ON sub.list_id = list.id
+				LEFT JOIN patchset ON email.patchset_id = patchset.id
 				WHERE email.id = $1 OR email.thread_id = $1 AND (
 					list.owner_id = $2 OR
 					access.permissions & $3 > 0 OR
@@ -132,11 +134,12 @@ func main() {
 			ReadOnly:  true,
 		}, func(tx *sql.Tx) error {
 			rows, err := tx.QueryContext(r.Context(), `
-				SELECT email.envelope, email.created
+				SELECT email.envelope, email.created, patchset.status
 				FROM email
 				JOIN list ON list.id = email.list_id
 				LEFT JOIN access ON access.user_id = $2 AND access.list_id = list.id
 				LEFT JOIN subscription sub ON sub.list_id = list.id
+				LEFT JOIN patchset ON email.patchset_id = patchset.id
 				WHERE email.patchset_id = $1 AND email.is_patch AND (
 					list.owner_id = $2 OR
 					access.permissions & $3 > 0 OR
@@ -176,11 +179,12 @@ func main() {
 			ReadOnly:  true,
 		}, func(tx *sql.Tx) error {
 			rows, err := tx.QueryContext(r.Context(), `
-				SELECT email.envelope, email.created
+				SELECT email.envelope, email.created, patchset.status
 				FROM email
 				JOIN list ON list.id = email.list_id
 				LEFT JOIN access ON access.user_id = $3 AND access.list_id = list.id
 				LEFT JOIN subscription sub ON sub.list_id = list.id
+				LEFT JOIN patchset ON email.patchset_id = patchset.id
 				WHERE email.list_id = $1 AND email.created >= $2 AND (
 					list.owner_id = $3 OR
 					access.permissions & $4 > 0 OR
@@ -211,8 +215,9 @@ func prepMbox(rows *sql.Rows, w http.ResponseWriter) error {
 		var (
 			envelope string
 			created  time.Time
+			status   sql.NullString
 		)
-		if err := rows.Scan(&envelope, &created); err != nil {
+		if err := rows.Scan(&envelope, &created, &status); err != nil {
 			return err
 		}
 
@@ -228,6 +233,11 @@ func prepMbox(rows *sql.Rows, w http.ResponseWriter) error {
 		sink, err := mbw.CreateMessage(from[0].Address, created)
 		if err != nil {
 			return err
+		}
+		if status.Valid {
+			if _, err := fmt.Fprintf(sink, "X-Sourcehut-Patchset-Final: %s\r\n", status.String); err != nil {
+				return err
+			}
 		}
 		if _, err = sink.Write([]byte(envelope)); err != nil {
 			return err

@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 )
 
@@ -85,7 +84,7 @@ func parsePatchSubject(subject string) (*PatchDetails, error) {
 	return &patch, nil
 }
 
-func importPatch(tx *sql.Tx, listID int, emailID int32, threadID int32, subject string, isPatch bool) error {
+func importPatch(tx *sql.Tx, listID int, emailID int32, threadID int32, subject string, status string, isPatch bool) error {
 	patch, err := parsePatchSubject(subject)
 	if err != nil {
 		return fmt.Errorf("Error parsing patch subject: %v", err)
@@ -202,14 +201,14 @@ func importPatch(tx *sql.Tx, listID int, emailID int32, threadID int32, subject 
 		INSERT INTO patchset (
 			created, updated,
 			subject, prefix, version, list_id, cover_letter_id,
-			message_id, submitter, reply_to
+			message_id, submitter, reply_to, status
 		) VALUES (
 			NOW() at time zone 'utc',
 			NOW() at time zone 'utc',
-			$1, $2, $3, $4, $5, $6, $7, $8
+			$1, $2, $3, $4, $5, $6, $7, $8, $9
 		) RETURNING id`,
 		patchsetSubject, patchsetPrefix, patchsetVersion, listID, coverLetterID,
-		messageID, submitter, replyTo,
+		messageID, submitter, replyTo, status,
 	)
 	if err := row.Scan(&patchsetID); err != nil {
 		return err
@@ -226,43 +225,5 @@ func importPatch(tx *sql.Tx, listID int, emailID int32, threadID int32, subject 
 
 	// TODO: identify patchset that this supersedes, if appropriate
 
-	return nil
-}
-
-// Update the status of a patchset
-func updatePatchsetStatus(tx *sql.Tx, threadID int32, senderID int, senderEmail string, status string) error {
-	// TODO: use a postgresql enum
-	if !model.PatchsetStatus(strings.ToUpper(status)).IsValid() {
-		return nil
-	}
-
-	row := tx.QueryRow(`
-		SELECT COALESCE(
-			access.permissions,
-			CASE WHEN list.owner_id = $2
-				THEN $4
-				ELSE list.default_access
-			END)
-		FROM email
-		JOIN list ON list.id = email.list_id
-		LEFT JOIN access ON access.list_id = list.id
-			AND (access.user_id = $2 OR access.email = $3)
-		WHERE email.id = $1`,
-		threadID, senderID, senderEmail, model.ACCESS_ALL,
-	)
-
-	var access sql.NullInt32
-	if err := row.Scan(&access); err != nil {
-		return err
-	}
-	if access.Valid && access.Int32&model.ACCESS_MODERATE != 0 {
-		if _, err := tx.Exec(`
-			UPDATE patchset SET status = $2
-			WHERE id = (SELECT patchset_id FROM email WHERE id = $1)`,
-			threadID, status,
-		); err != nil {
-			return err
-		}
-	}
 	return nil
 }

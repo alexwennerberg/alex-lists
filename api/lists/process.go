@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"git.sr.ht/~sircmpwn/core-go/database"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"github.com/emersion/go-mbox"
 	"github.com/emersion/go-message/mail"
 	"github.com/lib/pq"
@@ -201,7 +202,7 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 
 	// TODO: Enumerate CC's and create SQL relationships for them
 	// TODO: Some users will have many email addresses
-	// TODO: Mutliple From addresses?
+	// TODO: Multiple From addresses?
 	senders, err := mr.Header.AddressList("From")
 	if err != nil {
 		return fmt.Errorf("Error reading From: %q %w", mr.Header.Get("From"), err)
@@ -228,17 +229,18 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 		}
 	}
 
-	if err := importPatch(tx, listID, emailID, threadID, subject, isPatch); err != nil {
-		return err
-	}
-
-	// Update patchset status
-	const updateHeader = "X-Sourcehut-Patchset-Update"
-	if !isPatch && mr.Header.Has(updateHeader) {
-		status := strings.ToLower(mr.Header.Get(updateHeader))
-		if err := updatePatchsetStatus(tx, threadID, senderID, senders[0].Address, status); err != nil {
-			return err
+	status := string(model.PatchsetStatusProposed)
+	const statusHeader = "X-Sourcehut-Patchset-Final"
+	if mr.Header.Has(statusHeader) {
+		s := mr.Header.Get(statusHeader)
+		if model.PatchsetStatus(strings.ToUpper(s)).IsValid() {
+			status = s
 		}
+	}
+	status = strings.ToLower(status)
+
+	if err := importPatch(tx, listID, emailID, threadID, subject, status, isPatch); err != nil {
+		return err
 	}
 
 	log.Printf("Archived message %q", messageID)
