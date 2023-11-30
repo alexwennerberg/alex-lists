@@ -39,8 +39,6 @@ func ImportMailingListSpool(ctx context.Context, listID int, spool io.Reader) {
 		defer cancel()
 
 		defer func() {
-			r := recover()
-
 			if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 				_, err := tx.ExecContext(ctx, `
 				UPDATE list
@@ -50,10 +48,6 @@ func ImportMailingListSpool(ctx context.Context, listID int, spool io.Reader) {
 				return err
 			}); err != nil {
 				panic(err)
-			}
-
-			if r != nil {
-				panic(r)
 			}
 		}()
 
