@@ -11,7 +11,7 @@ require (
 	github.com/bluekeyes/go-gitdiff v0.6.1
 	github.com/emersion/go-mbox v1.0.2
 	github.com/emersion/go-message v0.16.0
-	github.com/go-chi/chi v4.1.2+incompatible
+	github.com/go-chi/chi/v5 v5.0.10
 	github.com/google/uuid v1.3.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/lib/pq v1.10.9

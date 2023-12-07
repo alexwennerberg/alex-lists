@@ -19,7 +19,7 @@ import (
 	"github.com/emersion/go-mbox"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/account"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph"
