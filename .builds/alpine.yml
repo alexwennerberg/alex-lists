@@ -14,8 +14,6 @@ environment:
   remote: deploy@mirror.sr.ht
   remote_path: /var/www/mirror.sr.ht/alpine
   master: deploy@lists.sr.ht
-  mail_servers:
-    - deploy@mail-b.sr.ht
 secrets:
   - fa00a8d3-7b63-42d5-8060-3bb31c3e3018 # ssh deploy key
   - d0adc1d4-af78-4852-920f-1134392f5d10 # package signing key
@@ -46,8 +44,4 @@ tasks:
       ssh $master doas service lists.sr.ht restart
       ssh $master doas service lists.sr.ht-process restart
       ssh $master doas service lists.sr.ht-api restart
-      for server in $mail_servers
-      do
-          ssh $server doas apk upgrade -U
-          ssh $server doas service lists.sr.ht-lmtp restart
-      done
+      ssh $master doas service lists.sr.ht-lmtp restart
