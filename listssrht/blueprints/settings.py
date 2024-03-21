@@ -63,7 +63,7 @@ def info_POST(owner_name, list_name):
     """, valid=valid, id=ml.id, input=input)
 
     if not valid.ok:
-        return render_template("settings-info.html", list=ml, owner=owner,
+        return render_template("settings-info.html", ml=ml, owner=owner,
                 access_type_list=ListAccess, access_help_map=access_help_map,
                 view="info", **valid.kwargs)
 

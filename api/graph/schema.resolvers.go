@@ -617,8 +617,12 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 			WithField("description")
 		query = query.Set("description", desc)
 	})
-	valid.OptionalString("visibility", func(visibility string) {
-		query = query.Set("visibility", visibility)
+	valid.Optional("visibility", func(visibility interface{}) {
+		vis := visibility.(*model.Visibility)
+		if vis == nil {
+			return
+		}
+		query = query.Set("visibility", *vis)
 	})
 	mime := func(name string) {
 		valid.Optional(name+"Mime", func(object interface{}) {
