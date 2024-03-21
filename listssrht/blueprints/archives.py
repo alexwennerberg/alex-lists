@@ -108,7 +108,7 @@ def apply_search(query, search):
                 username = username[1:]
 
             header = cast(Email.headers[header], String)
-            return header.ilike(coalesce(select(['%' + User.email + '%'])
+            return header.ilike(coalesce(select('%' + User.email + '%')
                     .where(User.username == username).as_scalar(),
                     f"%{username}%"))
 
