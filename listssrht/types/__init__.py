@@ -5,6 +5,7 @@ from listssrht.types.list import List, Visibility
 from listssrht.types.patchset import Patchset, PatchsetStatus
 from listssrht.types.patchset import PatchsetTool, ToolIcon
 from listssrht.types.subscription import Subscription
+from listssrht.types.subscription_request import SubscriptionRequest
 from listssrht.types.mirror import Mirror
 from listssrht.types.user import User
 
