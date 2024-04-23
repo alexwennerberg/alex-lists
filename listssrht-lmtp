@@ -146,7 +146,7 @@ class MailHandler:
         if "+" in address:
             command = address[address.rfind("+") + 1:]
             address = address[:address.rfind("+")]
-        if not command in ["subscribe", "unsubscribe", "post"]:
+        if not command in ["subscribe", "unsubscribe", "confirm", "post"]:
             return None, None
         # Get redirect if present
         address = cfg("lists.sr.ht::redirects", address, default=address)
