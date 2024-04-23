@@ -7,7 +7,7 @@ if not hasattr(db, "session"):
     db.init()
 from srht.email import start_smtp
 from listssrht.types import Email, List, User, Subscription, ListAccess, Access
-from listssrht.types import Patchset, PatchsetStatus
+from listssrht.types import Patchset, PatchsetStatus, SubscriptionRequest
 
 import base64
 import email
@@ -341,6 +341,47 @@ def _webhooks(dest, mail):
             }
         """, user=mail.sender, emailId=mail.id)
 
+def _send_confirmation(to, list_addr, confirm_req, orig_mail):
+    reply = MIMEText("""Hi {}!
+
+We have received a request for subscription of your email address,
+{}, to the following mailing list:
+
+{}@{}
+
+To confirm that you want to be added to this mailing list, simply reply to this
+message, keeping the Subject: header intact.
+
+Note that simply sending a `reply' to this message should work from
+most mail readers, since that usually leaves the Subject: line in the
+right form (additional "Re:" text in the Subject: is okay).
+
+If you do not wish to be subscribed to this list, please simply
+disregard this message. If you think you are being maliciously
+subscribed to the list, or have any other questions, please reach out to
+{}.""".format(
+            to[0] or to[1], to[1], list_addr,
+            cfg("lists.sr.ht", "posting-domain"),
+            cfg("sr.ht", "owner-email")))
+    reply_to = "{}+confirm@{}".format(
+            list_addr, cfg("lists.sr.ht", "posting-domain"))
+    reply["To"] = orig_mail["From"]
+    reply["From"] = reply_to
+    reply["In-Reply-To"] = orig_mail["Message-ID"]
+    reply["Auto-Submitted"] = "auto-replied"
+    reply["Subject"] = "confirm {}".format(confirm_req.confirmation_hash)
+    reply["Reply-To"] = reply_to
+    reply["Date"] = formatdate()
+    reply["Message-ID"] = make_msgid()
+    print(reply.as_string())
+    smtp = start_smtp()
+    try:
+        smtp.send_message(reply, smtp_user, [to[1]])
+    except Exception as ex:
+        print(ex)
+        print("(continuing)")
+    smtp.quit()
+
 def _subscribe(dest, mail):
     sender = parseaddr(mail["From"])
     user = User.query.filter(User.email == sender[1]).one_or_none()
@@ -381,21 +422,18 @@ However, you are permitted to post mail to this list at this address:
 {}@{}""".format(list_addr, cfg("lists.sr.ht", "posting-domain"))
         if ListAccess.post in perms else "")))
     elif sub is None:
-        reply = MIMEText("""Hi {}!
-
-Your subscription to {} is confirmed! To unsubscribe in the future, send an
-email to this address:
-
-{}+unsubscribe@{}
-
-Feel free to reply to this email if you have any questions.""".format(
-                sender[0] or sender[1], list_addr, list_addr,
-                cfg("lists.sr.ht", "posting-domain")))
-        sub = Subscription()
-        sub.user_id = user.id if user else None
-        sub.list_id = dest.id
-        sub.email = sender[1] if not user else None
-        db.session.add(sub)
+        # Send a new confirmation email, regardless of whether there has been
+        # a request before. If the user sends another request, they likely
+        # didn't get the previous mail.
+        confirm = SubscriptionRequest.query.filter(
+            SubscriptionRequest.list_id == dest.id,
+            SubscriptionRequest.email == sender[1]).one_or_none()
+        if confirm is None:
+            confirm = SubscriptionRequest(sender[1], dest.id)
+            db.session.add(confirm)
+        _send_confirmation(sender, list_addr, confirm, mail)
+        db.session.commit()
+        return
     else:
         reply = MIMEText("""Hi {}!
 
@@ -469,6 +507,60 @@ Feel free to reply to this email if you have any questions.""".format(
             cfg("sr.ht", "owner-name"), cfg("sr.ht", "owner-email"))
     reply["Date"] = formatdate()
     reply["Message-ID"] = make_msgid()
+    print(reply.as_string())
+    smtp = start_smtp()
+    try:
+        smtp.send_message(reply, smtp_user, [sender[1]])
+    except Exception as ex:
+        print(ex)
+        print("(continuing)")
+    smtp.quit()
+    db.session.commit()
+
+def _confirm(dest, mail):
+    sender = parseaddr(mail["From"])
+    confirm = SubscriptionRequest.query.filter(
+        SubscriptionRequest.list_id == dest.id,
+        SubscriptionRequest.email == sender[1]).one_or_none()
+
+    if confirm is None:
+        return
+
+    if confirm.confirmation_hash != mail.get("Subject").split()[-1]:
+        return
+
+    list_addr = dest.owner.canonical_name + "/" + dest.name
+    user = User.query.filter(User.email == sender[1]).one_or_none()
+
+    sub = Subscription()
+    sub.user_id = user.id if user else None
+    sub.list_id = dest.id
+    sub.email = sender[1] if not user else None
+
+    reply = MIMEText("""Hi {}!
+
+Your subscription to {} is confirmed! To unsubscribe in the future, send an
+email to this address:
+
+{}+unsubscribe@{}
+
+Feel free to reply to this email if you have any questions.""".format(
+            sender[0] or sender[1], list_addr, list_addr,
+            cfg("lists.sr.ht", "posting-domain")))
+    reply["To"] = mail["From"]
+    reply["From"] = "mailer@" + cfg("lists.sr.ht", "posting-domain")
+    reply["In-Reply-To"] = mail["Message-ID"]
+    reply["Auto-Submitted"] = "auto-replied"
+    reply["Subject"] = "Re: " + (
+            mail.get("Subject") or "Your subscription request")
+    reply["Reply-To"] = "{} <{}>".format(
+            cfg("sr.ht", "owner-name"), cfg("sr.ht", "owner-email"))
+    reply["Date"] = formatdate()
+    reply["Message-ID"] = make_msgid()
+
+    db.session.add(sub)
+    db.session.delete(confirm)
+
     print(reply.as_string())
     smtp = start_smtp()
     try:
@@ -594,6 +686,8 @@ def dispatch_message(address, list_id, mail_b64):
             _subscribe(dest, mail)
         elif command == "unsubscribe":
             _unsubscribe(dest, mail)
+        elif command == "confirm":
+            _confirm(dest, mail)
     except:
         db.session.rollback()
         raise
