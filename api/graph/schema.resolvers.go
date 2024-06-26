@@ -611,10 +611,12 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 	valid := valid.New(ctx).WithInput(input)
 	query := sq.Update(`list`).PlaceholderFormat(sq.Dollar)
 
-	valid.OptionalString("description", func(desc string) {
-		valid.Expect(len(desc) < 2048,
-			"Description must be fewer than 2048 characters").
-			WithField("description")
+	valid.NullableString("description", func(desc *string) {
+		if desc != nil {
+			valid.Expect(len(*desc) < 2048,
+				"Description must be fewer than 2048 characters").
+				WithField("description")
+		}
 		query = query.Set("description", desc)
 	})
 	valid.Optional("visibility", func(visibility interface{}) {
