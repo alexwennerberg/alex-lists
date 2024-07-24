@@ -721,6 +721,7 @@ def send_error_for(mail_b64, error):
     reply["Date"] = formatdate()
     reply["Message-ID"] = make_msgid()
     reply["Auto-Submitted"] = "auto-replied"
+    reply["Content-Type"] = 'text/plain; charset="us-ascii"; format=flowed'
     print(reply.as_string())
     smtp = start_smtp()
     sender = parseaddr(mail["From"])

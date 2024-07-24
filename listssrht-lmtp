@@ -33,62 +33,62 @@ posting_domain = cfg("lists.sr.ht", "posting-domain")
 
 html_error = """Hi {}!
 
-We received your email, but were unable to deliver it because it
-contains HTML. HTML emails are not permitted. The following guide can
+We received your email, but were unable to deliver it because it 
+contains HTML. HTML emails are not permitted. The following guide can 
 help you configure your client to send in plain text instead:
 
 https://useplaintext.email
 
-If you have any questions, please reply to this email to reach the mail
+If you have any questions, please reply to this email to reach the mail 
 admin. We apologise for the inconvenience.
 """
 
 forbidden_mimetype_error = """Hi {}!
 
-We received your email, but were unable to deliver it because it
-contains content which has been blacklisted by the list admin. Please
+We received your email, but were unable to deliver it because it 
+contains content which has been blacklisted by the list admin. Please 
 remove your {} attachments and send again.
 
-You are also advised to configure your email client to send emails in
+You are also advised to configure your email client to send emails in 
 plain text to avoid additional errors in the future:
 
 https://useplaintext.email
 
-If you have any questions, please reply to this email to reach the mail
+If you have any questions, please reply to this email to reach the mail 
 admin. We apologise for the inconvenience.
 """
 
 text_plain_required_error = """Hi {}!
 
-We received your email, but were unable to deliver it because there were
-no text/plain parts. Our mail system requires all emails to have at
-least one plain text part. The following guide can help you configure
+We received your email, but were unable to deliver it because there were 
+no text/plain parts. Our mail system requires all emails to have at 
+least one plain text part. The following guide can help you configure 
 your client to send in plain text:
 
 https://useplaintext.email
 
-If you have any questions, please reply to this email to reach the mail
+If you have any questions, please reply to this email to reach the mail 
 admin. We apologise for the inconvenience.
 """
 
 unknown_mailing_list_error = """Hi {}!
 
-We received your email, but were unable to deliver it because the
-mailing list you wrote to was not found. The correct posting addresses
+We received your email, but were unable to deliver it because the 
+mailing list you wrote to was not found. The correct posting addresses 
 are:
 
 ~username/list-name@{}
 
-Or if your mail system has trouble sending to addresses with ~ or / in
+Or if your mail system has trouble sending to addresses with ~ or / in 
 them, you can use:
 
 u.username.list-name@{}
 
-If your mail system does not support our normal posting addresses, we
-would appreciate it if you wrote to your mail admin to ask them to fix
+If your mail system does not support our normal posting addresses, we 
+would appreciate it if you wrote to your mail admin to ask them to fix 
 their system. Our posting addresses are valid per RFC-5322.
 
-If you have any questions, please reply to this email to reach the mail
+If you have any questions, please reply to this email to reach the mail 
 admin. We apologise for the inconvenience.
 """
 
