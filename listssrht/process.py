@@ -472,6 +472,10 @@ def _unsubscribe(dest, mail):
         sub = Subscription.query.filter(
             Subscription.list_id == dest.id,
             Subscription.user_id == user.id).one_or_none()
+        if sub is None:
+            sub = Subscription.query.filter(
+                Subscription.list_id == dest.id,
+                Subscription.email == user.email).one_or_none()
     else:
         sub = Subscription.query.filter(
             Subscription.list_id == dest.id,
