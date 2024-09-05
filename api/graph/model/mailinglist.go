@@ -117,7 +117,7 @@ func (list *MailingList) QueryWithCursor(ctx context.Context,
 
 	if cur.Next != "" {
 		ts, _ := strconv.ParseInt(cur.Next, 10, 64)
-		updated := time.Unix(ts, 0)
+		updated := time.UnixMicro(ts).UTC()
 		q = q.Where(database.WithAlias(list.alias, "updated")+"<= ?", updated)
 	}
 	user := auth.ForContext(ctx)
