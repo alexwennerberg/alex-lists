@@ -205,7 +205,10 @@ def patchset(owner_name, list_name, patchset_id):
             byte_to_line_index(source_email, source_range["end"]),
         ]
 
-        body = get_byte_range(source_email, source_range["start"], source_range["end"])
+        try:
+            body = get_byte_range(source_email, source_range["start"], source_range["end"])
+        except UnicodeDecodeError:
+            continue
 
         fb_block = FeedbackBlock(block["key"], body.strip(), source_email, source_region)
 
