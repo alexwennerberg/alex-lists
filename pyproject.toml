@@ -1,0 +1,48 @@
+[build-system]
+requires = ["setuptools", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "listssrht"
+dynamic = ["version"]
+description = "lists.sr.ht website"
+readme = "README.md"
+authors = [{name = "Drew DeVault", email = "sir@cmpwn.com"}]
+dependencies = [
+    "aiosmtpd",
+    "asyncpg",
+    "pygit2",
+    "srht",
+]
+license.text = "AGPL-3.0-only"
+
+[project.urls]
+repository = "https://git.sr.ht/~sircmpwn/lists.sr.ht"
+
+[tool.setuptools]
+# This defaults to true, but we explicitly specify what we want included in the
+# package via packages and tool.setuptools.package-data below.
+include-package-data = false
+packages = [
+    "listssrht",
+    "listssrht.alembic",
+    "listssrht.alembic.versions",
+    "listssrht.blueprints",
+    "listssrht.blueprints.api",
+    "listssrht.static",
+    "listssrht.static.icons",
+    "listssrht.templates",
+    "listssrht.types",
+]
+script-files = [
+    "listssrht-initdb",
+    "listssrht-lmtp",
+    "listssrht-migrate",
+]
+[tool.setuptools.package-data]
+"listssrht" = ['default_query.graphql', 'schema.graphqls']
+"listssrht.templates" = ['*.html']
+"listssrht.static" = ['*']
+"listssrht.static.icons" = ['*']
+
+[tool.setuptools_scm]
