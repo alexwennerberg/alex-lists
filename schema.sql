@@ -27,6 +27,17 @@ CREATE TYPE webhook_event AS ENUM (
 	'PATCHSET_RECEIVED'
 );
 
+CREATE TYPE user_type AS ENUM (
+	'UNCONFIRMED',
+	'ACTIVE_NON_PAYING',
+	'ACTIVE_FREE',
+	'ACTIVE_PAYING',
+	'ACTIVE_DELINQUENT',
+	'ADMIN',
+	'UNKNOWN',
+	'SUSPENDED'
+);
+
 CREATE TABLE "user" (
 	id serial PRIMARY KEY,
 	username character varying(256) UNIQUE,
@@ -37,7 +48,7 @@ CREATE TABLE "user" (
 	oauth_token_expires timestamp without time zone,
 	oauth_token_scopes character varying,
 	email character varying(256) NOT NULL,
-	user_type character varying DEFAULT 'active_non_paying'::character varying NOT NULL,
+	user_type user_type NOT NULL,
 	url character varying(256),
 	location character varying(256),
 	bio character varying(4096),

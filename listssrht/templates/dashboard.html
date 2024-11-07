@@ -11,7 +11,7 @@
       <p>
         {% if
           cfg("lists.sr.ht", "allow-new-lists", default="yes") == "yes"
-          or current_user.user_type.value == "admin"
+          or current_user.user_type.value == "ADMIN"
         %}
         <a
           href="{{url_for("user.create_list_GET")}}"
