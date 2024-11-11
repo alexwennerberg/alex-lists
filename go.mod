@@ -6,7 +6,7 @@ toolchain go1.22.1
 
 require (
 	git.sr.ht/~emersion/go-emailthreads v0.0.0-20230220165133-75c43015b6c2
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20240218114338-bd40a71a935a
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20241108083940-50396a55470c
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20221010085743-46c4299d76a1
 	github.com/99designs/gqlgen v0.17.45
 	github.com/Masterminds/squirrel v1.5.4
@@ -32,7 +32,7 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/emersion/go-pgpmail v0.2.1 // indirect
 	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43 // indirect
-	github.com/emersion/go-smtp v0.20.2 // indirect
+	github.com/emersion/go-smtp v0.21.3 // indirect
 	github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594 // indirect
 	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
