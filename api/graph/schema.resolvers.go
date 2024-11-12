@@ -628,20 +628,12 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 	})
 	mime := func(name string) {
 		valid.Optional(name+"Mime", func(object interface{}) {
-			list, ok := object.([]interface{})
+			list, ok := object.([]string)
 			if !ok {
 				panic("Invalid mime list") // GraphQL invariant
 			}
-			items := make([]string, len(list))
-			for i, item := range list {
-				str, ok := item.(string)
-				if !ok {
-					panic("Invalid mime list") // GraphQL invariant
-				}
-				items[i] = str
-			}
 			// TODO: This should be updated to a native Postgres array type
-			query = query.Set(name+"_mimetypes", strings.Join(items, ","))
+			query = query.Set(name+"_mimetypes", strings.Join(list, ","))
 		})
 	}
 	mime("permit")
