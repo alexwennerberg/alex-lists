@@ -27,8 +27,6 @@ forwards_processed = Counter("forwards_processed",
 commands_processed = Counter("commands_processed",
         "Incremented on every command email, e.g. +subscribe")
 
-always_reject = cfg("lists.sr.ht::worker", "reject-mimetypes")
-always_reject = always_reject.split(",")
 posting_domain = cfg("lists.sr.ht", "posting-domain")
 
 html_error = """Hi {}!
@@ -196,7 +194,7 @@ class MailHandler:
         sender = parseaddr(mail["From"])
         sender = sender[0] or sender[1]
         permit_mimetypes = permit_mimetypes.split(",")
-        reject_mimetypes = reject_mimetypes.split(",") + always_reject
+        reject_mimetypes = reject_mimetypes.split(",")
         # check the email for plaintext part
         for part in mail.walk():
             content_type = part.get_content_type()
@@ -218,8 +216,9 @@ class MailHandler:
                     permit = True
                     break
             if not permit:
-                if content_type == "text/html" and not found_textpart:
-                    return html_error.format(sender)
+                if content_type == "text/html":
+                    if not found_textpart:
+                        return text_plain_required_error.format(sender)
                 else:
                     return forbidden_mimetype_error.format(sender, content_type)
             for blacklist in reject_mimetypes:
