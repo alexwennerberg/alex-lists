@@ -51,11 +51,10 @@ func ImportMailingListSpool(ctx context.Context, listID int, spool io.Reader) {
 			}
 		}()
 
-		err := importMailingListSpool(importCtx, listID, spool)
-		if err != nil {
-			return err
-		}
-		return nil
+		return database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+			return NewArchiver(importCtx, tx, listID).
+				ImportSpool(spool)
+		})
 	})
 	queue.Enqueue(task)
 	log.Printf("Enqueued mail spool import for mailing list %d", listID)

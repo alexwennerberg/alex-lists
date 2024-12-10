@@ -8,48 +8,66 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"strings"
 
-	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"github.com/emersion/go-mbox"
 	"github.com/emersion/go-message/mail"
 	"github.com/lib/pq"
 )
 
-func importMailingListSpool(ctx context.Context, listID int, spool io.Reader) error {
+type Archiver struct {
+	ctx      context.Context
+	tx       *sql.Tx
+	listID   int
+	isImport bool
+}
+
+// Create a new message archiver.
+//
+// Note: the archiver does not attempt to verify access controls and will
+// unconditionally complete the requested operation. The user is expected to
+// verify the necessary permissions are available before use.
+func NewArchiver(ctx context.Context, tx *sql.Tx, listID int) *Archiver {
+	return &Archiver{ctx: ctx, tx: tx, listID: listID, isImport: false}
+}
+
+// Import an mbox spool into a mailing list.
+//
+// Does not enforce access controls.
+func (ar *Archiver) ImportSpool(spool io.Reader) error {
+	ar.isImport = true
+	defer func() { ar.isImport = false }()
+
 	r := mbox.NewReader(spool)
-	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		for {
-			select {
-			case <-ctx.Done():
-				return errors.New("Mailing list spool import timed out")
-			default:
-			}
-
-			msg, err := r.NextMessage()
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				return fmt.Errorf("Error reading mailing list spool: %v", err)
-			}
-
-			if err := archiveMessage(tx, listID, msg, true); err != nil {
-				// TODO: Collect errors and email them to the user
-				log.Printf("Error importing message: %v", err)
-				continue
-			}
+	for {
+		select {
+		case <-ar.ctx.Done():
+			return errors.New("Mailing list spool import timed out")
+		default:
 		}
-		return nil
-	}); err != nil {
-		return err
+
+		msg, err := r.NextMessage()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return fmt.Errorf("Error reading mailing list spool: %v", err)
+		}
+
+		if err = ar.ArchiveMessage(msg); err != nil {
+			// TODO: Collect errors and email them to the user
+			log.Printf("Error importing message: %v", err)
+		}
 	}
+
 	return nil
 }
 
-func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error {
+// Import a single email (RFC 2045 MIME message) into a mailing list archive.
+//
+// Does not enforce access controls.
+func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 	var envelope bytes.Buffer
 
 	mr, err := mail.CreateReader(io.TeeReader(r, &envelope))
@@ -93,7 +111,7 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 
 		switch p.Header.(type) {
 		case *mail.InlineHeader:
-			b, _ := ioutil.ReadAll(p.Body)
+			b, _ := io.ReadAll(p.Body)
 			body = string(b)
 			// TODO: multiple text parts?
 			break
@@ -112,11 +130,11 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 	}
 
 	var exists bool
-	row := tx.QueryRow(`
+	row := ar.tx.QueryRow(`
 		SELECT EXISTS(
 			SELECT FROM email WHERE list_id = $1 AND message_id = $2
 		)`,
-		listID, messageID,
+		ar.listID, messageID,
 	)
 	if err := row.Scan(&exists); err != nil {
 		return err
@@ -127,7 +145,7 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 	}
 
 	var emailID int32
-	row = tx.QueryRow(`
+	row = ar.tx.QueryRow(`
 		INSERT INTO email (
 			created, updated, subject, message_id, message_date,
 			envelope, headers, body,
@@ -149,10 +167,10 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 			$3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13,
 			$14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24
 		) RETURNING id`,
-		isImported, date,
+		ar.isImport, date,
 		subject, messageID, date,
 		envelope.String(), string(headerMap), body,
-		listID, nil, nil, nil,
+		ar.listID, nil, nil, nil,
 		isPatch, isRequestPull,
 		0, 1, inReplyTo,
 		nil, nil, nil, nil, nil, nil, nil,
@@ -163,16 +181,16 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 
 	// Set parent of this email
 	var parentID int
-	row = tx.QueryRow(
+	row = ar.tx.QueryRow(
 		`SELECT id FROM email WHERE list_id = $1 AND message_id = $2;`,
-		listID, "<"+inReplyTo.String+">",
+		ar.listID, "<"+inReplyTo.String+">",
 	)
 	if err := row.Scan(&parentID); err != nil {
 		if err != sql.ErrNoRows {
 			return err
 		}
 	} else {
-		if _, err := tx.Exec(
+		if _, err := ar.tx.Exec(
 			`UPDATE email SET parent_id = $1 WHERE id = $2`,
 			parentID, emailID,
 		); err != nil {
@@ -180,12 +198,12 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 		}
 	}
 
-	threadID, err := computeThreadID(tx, emailID)
+	threadID, err := ar.computeThreadID(emailID)
 	if err != nil {
 		return err
 	}
 	if threadID != emailID {
-		if _, err := tx.Exec(
+		if _, err := ar.tx.Exec(
 			`UPDATE email SET thread_id = $1 WHERE id = $2`,
 			threadID, emailID,
 		); err != nil {
@@ -193,10 +211,10 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 		}
 	}
 
-	if err := reparentEmails(tx, listID, threadID, emailID, messageID); err != nil {
+	if err := ar.reparentEmails(threadID, emailID, messageID); err != nil {
 		return err
 	}
-	if err := updateThreadReplies(tx, threadID); err != nil {
+	if err := ar.updateThreadReplies(threadID); err != nil {
 		return err
 	}
 
@@ -210,8 +228,9 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 	if len(senders) == 0 {
 		return errors.New("expected at least one From address")
 	}
+
 	// Lookup sender by email
-	row = tx.QueryRow(
+	row = ar.tx.QueryRow(
 		`SELECT id FROM "user" WHERE email = $1`,
 		senders[0].Address,
 	)
@@ -221,7 +240,7 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 			return err
 		}
 	} else {
-		if _, err := tx.Exec(
+		if _, err := ar.tx.Exec(
 			`UPDATE email SET sender_id = $1 WHERE id = $2`,
 			senderID, emailID,
 		); err != nil {
@@ -239,7 +258,7 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 	}
 	status = strings.ToLower(status)
 
-	if err := importPatch(tx, listID, emailID, threadID, subject, status, isPatch); err != nil {
+	if err := ar.importPatch(emailID, threadID, subject, status, isPatch); err != nil {
 		return err
 	}
 
@@ -249,7 +268,7 @@ func archiveMessage(tx *sql.Tx, listID int, r io.Reader, isImported bool) error 
 }
 
 // Computes the thread ID for the given email
-func computeThreadID(tx *sql.Tx, emailID int32) (int32, error) {
+func (ar *Archiver) computeThreadID(emailID int32) (int32, error) {
 	// Keep track of seen emails to avoid reference loops
 	threadID := emailID
 	seen := map[int32]struct{}{}
@@ -259,7 +278,7 @@ func computeThreadID(tx *sql.Tx, emailID int32) (int32, error) {
 			break
 		}
 		seen[threadID] = struct{}{}
-		row := tx.QueryRow(
+		row := ar.tx.QueryRow(
 			`SELECT parent_id FROM email WHERE id = $1`,
 			threadID,
 		)
@@ -276,10 +295,10 @@ func computeThreadID(tx *sql.Tx, emailID int32) (int32, error) {
 }
 
 // Reparent emails that arrived out-of-order
-func reparentEmails(tx *sql.Tx, listID int, threadID, emailID int32, messageID string) error {
-	children, err := tx.Query(
+func (ar *Archiver) reparentEmails(threadID, emailID int32, messageID string) error {
+	children, err := ar.tx.Query(
 		`SELECT id, thread_id FROM email WHERE list_id = $1 AND in_reply_to = $2`,
-		listID, messageID,
+		ar.listID, messageID,
 	)
 	if err != nil {
 		return err
@@ -300,13 +319,13 @@ func reparentEmails(tx *sql.Tx, listID int, threadID, emailID int32, messageID s
 			oldThreadIDs = append(oldThreadIDs, *childThreadID)
 		}
 	}
-	if _, err := tx.Exec(
+	if _, err := ar.tx.Exec(
 		`UPDATE email SET parent_id = $1, thread_id = $2 WHERE id = ANY($3)`,
 		emailID, threadID, pq.Int32Array(childIDs),
 	); err != nil {
 		return err
 	}
-	if _, err := tx.Exec(
+	if _, err := ar.tx.Exec(
 		`UPDATE email SET thread_id = $1 WHERE thread_id = ANY($2)`,
 		threadID, pq.Int32Array(oldThreadIDs),
 	); err != nil {
@@ -316,11 +335,11 @@ func reparentEmails(tx *sql.Tx, listID int, threadID, emailID int32, messageID s
 }
 
 // Updates thread nreplies and nparticipants
-func updateThreadReplies(tx *sql.Tx, threadID int32) error {
+func (ar *Archiver) updateThreadReplies(threadID int32) error {
 	nreplies := 0
 	memberIDs := []int32{threadID}
 	participants := make(map[string]struct{})
-	threadMembers, err := tx.Query(
+	threadMembers, err := ar.tx.Query(
 		`SELECT id, headers -> 'From' -> 0 FROM email WHERE thread_id = $1`,
 		threadID,
 	)
@@ -339,7 +358,7 @@ func updateThreadReplies(tx *sql.Tx, threadID int32) error {
 		participants[fromHeader] = struct{}{}
 		nreplies++
 	}
-	if _, err := tx.Exec(
+	if _, err := ar.tx.Exec(
 		`UPDATE email SET nreplies = $1, nparticipants = $2 WHERE id = $3`,
 		nreplies, len(participants), threadID,
 	); err != nil {

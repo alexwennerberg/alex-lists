@@ -84,7 +84,7 @@ func parsePatchSubject(subject string) (*PatchDetails, error) {
 	return &patch, nil
 }
 
-func importPatch(tx *sql.Tx, listID int, emailID int32, threadID int32, subject string, status string, isPatch bool) error {
+func (ar *Archiver) importPatch(emailID, threadID int32, subject, status string, isPatch bool) error {
 	patch, err := parsePatchSubject(subject)
 	if err != nil {
 		return fmt.Errorf("Error parsing patch subject: %v", err)
@@ -99,7 +99,7 @@ func importPatch(tx *sql.Tx, listID int, emailID int32, threadID int32, subject 
 		return nil
 	}
 
-	if _, err := tx.Exec(
+	if _, err := ar.tx.Exec(
 		`UPDATE email SET
 			patch_index = $1, patch_count = $2, patch_version = $3,
 			patch_prefix = $4, patch_subject = $5
@@ -116,7 +116,7 @@ func importPatch(tx *sql.Tx, listID int, emailID int32, threadID int32, subject 
 	complete := true
 	for i := 1; i <= patch.Count; i++ {
 		var exists bool
-		row := tx.QueryRow(
+		row := ar.tx.QueryRow(
 			`SELECT EXISTS (
 				SELECT FROM email
 				WHERE (id = $1 OR thread_id = $1) AND patch_index = $2
@@ -138,7 +138,7 @@ func importPatch(tx *sql.Tx, listID int, emailID int32, threadID int32, subject 
 
 	// Look for existing patchset
 	var existing bool
-	row := tx.QueryRow(
+	row := ar.tx.QueryRow(
 		`SELECT EXISTS (
 			SELECT FROM email
 			WHERE (id = $1 OR thread_id = $1) AND patchset_id IS NOT NULL
@@ -159,7 +159,7 @@ func importPatch(tx *sql.Tx, listID int, emailID int32, threadID int32, subject 
 	var patchsetSubject string
 	var patchsetPrefix string
 	var patchsetVersion int
-	row = tx.QueryRow(
+	row = ar.tx.QueryRow(
 		`SELECT
 			id, patch_subject, patch_prefix, patch_version
 		FROM email WHERE (id = $1 OR thread_id = $1) AND patch_index = 0`,
@@ -186,7 +186,7 @@ func importPatch(tx *sql.Tx, listID int, emailID int32, threadID int32, subject 
 	var messageID string
 	var submitter sql.NullString
 	var replyTo sql.NullString
-	row = tx.QueryRow(
+	row = ar.tx.QueryRow(
 		`SELECT
 			message_id, headers -> 'From' -> 0, headers -> 'Reply-To' -> 0
 		FROM email WHERE (id = $1 OR thread_id = $1) AND patch_index = $2`,
@@ -197,7 +197,7 @@ func importPatch(tx *sql.Tx, listID int, emailID int32, threadID int32, subject 
 	}
 
 	var patchsetID int
-	row = tx.QueryRow(`
+	row = ar.tx.QueryRow(`
 		INSERT INTO patchset (
 			created, updated,
 			subject, prefix, version, list_id, cover_letter_id,
@@ -207,14 +207,14 @@ func importPatch(tx *sql.Tx, listID int, emailID int32, threadID int32, subject 
 			NOW() at time zone 'utc',
 			$1, $2, $3, $4, $5, $6, $7, $8, $9
 		) RETURNING id`,
-		patchsetSubject, patchsetPrefix, patchsetVersion, listID, coverLetterID,
+		patchsetSubject, patchsetPrefix, patchsetVersion, ar.listID, coverLetterID,
 		messageID, submitter, replyTo, status,
 	)
 	if err := row.Scan(&patchsetID); err != nil {
 		return err
 	}
 
-	if _, err := tx.Exec(
+	if _, err := ar.tx.Exec(
 		`UPDATE email SET patchset_id = $1 WHERE id = $2 OR thread_id = $2`,
 		patchsetID, threadID,
 	); err != nil {
