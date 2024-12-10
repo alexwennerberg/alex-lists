@@ -366,6 +366,58 @@ func (r *mailingListResolver) Webhook(ctx context.Context, obj *model.MailingLis
 	return &sub, nil
 }
 
+// Subscriptions is the resolver for the subscriptions field.
+func (r *mailingListResolver) Subscriptions(ctx context.Context, obj *model.MailingList) ([]*model.MailingListSubscription, error) {
+	var subs []*model.MailingListSubscription
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := database.Select(ctx, `count(*)`).
+			From(`subscription`).
+			Where(`list_id = ?`, obj.ID).
+			RunWith(tx).QueryRowContext(ctx)
+
+		var count int
+		err := row.Scan(&count)
+		if err != nil {
+			return err
+		} else if count == 0 {
+			return nil
+		}
+
+		rows, err := database.
+			Select(ctx, (&model.MailingListSubscription{}).As(`s`)).
+			From(`subscription s`).
+			Where(`s.list_id = ?`, obj.ID).
+			RunWith(tx).QueryContext(ctx)
+
+		if err == sql.ErrNoRows {
+			return nil
+		} else if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		subs = make([]*model.MailingListSubscription, 0, count)
+		for rows.Next() {
+			var sub model.MailingListSubscription
+
+			if err = rows.Scan(database.Scan(ctx, &sub)...); err != nil {
+				return err
+			}
+
+			subs = append(subs, &sub)
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return subs, nil
+}
+
 // UserACL is the resolver for the userACL field.
 func (r *mailingListResolver) UserACL(ctx context.Context, obj *model.MailingList, email string) (*model.GeneralACL, error) {
 	var acl *model.GeneralACL
@@ -411,6 +463,22 @@ func (r *mailingListACLResolver) Entity(ctx context.Context, obj *model.MailingL
 func (r *mailingListSubscriptionResolver) List(ctx context.Context, obj *model.MailingListSubscription) (*model.MailingList, error) {
 	// XXX: We could use an unsafe resolver here if we wrote one
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.ListID)
+}
+
+// Subscriber is the resolver for the subscriber field.
+func (r *mailingListSubscriptionResolver) Subscriber(ctx context.Context, obj *model.MailingListSubscription) (model.Entity, error) {
+	switch {
+	case obj.UserID != nil:
+		return loaders.ForContext(ctx).UsersByID.Load(*obj.UserID)
+	case obj.Email != nil:
+		addr, err := mail.ParseAddress(*obj.Email)
+		if err != nil {
+			panic(err)
+		}
+		return &model.Mailbox{Name: addr.Name, Address: addr.Address}, nil
+	default:
+		return nil, nil
+	}
 }
 
 // Client is the resolver for the client field.

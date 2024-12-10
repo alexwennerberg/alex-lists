@@ -159,6 +159,13 @@ type MailingList {
   webhook(id: Int!): WebhookSubscription
 
   """
+  Get the list of subscriptions to this mailing list.
+
+  Internal use only.
+  """
+  subscriptions: [MailingListSubscription!]! @internal
+
+  """
   Get access permissions for a specific user by their email address. If there
   is a related ACL entry for the given email address or an account linked to
   that address, it will be returned. Otherwise, the default ACL of the mailing
@@ -505,6 +512,7 @@ type MailingListSubscription implements ActivitySubscription {
   id: Int!
   created: Time!
   list: MailingList! @access(scope: LISTS, kind: RO)
+  subscriber: Entity @internal
 }
 
 """

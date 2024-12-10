@@ -16,8 +16,9 @@ type MailingListSubscription struct {
 	ID      int       `json:"id"`
 	Created time.Time `json:"created"`
 
-	UserID int
+	UserID *int
 	ListID int
+	Email  *string
 
 	alias  string
 	fields *database.ModelFields
@@ -50,6 +51,7 @@ func (sub *MailingListSubscription) Fields() *database.ModelFields {
 			{"created", "", &sub.Created},
 			{"user_id", "", &sub.UserID},
 			{"list_id", "", &sub.ListID},
+			{"email", "", &sub.Email},
 		},
 	}
 	return sub.fields
