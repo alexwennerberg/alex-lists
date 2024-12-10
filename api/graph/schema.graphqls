@@ -128,6 +128,9 @@ type MailingList {
   "List of patches received on this list in order of most recently bumped"
   patches(cursor: Cursor): PatchsetCursor! @access(scope: PATCHES, kind: RO)
 
+  "Get a specific email archived in this list by its Message-ID"
+  message(messageID: String!): Email @access(scope: EMAILS, kind: RO)
+
   "True if an import operation is underway for this list"
   importing: Boolean!
 

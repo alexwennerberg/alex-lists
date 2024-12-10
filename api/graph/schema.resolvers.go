@@ -226,6 +226,37 @@ func (r *mailingListResolver) Patches(ctx context.Context, obj *model.MailingLis
 	return &model.PatchsetCursor{patches, cursor}, nil
 }
 
+// Message is the resolver for the message field.
+func (r *mailingListResolver) Message(ctx context.Context, obj *model.MailingList, messageID string) (*model.Email, error) {
+	var email *model.Email
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		m := new(model.Email)
+		row := database.
+			Select(ctx, m.As(`e`)).
+			From(`email e`).
+			Where(`e.list_id = ?`, obj.ID).
+			Where(`e.message_id = ?`, messageID).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		err := row.Scan(database.Scan(ctx, m)...)
+		switch {
+		case err == nil:
+			email = m
+		case err == sql.ErrNoRows:
+			err = nil
+		}
+		return err
+	}); err != nil {
+		return nil, err
+	}
+
+	return email, nil
+}
+
 // Access is the resolver for the access field.
 func (r *mailingListResolver) Access(ctx context.Context, obj *model.MailingList) (model.ACL, error) {
 	if obj.AccessID != nil {
