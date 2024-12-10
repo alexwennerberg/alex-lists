@@ -1411,6 +1411,23 @@ func (r *mutationResolver) DeleteUser(ctx context.Context) (int, error) {
 	return user.UserID, nil
 }
 
+// ArchiveMessage is the resolver for the archiveMessage field.
+func (r *mutationResolver) ArchiveMessage(ctx context.Context, listID int, message graphql.Upload) (bool, error) {
+	if message.Size > 32*1024*1024 {
+		// This is much higher than the default max in the ingress worker
+		return false, errors.New("Messages must not exceed 30 MiB in size")
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		return lists.NewArchiver(ctx, tx, listID).
+			ArchiveMessage(message.File)
+	}); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
 // RequestSubscription is the resolver for the requestSubscription field.
 func (r *mutationResolver) RequestSubscription(ctx context.Context, listID int, email string) (string, error) {
 	var confirmToken string

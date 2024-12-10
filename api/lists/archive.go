@@ -11,6 +11,7 @@ import (
 	"log"
 	"strings"
 
+	apiErr "git.sr.ht/~sircmpwn/lists.sr.ht/api/errors"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"github.com/emersion/go-mbox"
 	"github.com/emersion/go-message/mail"
@@ -56,6 +57,9 @@ func (ar *Archiver) ImportSpool(spool io.Reader) error {
 		}
 
 		if err = ar.ArchiveMessage(msg); err != nil {
+			if errors.Is(err, apiErr.ErrDuplicateEmail) {
+				continue
+			}
 			// TODO: Collect errors and email them to the user
 			log.Printf("Error importing message: %v", err)
 		}
@@ -141,7 +145,8 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 	}
 	if exists {
 		// Skip this message
-		return fmt.Errorf("Skipping duplicate message %q", messageID)
+		log.Printf("Skipping duplicate message %q", messageID)
+		return apiErr.ErrDuplicateEmail
 	}
 
 	var emailID int32
@@ -249,14 +254,17 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 	}
 
 	status := string(model.PatchsetStatusProposed)
-	const statusHeader = "X-Sourcehut-Patchset-Final"
-	if mr.Header.Has(statusHeader) {
-		s := mr.Header.Get(statusHeader)
-		if model.PatchsetStatus(strings.ToUpper(s)).IsValid() {
-			status = s
+	if ar.isImport {
+		// Only allow forcing patchset status when importing from mbox
+		const statusHeader = "X-Sourcehut-Patchset-Final"
+		if mr.Header.Has(statusHeader) {
+			s := mr.Header.Get(statusHeader)
+			if model.PatchsetStatus(strings.ToUpper(s)).IsValid() {
+				status = s
+			}
 		}
+		status = strings.ToLower(status)
 	}
-	status = strings.ToLower(status)
 
 	if err := ar.importPatch(emailID, threadID, subject, status, isPatch); err != nil {
 		return err

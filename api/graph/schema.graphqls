@@ -794,6 +794,12 @@ type Mutation {
   deleteUser: Int! @internal
 
   """
+  Archives an email (RFC 2045 MIME message) into a mailing list.
+  Internal use only.
+  """
+  archiveMessage(listID: Int!, message: Upload!): Boolean! @internal
+
+  """
   Request a subscription to a mailing list for a given email address. If the
   email is linked to a registered account, the subscription will be associated
   to the account. Otherwise, it will be associated to the mailbox. If a pending

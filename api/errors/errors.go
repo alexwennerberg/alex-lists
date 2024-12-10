@@ -24,4 +24,7 @@ var (
 	ErrInvalidToken = newGqlError(
 		"Invalid subscription token.",
 		"ERR_INVALID_TOKEN")
+	ErrDuplicateEmail = newGqlError(
+		"Message already archived in this list.",
+		"ERR_DUPLICATE_EMAIL")
 )
