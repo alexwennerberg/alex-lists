@@ -7,7 +7,10 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/webhooks"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 )
 
@@ -197,6 +200,7 @@ func (ar *Archiver) importPatch(emailID, threadID int32, subject, status string,
 	}
 
 	var patchsetID int
+	var created, updated time.Time
 	row = ar.tx.QueryRow(`
 		INSERT INTO patchset (
 			created, updated,
@@ -206,11 +210,11 @@ func (ar *Archiver) importPatch(emailID, threadID int32, subject, status string,
 			NOW() at time zone 'utc',
 			NOW() at time zone 'utc',
 			$1, $2, $3, $4, $5, $6, $7, $8, $9
-		) RETURNING id`,
+		) RETURNING id, created, updated`,
 		patchsetSubject, patchsetPrefix, patchsetVersion, ar.listID, coverLetterID,
 		messageID, submitter, replyTo, status,
 	)
-	if err := row.Scan(&patchsetID); err != nil {
+	if err := row.Scan(&patchsetID, &created, &updated); err != nil {
 		return err
 	}
 
@@ -221,7 +225,22 @@ func (ar *Archiver) importPatch(emailID, threadID int32, subject, status string,
 		return err
 	}
 
-	// TODO: Legacy webhooks
+	if !ar.isImport {
+		webhooks.DeliverListPatchsetEvent(
+			ar.ctx, ar.listID, model.WebhookEventPatchsetReceived,
+			&model.Patchset{
+				ID:            patchsetID,
+				Created:       created,
+				Updated:       updated,
+				Subject:       subject,
+				Prefix:        &patchsetPrefix,
+				Version:       patchsetVersion,
+				MailingListID: ar.listID,
+				CoverLetterID: coverLetterID,
+				RawStatus:     status,
+			},
+		)
+	}
 
 	// TODO: identify patchset that this supersedes, if appropriate
 

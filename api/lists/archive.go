@@ -13,6 +13,7 @@ import (
 
 	apiErr "git.sr.ht/~sircmpwn/lists.sr.ht/api/errors"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/webhooks"
 	"github.com/emersion/go-mbox"
 	"github.com/emersion/go-message/mail"
 	"github.com/lib/pq"
@@ -239,7 +240,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 		`SELECT id FROM "user" WHERE email = $1`,
 		senders[0].Address,
 	)
-	var senderID int
+	var senderID *int
 	if err := row.Scan(&senderID); err != nil {
 		if err != sql.ErrNoRows {
 			return err
@@ -247,7 +248,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 	} else {
 		if _, err := ar.tx.Exec(
 			`UPDATE email SET sender_id = $1 WHERE id = $2`,
-			senderID, emailID,
+			*senderID, emailID,
 		); err != nil {
 			return err
 		}
@@ -268,6 +269,42 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 
 	if err := ar.importPatch(emailID, threadID, subject, status, isPatch); err != nil {
 		return err
+	}
+
+	if !ar.isImport {
+		var patchsetID *int
+		row = ar.tx.QueryRow(`
+			SELECT patchset_id FROM email
+			WHERE (id = $1 OR thread_id = $1)
+			AND patchset_id IS NOT NULL;
+		`, threadID)
+		err = row.Scan(&patchsetID)
+		if err != nil && err != sql.ErrNoRows {
+			panic(err)
+		}
+
+		tid := new(int)
+		*tid = int(threadID)
+		var irp *string
+		if inReplyTo.Valid {
+			irp = &inReplyTo.String
+		}
+		webhooks.DeliverListEmailEvent(
+			ar.ctx, ar.listID, model.WebhookEventEmailReceived,
+			&model.Email{
+				ID:            int(emailID),
+				Received:      date,
+				Body:          body,
+				Subject:       subject,
+				MessageID:     messageID,
+				MailingListID: ar.listID,
+				RawHeader:     mr.Header,
+				RawEnvelope:   envelope.Bytes(),
+				ThreadID:      tid,
+				PatchsetID:    patchsetID,
+				InReplyTo:     irp,
+			},
+		)
 	}
 
 	log.Printf("Archived message %q", messageID)
