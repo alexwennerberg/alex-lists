@@ -366,6 +366,24 @@ func (r *mailingListResolver) Webhook(ctx context.Context, obj *model.MailingLis
 	return &sub, nil
 }
 
+// UserACL is the resolver for the userACL field.
+func (r *mailingListResolver) UserACL(ctx context.Context, obj *model.MailingList, email string) (*model.GeneralACL, error) {
+	var acl *model.GeneralACL
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		var err error
+		acl, err = model.UserACL(ctx, tx, obj.ID, email)
+		return err
+	}); err != nil {
+		return nil, err
+	}
+
+	return acl, nil
+}
+
 // List is the resolver for the list field.
 func (r *mailingListACLResolver) List(ctx context.Context, obj *model.MailingListACL) (*model.MailingList, error) {
 	return loaders.ForContext(ctx).MailingListsByID.Load(obj.MailingListID)

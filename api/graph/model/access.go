@@ -84,6 +84,36 @@ func (acl *MailingListACL) Fields() *database.ModelFields {
 	return acl.fields
 }
 
+func UserACL(ctx context.Context, tx *sql.Tx, listID int, email string) (*GeneralACL, error) {
+	var access uint
+	row := tx.QueryRowContext(ctx,
+		`SELECT COALESCE( (
+			SELECT 0xF
+			FROM list l JOIN "user" u ON l.owner_id = u.id
+			WHERE l.id = $1 AND u.email = $2
+		), (
+			SELECT a.permissions
+			FROM access a LEFT OUTER JOIN "user" u ON a.user_id = u.id
+			WHERE a.list_id = $1 AND (u.email = $2 OR a.email = $2)
+			LIMIT 1
+		), (
+			SELECT default_access
+			FROM list
+			WHERE list.id = $1
+		) );`,
+		listID, email,
+	)
+	if err := row.Scan(&access); err != nil {
+		return nil, err
+	}
+	return &GeneralACL{
+		Browse:   access&ACCESS_BROWSE == ACCESS_BROWSE,
+		Reply:    access&ACCESS_REPLY == ACCESS_REPLY,
+		Post:     access&ACCESS_POST == ACCESS_POST,
+		Moderate: access&ACCESS_MODERATE == ACCESS_MODERATE,
+	}, nil
+}
+
 func (acl *MailingListACL) QueryWithCursor(ctx context.Context,
 	runner sq.BaseRunner, q sq.SelectBuilder,
 	cur *model.Cursor) ([]*MailingListACL, *model.Cursor) {

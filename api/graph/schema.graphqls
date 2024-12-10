@@ -157,6 +157,16 @@ type MailingList {
 
   "Returns details of a mailing list webhook subscription by its ID."
   webhook(id: Int!): WebhookSubscription
+
+  """
+  Get access permissions for a specific user by their email address. If there
+  is a related ACL entry for the given email address or an account linked to
+  that address, it will be returned. Otherwise, the default ACL of the mailing
+  list will be returned.
+
+  Internal use only.
+  """
+  userACL(email: String!): GeneralACL! @internal
 }
 
 type OAuthClient {
