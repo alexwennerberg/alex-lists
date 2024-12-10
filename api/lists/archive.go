@@ -283,6 +283,18 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 			panic(err)
 		}
 
+		const updateHeader = "X-Sourcehut-Patchset-Update"
+		if patchsetID != nil && mr.Header.Has(updateHeader) {
+			err := ar.updatePatchsetStatus(
+				*patchsetID,
+				mr.Header.Get(updateHeader),
+				senders[0].Address,
+			)
+			if err != nil {
+				log.Println("Failed updating patchset status:", err)
+			}
+		}
+
 		tid := new(int)
 		*tid = int(threadID)
 		var irp *string

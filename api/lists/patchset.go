@@ -246,3 +246,28 @@ func (ar *Archiver) importPatch(emailID, threadID int32, subject, status string,
 
 	return nil
 }
+
+func (ar *Archiver) updatePatchsetStatus(patchsetID int, status, sender string) error {
+	// check new status validity
+	if !model.PatchsetStatus(strings.ToUpper(status)).IsValid() {
+		return fmt.Errorf("invalid status %q", status)
+	}
+	status = strings.ToLower(status)
+
+	// check sender has permissions to update patchset status
+	access, err := model.UserACL(ar.ctx, ar.tx, ar.listID, sender)
+	if err != nil {
+		return fmt.Errorf("UserACL: %w", err)
+	} else if !access.Moderate {
+		return fmt.Errorf("sender does not have moderate permission")
+	}
+
+	// update status
+	res, err := ar.tx.ExecContext(ar.ctx, `
+		UPDATE patchset SET status = $1 WHERE id = $2;
+	`, status, patchsetID)
+	if n, e := res.RowsAffected(); n == 0 || e != nil {
+		panic("patchsetID not found")
+	}
+	return err
+}
