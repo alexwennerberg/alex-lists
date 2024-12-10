@@ -7,7 +7,9 @@ package graph
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
 	"database/sql"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -25,6 +27,7 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/valid"
 	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/account"
+	apierr "git.sr.ht/~sircmpwn/lists.sr.ht/api/errors"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/lists"
@@ -1406,6 +1409,194 @@ func (r *mutationResolver) DeleteUser(ctx context.Context) (int, error) {
 	user := auth.ForContext(ctx)
 	account.Delete(ctx, user.UserID, user.Username)
 	return user.UserID, nil
+}
+
+// RequestSubscription is the resolver for the requestSubscription field.
+func (r *mutationResolver) RequestSubscription(ctx context.Context, listID int, email string) (string, error) {
+	var confirmToken string
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			SELECT count(*)
+			FROM subscription s
+			LEFT OUTER JOIN "user" u ON u.id = s.user_id
+			WHERE s.list_id = $1
+			AND (s.email = $2 OR u.email = $2);
+		`, listID, email)
+
+		var count int
+		if err := row.Scan(&count); err != nil {
+			return err
+		} else if count != 0 {
+			return apierr.ErrAlreadySubscribed
+		}
+
+		// generate a random confirmation token encoded in base64
+		buf := make([]byte, 18)
+		rand.Read(buf)
+		confirmToken = base64.URLEncoding.EncodeToString(buf)
+
+		// Must use 'ON CONFLICT DO UPDATE' resetting the same email
+		// address, otherwise the query returns nothing and there is no
+		// way to get the previous confirmation hash.
+		row = tx.QueryRowContext(ctx, `
+			INSERT INTO subscription_request (
+				list_id, email, confirmation_hash
+			) VALUES ($1, $2, $3)
+			ON CONFLICT ON CONSTRAINT sr_list_id_email_unique
+			DO UPDATE SET email = $2
+			RETURNING confirmation_hash;
+		`, listID, email, confirmToken)
+
+		// If a subscription request already exists. The token present
+		// in the database will be returned.
+		return row.Scan(&confirmToken)
+	}); err != nil {
+		return "", err
+	}
+
+	return confirmToken, nil
+}
+
+// ConfirmSubscription is the resolver for the confirmSubscription field.
+func (r *mutationResolver) ConfirmSubscription(ctx context.Context, token string, email string) (*model.MailingListSubscription, error) {
+	var sub model.MailingListSubscription
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM subscription_request
+			WHERE email = $1 AND confirmation_hash = $2
+			RETURNING list_id;
+		`, email, token)
+		var listID int
+		if err := row.Scan(&listID); err == sql.ErrNoRows {
+			return apierr.ErrInvalidToken
+		} else if err != nil {
+			return err
+		}
+
+		var (
+			optEmail *string
+			optUser  *int
+			userID   int
+		)
+		row = tx.QueryRowContext(
+			ctx, `SELECT id FROM "user" WHERE email = $1;`, email,
+		)
+		if err := row.Scan(&userID); err == sql.ErrNoRows {
+			optEmail = &email
+		} else if err != nil {
+			return err
+		} else {
+			optUser = &userID
+		}
+
+		row = tx.QueryRowContext(ctx, `
+			INSERT INTO subscription (
+				created, updated, email, user_id, list_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, $2, $3
+			) RETURNING id, created, email, user_id, list_id;
+		`, optEmail, optUser, listID)
+		return row.Scan(&sub.ID, &sub.Created, &sub.Email, &sub.UserID, &sub.ListID)
+	}); err != nil {
+		return nil, err
+	}
+
+	return &sub, nil
+}
+
+// RequestUnsubscription is the resolver for the requestUnsubscription field.
+func (r *mutationResolver) RequestUnsubscription(ctx context.Context, listID int, email string) (string, error) {
+	var confirmToken string
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			SELECT count(*)
+			FROM subscription s
+			LEFT OUTER JOIN "user" u ON u.id = s.user_id
+			WHERE s.list_id = $1
+			AND (s.email = $2 OR u.email = $2);
+		`, listID, email)
+
+		var count int
+		if err := row.Scan(&count); err != nil {
+			return err
+		} else if count == 0 {
+			return apierr.ErrNotSubscribed
+		}
+
+		row = tx.QueryRowContext(ctx, `
+			SELECT confirmation_hash
+			FROM subscription_request
+			WHERE list_id = $1 AND email = $2;
+		`, listID, email)
+		err := row.Scan(&confirmToken)
+		if err == nil {
+			// Unsubscription request already exists. Return the token again.
+			return nil
+		}
+
+		// generate a random confirmation token encoded in base64
+		buf := make([]byte, 18)
+		rand.Read(buf)
+		confirmToken = base64.URLEncoding.EncodeToString(buf)
+
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO subscription_request (
+				list_id, email, confirmation_hash
+			) VALUES ($1, $2, $3);
+		`, listID, email, confirmToken)
+		return err
+	}); err != nil {
+		return "", err
+	}
+
+	return confirmToken, nil
+}
+
+// ConfirmUnsubscription is the resolver for the confirmUnsubscription field.
+func (r *mutationResolver) ConfirmUnsubscription(ctx context.Context, token string, email string) (*model.MailingListSubscription, error) {
+	var sub model.MailingListSubscription
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM subscription_request
+			WHERE email = $1 AND confirmation_hash = $2
+			RETURNING list_id;
+		`, email, token)
+
+		var listID int
+		if err := row.Scan(&listID); err == sql.ErrNoRows {
+			return apierr.ErrInvalidToken
+		} else if err != nil {
+			return err
+		}
+
+		row = tx.QueryRowContext(ctx, `
+			DELETE FROM subscription s
+			WHERE s.list_id = $1 AND (
+				s.email = $2 OR s.user_id IN (
+					SELECT u.id FROM "user" u
+					WHERE u.email = $2
+				)
+			)
+			RETURNING s.id, s.created, s.email, s.user_id, s.list_id;
+		`, listID, email)
+
+		if err := row.Scan(database.Scan(ctx, &sub)...); err == sql.ErrNoRows {
+			return apierr.ErrSubscriptionNotFound
+		} else if err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &sub, nil
 }
 
 // Submitter is the resolver for the submitter field.
