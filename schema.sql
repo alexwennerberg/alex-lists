@@ -174,9 +174,10 @@ CREATE TABLE subscription (
 
 CREATE TABLE subscription_request (
 	id serial PRIMARY KEY,
-	email CHARACTER VARYING(512),
-	confirmation_hash CHARACTER VARYING(128),
-	list_id integer NOT NULL references "list"(id)
+	email CHARACTER VARYING(512) NOT NULL,
+	confirmation_hash CHARACTER VARYING(128) NOT NULL,
+	list_id integer NOT NULL references "list"(id),
+	CONSTRAINT sr_list_id_email_unique UNIQUE (list_id, email)
 );
 
 -- GraphQL webhooks

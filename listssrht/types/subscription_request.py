@@ -5,10 +5,13 @@ import os
 
 class SubscriptionRequest(Base):
     __tablename__ = 'subscription_request'
+    __table_args__ = (
+        sa.UniqueConstraint("list_id", "email", name="sr_list_id_email_unique"),
+    )
 
     id = sa.Column(sa.Integer, primary_key=True)
-    email = sa.Column(sa.Unicode(512))
-    confirmation_hash = sa.Column(sa.String(128))
+    email = sa.Column(sa.Unicode(512), nullable=False)
+    confirmation_hash = sa.Column(sa.String(128), nullable=False)
 
     list_id = sa.Column(sa.Integer,
             sa.ForeignKey('list.id', ondelete="CASCADE"),
