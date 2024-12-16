@@ -47,10 +47,14 @@ func main() {
 		scopes[i] = s.String()
 	}
 
-	listsQueue := work.NewQueue("lists")
-	accountQueue := work.NewQueue("account")
-	webhookQueue := webhooks.NewQueue(schema)
-	legacyWebhooks := webhooks.NewLegacyQueue()
+	queueSize := config.GetInt(appConfig, "lists.sr.ht::api",
+		"account-del-queue-size", config.DefaultQueueSize)
+	accountQueue := work.NewQueue("account", queueSize)
+	queueSize = config.GetInt(appConfig, "lists.sr.ht::api",
+		"spool-import-queue-size", config.DefaultQueueSize)
+	listsQueue := work.NewQueue("lists", queueSize)
+	webhookQueue := webhooks.NewQueue(schema, appConfig)
+	legacyWebhooks := webhooks.NewLegacyQueue(appConfig)
 
 	gsrv := server.NewServer("lists.sr.ht", appConfig).
 		WithDefaultMiddleware().
