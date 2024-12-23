@@ -95,6 +95,12 @@ func (ar *Archiver) importPatch(emailID, threadID int32, subject, status string,
 		return nil
 	}
 
+	// check status validity
+	if !model.PatchsetStatus(strings.ToUpper(status)).IsValid() {
+		return fmt.Errorf("invalid status %q", status)
+	}
+	status = strings.ToLower(status)
+
 	// Consider cover letters (index = 0) as valid patches. This makes it much
 	// easier to look up the cover letter later on by querying patch_index = 0.
 	// This also handles the case where the cover letter is received last.

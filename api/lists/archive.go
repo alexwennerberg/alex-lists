@@ -264,7 +264,6 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 				status = s
 			}
 		}
-		status = strings.ToLower(status)
 	}
 
 	if err := ar.importPatch(emailID, threadID, subject, status, isPatch); err != nil {
