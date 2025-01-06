@@ -1,13 +1,69 @@
-SRHT_PATH?=/usr/lib/python3.12/site-packages/srht
-MODULE=listssrht/
-include ${SRHT_PATH}/Makefile
+PREFIX?=/usr/local
+BINDIR?=$(PREFIX)/bin
+LIBDIR?=$(PREFIX)/lib
+SHAREDIR?=$(PREFIX)/share/sourcehut
 
-all: build
+SERVICE=lists.sr.ht
+STATICDIR=$(SHAREDIR)/static/$(SERVICE)
 
-build:
+SASSC?=sassc
+SASSC_INCLUDE=-I$(SHAREDIR)/scss/
+
+BINARIES=\
+	$(SERVICE)-api \
+	$(SERVICE)-ingress
+
+all: all-bin all-share
+
+install: install-bin install-share
+
+clean: clean-bin clean-share
+
+all-bin: $(BINARIES)
+
+all-share: static/main.min.css
+
+install-bin: all-bin
+	mkdir -p $(BINDIR)
+	for bin in $(BINARIES); \
+	do \
+		install -Dm755 $$bin $(BINDIR)/; \
+	done
+
+install-share: all-share
+	mkdir -p $(STATICDIR)
+	install -Dm644 static/*.css $(STATICDIR)
+	install -Dm644 api/graph/schema.graphqls $(SHAREDIR)/$(SERVICE).graphqls
+
+clean-bin:
+	rm -f $(BINARIES)
+
+clean-share:
+	rm -f static/main.min.css static/main.css
+
+.PHONY: all all-bin all-share
+.PHONY: install install-bin install-share
+.PHONY: clean clean-bin clean-share
+
+static/main.css: scss/main.scss
+	mkdir -p $(@D)
+	$(SASSC) $(SASSC_INCLUDE) $< $@
+
+static/main.min.css: static/main.css
+	minify -o $@ $<
+	cp $@ $(@D)/main.min.$$(sha256sum $@ | cut -c1-8).css
+
+api/loaders/*_gen.go &: api/loaders/generate.go api/loaders/gen go.sum
 	cd api && go generate ./loaders
-	cd api && go generate ./graph
-	cd api && go build
-	cd ingress && go build
 
-.PHONY: all build
+api/graph/api/generated.go: api/graph/schema.graphqls api/graph/generate.go go.sum api/loaders/*_gen.go
+	cd api && go generate ./graph
+
+$(SERVICE)-api: api/graph/api/generated.go api/loaders/*_gen.go
+	go build -o $@ ./api
+
+$(SERVICE)-ingress:
+	go build -o $@ ./ingress
+
+# Always rebuild
+.PHONY: $(BINARIES)

@@ -29,19 +29,15 @@ packages = [
     "listssrht.alembic.versions",
     "listssrht.blueprints",
     "listssrht.blueprints.api",
-    "listssrht.static",
-    "listssrht.static.icons",
     "listssrht.templates",
     "listssrht.types",
 ]
 script-files = [
-    "listssrht-initdb",
-    "listssrht-migrate",
+    "lists.sr.ht-initdb",
+    "lists.sr.ht-migrate",
 ]
 [tool.setuptools.package-data]
 "listssrht" = ['default_query.graphql', 'schema.graphqls']
 "listssrht.templates" = ['*.html']
-"listssrht.static" = ['*']
-"listssrht.static.icons" = ['*']
 
 [tool.setuptools_scm]
