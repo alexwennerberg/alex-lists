@@ -43,7 +43,7 @@ CREATE TABLE "user" (
 	oauth_token character varying(256),
 	oauth_token_expires timestamp without time zone,
 	oauth_token_scopes character varying,
-	email character varying(256) NOT NULL,
+	email character varying(256) UNIQUE NOT NULL,
 	user_type user_type NOT NULL,
 	url character varying(256),
 	location character varying(256),
