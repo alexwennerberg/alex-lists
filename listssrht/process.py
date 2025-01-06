@@ -1,15 +1,32 @@
 from srht.config import cfg, cfgi
 from srht.database import DbSession, db
+from srht.graphql import exec_gql
 if not hasattr(db, "session"):
     db = DbSession(cfg("lists.sr.ht", "connection-string"))
+    import listssrht.types
     db.init()
 from srht.email import start_smtp
-from listssrht.types import Email
+from listssrht.types import Email, List, User, Subscription, ListAccess, Access
+from listssrht.types import Patchset, PatchsetStatus, SubscriptionRequest
 
+import base64
 import email
+import email.utils
 import email.policy
+import io
+import json
+import mailbox
+import pygit2
+import re
+import smtplib
+import tempfile
 from celery import Celery
+from datetime import datetime, timezone
+from email.mime.text import MIMEText
+from email.utils import parseaddr, getaddresses, formatdate, make_msgid
+from email.utils import parsedate_to_datetime
 from sqlalchemy import or_
+from sqlalchemy.exc import IntegrityError
 from srht.email import mail_exception
 from urllib.parse import quote
 
@@ -56,6 +73,663 @@ def _prep_mail(dest, mail):
     mail["List-ID"] = "{} <{}.{}>".format(list_name, list_name, domain)
     mail["Sender"] = "{} <{}@{}>".format(list_name, list_name, domain)
     return mail
+
+def _forward(dest, mail):
+    mail = _prep_mail(dest, mail)
+
+    smtp = start_smtp()
+    froms = mail.get_all('From', [])
+    tos = mail.get_all('To', [])
+    ccs = mail.get_all('Cc', [])
+    recipients = set([a[1] for a in getaddresses(froms + tos + ccs)])
+
+    for sub in dest.subscribers:
+        to = sub.email
+        if sub.user:
+            to = sub.user.email
+        if to in recipients:
+            print(to + " is already copied, skipping")
+            continue
+        print("Forwarding message to " + to)
+        try:
+            smtp.send_message(mail, smtp_user, [to])
+        except Exception as ex:
+            print(ex)
+            print("(continuing)")
+            smtp.quit()
+            smtp = start_smtp()
+            continue
+    smtp.quit()
+
+patch_subject = re.compile(r".*\[(?:RFC )?PATCH"
+    r"( (?P<prefix>[^\]]+))?\] (?P<subject>.*)")
+patch_version = re.compile(r"(v(?P<version>[0-9]+))?"
+    r"( ?(?P<index>[0-9]+)/(?P<count>[0-9]+))?$")
+
+def _import_patch(thread, mail, envelope, do_webhooks=True):
+    match = patch_subject.match(mail.subject)
+    if not match:
+        # TODO: figure out a better way of dealing with patches that have weird
+        # subjects
+        return
+    prefix = match.group("prefix")
+    subject = match.group("subject")
+    version = index = count = 1
+    match = patch_version.search(prefix) if prefix else None
+    if match:
+        version = int(match.group("version")) if match.group("version") else 1
+        index = int(match.group("index")) if match.group("index") else 1
+        count = int(match.group("count")) if match.group("count") else 1
+        prefix = patch_version.sub("", prefix).strip()
+    mail.patch_index = index
+    mail.patch_count = count
+    mail.patch_version = version
+    mail.patch_prefix = prefix
+    mail.patch_subject = subject
+    # TODO: generate diffstat?
+    print(f"Received patch {index}/{count}: {subject}")
+    if not all(any(m for m in thread
+            if m.patch_index == i) for i in range(1, count+1)):
+        return None
+    if any(m.patchset_id for m in thread):
+        return None # TODO: is this a new revision? complicated
+    print("Complete patchset received")
+
+    def is_cover(m):
+        match = patch_subject.match(m.subject)
+        prefix = match.group("prefix") if match else None
+        match = patch_version.search(prefix) if prefix else None
+        if not match:
+            return False
+        index = (int(match.group("index").strip())
+            if match.group("index") else 1)
+        return index == 0
+    cover_letter = next((m for m in thread if is_cover(m)), None)
+
+    patchset = Patchset()
+    patchset.cover_letter_id = cover_letter.id if cover_letter else None
+    patchset.submitter = envelope["From"]
+    patchset.message_id = envelope["Message-ID"].strip()
+    patchset.reply_to = envelope["Reply-To"]
+    patchset.status = PatchsetStatus.proposed
+
+    subject = cover_letter.subject if cover_letter else thread[0].subject
+    match = patch_subject.match(subject)
+    patchset.subject = match.group("subject") if match else subject
+    patchset.prefix = prefix
+
+    patchset.list_id = mail.list_id
+    patchset.version = version
+    db.session.add(patchset)
+    db.session.flush()
+    for m in thread:
+        m.patchset_id = patchset.id
+    db.session.commit()
+
+    if do_webhooks:
+        from listssrht.webhooks import ListWebhook
+        ListWebhook.deliver(ListWebhook.Events.patchset_received,
+                patchset.to_dict(short=False),
+                ListWebhook.Subscription.list_id == mail.list_id)
+        db.session.commit()
+    # TODO: identify patchset that this supersedes, if appropriate
+    return patchset
+
+def _update_patchset_status(dest, sender, patchset, status):
+    if isinstance(sender, str):
+        acl = next((acl for acl in dest.acls if acl.email == sender), None)
+    else:
+        acl = next((acl for acl in dest.acls if acl.user_id == sender.id), None)
+
+    if isinstance(sender, User) and sender.id == dest.owner_id:
+        access = ListAccess.all
+    elif acl:
+        access = acl.permissions
+    else:
+        access = dest.default_access
+
+    if ListAccess.moderate not in access:
+        print("Patchset update requested, but user has insufficient permissions")
+        return
+
+    print("Patchset update requested: " + status.value)
+    patchset.status = status
+
+def _archive(dest, envelope, do_webhooks=True):
+    mail = Email()
+    # TODO: Use message date within a tolerance from now
+    mail.created = datetime.utcnow()
+    mail.updated = datetime.utcnow()
+    mail.subject = envelope["Subject"]
+    mail.message_id = envelope["Message-ID"].strip()
+    mail.headers = {
+        key: value for key, value in envelope.items()
+    }
+    # Use as_bytes to prevent the stdlib from converting to a different
+    # Content-Transfer-Encoding. We need to convert to a string afterwards to
+    # store the envelope in the DB. Non-UTF-8 messages will be damaged.
+    mail.envelope = envelope.as_bytes().decode("utf-8", "replace")
+    mail.list_id = dest.id
+    for part in envelope.walk():
+        if part.is_multipart():
+            continue
+        content_type = part.get_content_type()
+        [charset] = part.get_charsets("utf-8")
+        # TODO: Verify signed emails
+        if content_type == 'text/plain':
+            # TODO: should we consider multiple text parts?
+            mail.body = part.get_payload(decode=True).decode(charset)
+            break
+
+    # force lazy parse of patch (if it exists) after msg body is set
+    mail.patch()
+
+    mail.is_request_pull = False # TODO: Detect git request-pull
+    reply_to = envelope["In-Reply-To"]
+    if reply_to:
+        reply_to = reply_to.strip()
+        if "(" in reply_to:
+            # Strip out obsolete In-Reply-To syntax used by e.g. gnus
+            reply_to = reply_to.split("(")[0].rstrip()
+        mail.in_reply_to = reply_to
+
+    try:
+        db.session.add(mail)
+        db.session.flush() # obtain an ID for this email
+    except IntegrityError:
+        db.session.rollback()
+        return None, None # Drop duplicate email
+
+    # Set parent of this email
+    parent = Email.query.filter(Email.message_id == reply_to,
+            Email.list_id == dest.id,
+            Email.id != mail.id).one_or_none()
+    if parent is not None:
+        mail.parent_id = parent.id
+        mail.parent = parent
+
+    thread = mail
+    n = 0
+    while thread.parent_id and n < 100: # don't hang on reference loops
+        thread = thread.parent
+        n += 1
+
+    if thread.id != mail.id:
+        mail.thread_id = thread.id
+
+    # Reparent emails that arrived out-of-order
+    children = Email.query.filter(Email.in_reply_to == mail.message_id,
+            Email.list_id == dest.id).all()
+    ex_threads = set()
+    for child in children:
+        child.parent_id = mail.id
+        if child.thread_id != thread.id:
+            ex_thread_id = child.thread_id if child.thread_id else child.id
+            ex_threads.update({ ex_thread_id })
+        child.thread_id = thread.id
+    if len(ex_threads) > 0:
+        db.session.execute(Email.__table__.update()
+                .where(Email.thread_id.in_(ex_threads))
+                .values(thread_id=thread.id))
+
+    db.session.flush()
+    # Update thread nreplies & nparticipants
+    thread.nreplies = 0
+    thread_members = [thread]
+    participants = set()
+    for current in Email.query.filter(Email.thread_id == thread.id):
+        thread_members.append(current)
+        tenvelope = email.message_from_string(current.envelope, policy=policy)
+        participants.update({ a for a in tenvelope["From"].split(",") })
+        thread.nreplies += 1
+    thread.nparticipants = len(participants)
+
+    if not mail in thread_members:
+        thread.append(mail)
+    if mail.is_patch:
+        patchset = _import_patch(thread_members, mail, envelope, do_webhooks)
+        if not patchset:
+            status = PatchsetStatus.unknown
+        else:
+            status = patchset.status
+        # TODO: Consider adding another header in _forward which states whether
+        # or not the recipient is allowed to update the patchset
+        envelope["X-Sourcehut-Patchset-Status"] = status.value.upper()
+
+    # TODO: Enumerate CC's and create SQL relationships for them
+    # TODO: Some users will have many email addresses
+    sender = parseaddr(envelope["From"])
+    sender = User.query.filter(User.email == sender[1]).one_or_none()
+    if sender:
+        mail.sender_id = sender.id
+    else:
+        sender = parseaddr(envelope["From"])[1]
+
+    if not mail.is_patch and thread.patchset != None:
+        patchset = thread.patchset
+        update = envelope["X-Sourcehut-Patchset-Update"]
+        if update:
+            try:
+                status = PatchsetStatus(update.lower())
+                _update_patchset_status(dest, sender, patchset, status)
+            except:
+                pass
+
+    print("Archived {} with ID {}".format(mail.subject, mail.id))
+    return mail, envelope
+
+def _webhooks(dest, mail):
+    from listssrht.webhooks import UserWebhook, ListWebhook
+    ListWebhook.deliver(ListWebhook.Events.post_received, mail.to_dict(),
+            ListWebhook.Subscription.list_id == dest.id)
+    exec_gql("lists.sr.ht", """
+        mutation TriggerListEmailWebhooks($listId: Int!, $emailId: Int!) {
+            triggerListEmailWebhooks(listId: $listId, emailId: $emailId) {
+                id
+            }
+        }
+    """, user=mail.list.owner, listId=mail.list_id, emailId=mail.id)
+    if mail.sender:
+        UserWebhook.deliver(UserWebhook.Events.email_received,
+                mail.to_dict(),
+                UserWebhook.Subscription.user_id == mail.sender.id)
+        exec_gql("lists.sr.ht", """
+            mutation TriggerUserEmailWebhooks($emailId: Int!) {
+                triggerUserEmailWebhooks(emailId: $emailId) {
+                    id
+                }
+            }
+        """, user=mail.sender, emailId=mail.id)
+
+def _send_confirmation(to, list_addr, confirm_req, orig_mail):
+    reply = MIMEText("""Hi {}!
+
+We have received a request for subscription of your email address,
+{}, to the following mailing list:
+
+{}@{}
+
+To confirm that you want to be added to this mailing list, simply reply to this
+message, keeping the Subject: header intact.
+
+Note that simply sending a `reply' to this message should work from
+most mail readers, since that usually leaves the Subject: line in the
+right form (additional "Re:" text in the Subject: is okay).
+
+If you do not wish to be subscribed to this list, please simply
+disregard this message. If you think you are being maliciously
+subscribed to the list, or have any other questions, please reach out to
+{}.""".format(
+            to[0] or to[1], to[1], list_addr,
+            cfg("lists.sr.ht", "posting-domain"),
+            cfg("sr.ht", "owner-email")))
+    reply_to = "{}+confirm@{}".format(
+            list_addr, cfg("lists.sr.ht", "posting-domain"))
+    reply["To"] = orig_mail["From"]
+    reply["From"] = reply_to
+    reply["In-Reply-To"] = orig_mail["Message-ID"]
+    reply["Auto-Submitted"] = "auto-replied"
+    reply["Subject"] = "confirm {}".format(confirm_req.confirmation_hash)
+    reply["Reply-To"] = reply_to
+    reply["Date"] = formatdate()
+    reply["Message-ID"] = make_msgid()
+    print(reply.as_string())
+    smtp = start_smtp()
+    try:
+        smtp.send_message(reply, smtp_user, [to[1]])
+    except Exception as ex:
+        print(ex)
+        print("(continuing)")
+    smtp.quit()
+
+def _subscribe(dest, mail):
+    sender = parseaddr(mail["From"])
+    user = User.query.filter(User.email == sender[1]).one_or_none()
+    if user:
+        perms = dest.default_access
+        sub = Subscription.query.filter(
+            Subscription.list_id == dest.id,
+            Subscription.user_id == user.id).one_or_none()
+        access = (Access.query
+                .filter(Access.list_id == dest.id)
+                .filter(Access.user_id == user.id)).one_or_none()
+        if access:
+            perms = access.permissions
+    else:
+        perms = dest.default_access
+        sub = Subscription.query.filter(
+            Subscription.list_id == dest.id,
+            Subscription.email == sender[1]).one_or_none()
+        access = (Access.query
+                .filter(Access.list_id == dest.id)
+                .filter(Access.email == sender[1])).one_or_none()
+        if access:
+            perms = access.permissions
+
+    list_addr = dest.owner.canonical_name + "/" + dest.name
+    message = None
+
+    # TODO: User-specific/email-specific overrides
+    if ListAccess.browse not in perms:
+        reply = MIMEText("""Hi {}!
+
+We got your request to subscribe to {}, but unfortunately subscriptions to this
+list are restricted. Your request has been disregarded.{}
+        """.format(sender[0] or sender[1], list_addr, ("""
+
+However, you are permitted to post mail to this list at this address:
+
+{}@{}""".format(list_addr, cfg("lists.sr.ht", "posting-domain"))
+        if ListAccess.post in perms else "")))
+    elif sub is None:
+        # Send a new confirmation email, regardless of whether there has been
+        # a request before. If the user sends another request, they likely
+        # didn't get the previous mail.
+        confirm = SubscriptionRequest.query.filter(
+            SubscriptionRequest.list_id == dest.id,
+            SubscriptionRequest.email == sender[1]).one_or_none()
+        if confirm is None:
+            confirm = SubscriptionRequest(sender[1], dest.id)
+            db.session.add(confirm)
+        _send_confirmation(sender, list_addr, confirm, mail)
+        db.session.commit()
+        return
+    else:
+        reply = MIMEText("""Hi {}!
+
+We got an email asking to subscribe you to the {} mailing list. However, it
+looks like you're already subscribed. To unsubscribe, send an email to:
+
+{}+unsubscribe@{}
+
+Feel free to reply to this email if you have any questions.""".format(
+                sender[0] or sender[1], list_addr, list_addr,
+                cfg("lists.sr.ht", "posting-domain")))
+    reply["To"] = mail["From"]
+    reply["From"] = "mailer@" + cfg("lists.sr.ht", "posting-domain")
+    reply["In-Reply-To"] = mail["Message-ID"]
+    reply["Auto-Submitted"] = "auto-replied"
+    reply["Subject"] = "Re: " + (
+            mail.get("Subject") or "Your subscription request")
+    reply["Reply-To"] = "{} <{}>".format(
+            cfg("sr.ht", "owner-name"), cfg("sr.ht", "owner-email"))
+    reply["Date"] = formatdate()
+    reply["Message-ID"] = make_msgid()
+    print(reply.as_string())
+    smtp = start_smtp()
+    try:
+        smtp.send_message(reply, smtp_user, [sender[1]])
+    except Exception as ex:
+        print(ex)
+        print("(continuing)")
+    smtp.quit()
+    db.session.commit()
+
+def _unsubscribe(dest, mail):
+    sender = parseaddr(mail["From"])
+    user = User.query.filter(User.email == sender[1]).one_or_none()
+    if user:
+        sub = Subscription.query.filter(
+            Subscription.list_id == dest.id,
+            Subscription.user_id == user.id).one_or_none()
+        if sub is None:
+            sub = Subscription.query.filter(
+                Subscription.list_id == dest.id,
+                Subscription.email == user.email).one_or_none()
+    else:
+        sub = Subscription.query.filter(
+            Subscription.list_id == dest.id,
+            Subscription.email == sender[1]).one_or_none()
+    list_addr = dest.owner.canonical_name + "/" + dest.name
+    message = None
+    if sub is None:
+        reply = MIMEText("""Hi {}!
+
+We got your request to unsubscribe from {}, but we did not find a subscription
+from your email. If you continue to receive undesirable emails from this list,
+please reply to this email for support.""".format(
+                sender[0] or sender[1], list_addr))
+    else:
+        db.session.delete(sub)
+        reply = MIMEText("""Hi {}!
+
+You have been successfully unsubscribed from the {} mailing list. If you wish to
+re-subscribe, send an email to:
+
+{}+subscribe@{}
+
+Feel free to reply to this email if you have any questions.""".format(
+                sender[0] or sender[1], list_addr, list_addr,
+                cfg("lists.sr.ht", "posting-domain")))
+    reply["To"] = mail["From"]
+    reply["From"] = "mailer@" + cfg("lists.sr.ht", "posting-domain")
+    reply["In-Reply-To"] = mail["Message-ID"]
+    reply["Auto-Submitted"] = "auto-replied"
+    reply["Subject"] = "Re: " + (
+            mail.get("Subject") or "Your subscription request")
+    reply["Reply-To"] = "{} <{}>".format(
+            cfg("sr.ht", "owner-name"), cfg("sr.ht", "owner-email"))
+    reply["Date"] = formatdate()
+    reply["Message-ID"] = make_msgid()
+    print(reply.as_string())
+    smtp = start_smtp()
+    try:
+        smtp.send_message(reply, smtp_user, [sender[1]])
+    except Exception as ex:
+        print(ex)
+        print("(continuing)")
+    smtp.quit()
+    db.session.commit()
+
+def _confirm(dest, mail):
+    sender = parseaddr(mail["From"])
+    confirm = SubscriptionRequest.query.filter(
+        SubscriptionRequest.list_id == dest.id,
+        SubscriptionRequest.email == sender[1]).one_or_none()
+
+    if confirm is None:
+        return
+
+    if confirm.confirmation_hash != mail.get("Subject").split()[-1]:
+        return
+
+    list_addr = dest.owner.canonical_name + "/" + dest.name
+    user = User.query.filter(User.email == sender[1]).one_or_none()
+
+    sub = Subscription()
+    sub.user_id = user.id if user else None
+    sub.list_id = dest.id
+    sub.email = sender[1] if not user else None
+
+    reply = MIMEText("""Hi {}!
+
+Your subscription to {} is confirmed! To unsubscribe in the future, send an
+email to this address:
+
+{}+unsubscribe@{}
+
+Feel free to reply to this email if you have any questions.""".format(
+            sender[0] or sender[1], list_addr, list_addr,
+            cfg("lists.sr.ht", "posting-domain")))
+    reply["To"] = mail["From"]
+    reply["From"] = "mailer@" + cfg("lists.sr.ht", "posting-domain")
+    reply["In-Reply-To"] = mail["Message-ID"]
+    reply["Auto-Submitted"] = "auto-replied"
+    reply["Subject"] = "Re: " + (
+            mail.get("Subject") or "Your subscription request")
+    reply["Reply-To"] = "{} <{}>".format(
+            cfg("sr.ht", "owner-name"), cfg("sr.ht", "owner-email"))
+    reply["Date"] = formatdate()
+    reply["Message-ID"] = make_msgid()
+
+    db.session.add(sub)
+    db.session.delete(confirm)
+
+    print(reply.as_string())
+    smtp = start_smtp()
+    try:
+        smtp.send_message(reply, smtp_user, [sender[1]])
+    except Exception as ex:
+        print(ex)
+        print("(continuing)")
+    smtp.quit()
+    db.session.commit()
+
+def _configure_mirror(ml, mirror, mail):
+    print("Message from mirror upstream mail server: ",
+            mail.as_string())
+
+    sender = parseaddr(mail["From"])
+    mirror.mailer_sender = sender[1]
+    reply_to = mail["Reply-To"]
+    if not reply_to:
+        mirror.configured = True
+        db.session.commit()
+        return
+
+    if mirror.configure_attempts > 2:
+        # Contact support
+        return
+    mirror.configure_attempts += 1
+
+    list_name = "{}/{}".format(ml.owner.canonical_name, ml.name)
+
+    posting_domain = cfg("lists.sr.ht", "posting-domain")
+    reply = MIMEText(f"Confirming subscription request for {posting_domain}"
+        f"on behalf of {ml.owner.canonical_name}\n\n"
+        "If this email is unexpected, feel free to ignore it, or send "
+        "questions to:\n\n"
+        f"{cfg('sr.ht', 'owner-name')} <{cfg('sr.ht', 'owner-email')}>")
+    reply["To"] = reply_to
+    reply["From"] = f"{posting_domain} mirror <{list_name}@{posting_domain}>"
+    reply["In-Reply-To"] = mail["Message-ID"]
+    reply["Auto-Submitted"] = "auto-replied"
+    reply["Subject"] = "Re: " + (mail.get("Subject") or "subscribe")
+    reply["Date"] = formatdate()
+    reply["Message-ID"] = make_msgid()
+    reply["X-Mirroring-To"] = posting_domain
+
+    smtp = start_smtp()
+    try:
+        smtp.send_message(reply, smtp_user, [sender[1]])
+    except Exception as ex:
+        print(ex)
+        print("(continuing)")
+    smtp.quit()
+    db.session.commit()
+
+def _mirror(ml, mail):
+    # TODO: disallow mail from any mail server other than the one being mirrored
+    # TODO TODO: deal with the mirror's mail server changing addresses
+    mirror = ml.mirror
+    if not mirror:
+        return None, None
+    sender = parseaddr(mail["From"])
+    if not mirror.configured or sender[1] == mirror.mailer_sender:
+        return _configure_mirror(ml, mirror, mail)
+
+    list_subscribe = mail["List-Subscribe"]
+    list_unsubscribe = mail["List-Unsubscribe"]
+    list_post = mail["List-Post"]
+
+    updated = False
+    if list_subscribe:
+        if list_subscribe.startswith("<") and list_subscribe.endswith(">"):
+            list_subscribe = list_subscribe[1:-1]
+        mirror.list_subscribe = list_subscribe
+    if list_unsubscribe:
+        if list_unsubscribe.startswith("<") and list_unsubscribe.endswith(">"):
+            list_unsubscribe = list_unsubscribe[1:-1]
+        mirror.list_unsubscribe = list_unsubscribe
+    if list_post:
+        if list_post.startswith("<") and list_post.endswith(">"):
+            list_post = list_post[1:-1]
+        mirror.list_post = list_post
+
+    return _archive(ml, mail)
+
+@task
+def dispatch_message(address, list_id, mail_b64):
+    address = address[:address.rfind("@")]
+    command = "post"
+    if "+" in address:
+        command = address[address.rfind("+") + 1:].lower()
+        address = address[:address.rfind("+")]
+    dest = List.query.filter(List.id == list_id).one_or_none()
+    mail = email.message_from_bytes(base64.b64decode(mail_b64), policy=policy)
+
+    autosub = mail.get("auto-submitted")
+    if autosub == "auto-generated" or autosub == "auto-replied":
+        return # disregard automatic emails like OOO replies
+
+    try:
+        if command == "post":
+            msgid = mail.get("Message-ID").strip()
+            if not msgid or Email.query.filter(
+                    Email.message_id == msgid,
+                    Email.list_id == dest.id).count():
+                print("Dropping email due to duplicate message ID")
+                return
+            dest.updated = datetime.utcnow()
+
+            list_id = mail.get("List-ID")
+            if dest.mirror_id or list_id:
+                archived, mail = _mirror(dest, mail)
+                if not archived:
+                    return
+                db.session.commit()
+                _webhooks(dest, archived)
+            else:
+                archived, mail = _archive(dest, mail)
+                if not archived:
+                    return
+                db.session.commit()
+                _webhooks(dest, archived)
+                _forward(dest, mail)
+        elif command == "subscribe":
+            _subscribe(dest, mail)
+        elif command == "unsubscribe":
+            _unsubscribe(dest, mail)
+        elif command == "confirm":
+            _confirm(dest, mail)
+    except:
+        db.session.rollback()
+        raise
+
+@task
+def send_error_for(mail_b64, error):
+    # Instead of letting postfix send an unfriendly bounce message, for some
+    # errors we send our own bounce message which is a little easier to
+    # understand.
+    mail = email.message_from_bytes(base64.b64decode(mail_b64), policy=policy)
+    print(f"Rejecting email ({error}):")
+    print(mail.as_string())
+    autosub = mail.get("auto-submitted")
+    if autosub == "auto-generated" or autosub == "auto-replied":
+        return # disregard automatic emails like OOO replies
+    if not mail["From"]:
+        return # not much we can do with this
+    reply = MIMEText(error)
+    posting_domain = cfg("lists.sr.ht", "posting-domain")
+    reply["To"] = mail["From"]
+    reply["From"] = "mailer@" + posting_domain
+    reply["In-Reply-To"] = mail["Message-ID"]
+    reply["Subject"] = "Re: " + (
+            mail.get("Subject") or "Your recent email to " + posting_domain)
+    reply["Reply-To"] = "{} <{}>".format(
+            cfg("sr.ht", "owner-name"), cfg("sr.ht", "owner-email"))
+    reply["Date"] = formatdate()
+    reply["Message-ID"] = make_msgid()
+    reply["Auto-Submitted"] = "auto-replied"
+    reply.replace_header("Content-Type", 'text/plain; charset="us-ascii"; format=flowed')
+    print(reply.as_string())
+    smtp = start_smtp()
+    sender = parseaddr(mail["From"])
+    try:
+        smtp.send_message(reply, smtp_user, [sender[1]])
+    except Exception as ex:
+        print(ex)
+    smtp.quit()
 
 @task
 def forward_thread(list_id, thread_id, recipient):
