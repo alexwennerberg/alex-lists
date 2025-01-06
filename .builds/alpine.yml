@@ -42,6 +42,6 @@ tasks:
   - deploy: |
       ssh $master doas apk upgrade -Ua
       ssh $master doas service lists.sr.ht restart
-      ssh $master doas service lists.sr.ht-process restart
       ssh $master doas service lists.sr.ht-api restart
-      ssh $master doas service lists.sr.ht-lmtp restart
+      ssh $master doas service lists.sr.ht-ingress restart
+      ssh $master doas service lists.sr.ht-process restart
