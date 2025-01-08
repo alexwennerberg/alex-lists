@@ -6,16 +6,19 @@ toolchain go1.23.3
 
 require (
 	git.sr.ht/~emersion/go-emailthreads v0.0.0-20230220165133-75c43015b6c2
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20241216134146-173152054121
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20241218153042-deb699c9d01a
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c
 	github.com/99designs/gqlgen v0.17.45
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/bluekeyes/go-gitdiff v0.7.2
 	github.com/emersion/go-mbox v1.0.3
 	github.com/emersion/go-message v0.18.0
+	github.com/emersion/go-smtp v0.21.3
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/google/uuid v1.6.0
 	github.com/lib/pq v1.10.9
+	github.com/prometheus/client_golang v1.19.0
+	github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec
 	github.com/vektah/dataloaden v0.3.0
 	github.com/vektah/gqlparser/v2 v2.5.11
 )
@@ -32,7 +35,6 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/emersion/go-pgpmail v0.2.1 // indirect
 	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43 // indirect
-	github.com/emersion/go-smtp v0.21.3 // indirect
 	github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594 // indirect
 	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
@@ -43,14 +45,12 @@ require (
 	github.com/lann/ps v0.0.0-20150810152359-62de8c46ede0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
-	github.com/prometheus/client_golang v1.19.0 // indirect
 	github.com/prometheus/client_model v0.6.0 // indirect
 	github.com/prometheus/common v0.50.0 // indirect
 	github.com/prometheus/procfs v0.13.0 // indirect
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
 	github.com/sosodev/duration v1.2.0 // indirect
 	github.com/urfave/cli/v2 v2.27.1 // indirect
-	github.com/vaughan0/go-ini v0.0.0-20130923145212-a98ad7ee00ec // indirect
 	github.com/xrash/smetrics v0.0.0-20240312152122-5f08fbb34913 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/mod v0.16.0 // indirect

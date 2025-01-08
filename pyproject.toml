@@ -36,7 +36,6 @@ packages = [
 ]
 script-files = [
     "listssrht-initdb",
-    "listssrht-lmtp",
     "listssrht-migrate",
 ]
 [tool.setuptools.package-data]

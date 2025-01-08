@@ -17,3 +17,4 @@ build
 api/api
 api/graph/api/generated.go
 *_gen.go
+ingress/ingress
