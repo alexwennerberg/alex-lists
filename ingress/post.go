@@ -4,6 +4,7 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"log"
@@ -16,7 +17,7 @@ import (
 	"github.com/emersion/go-message/mail"
 )
 
-func (b *Backend) Post(sender *Sender, msg *message.Entity, list *MailingList) error {
+func (b *Backend) Post(sender *Sender, data []byte, msg *message.Entity, list *MailingList) error {
 	if !(sender.ACL.Post || (list.IsReply && sender.ACL.Reply)) {
 		return &PostPermError{sender, list}
 	}
@@ -27,12 +28,13 @@ func (b *Backend) Post(sender *Sender, msg *message.Entity, list *MailingList) e
 
 	msgID := msg.Header.Get("Message-ID")
 
-	err := ArchiveMessage(msg, list)
+	// Validate() consumed the message.Entity body, directly archive raw data
+	err := ArchiveMessage(data, list)
 
 	switch {
 	case err == nil:
 		log.Printf("Archived %s to %s", msgID, list.FullName())
-		return b.ForwardMessage(msg, list)
+		return b.ForwardMessage(data, list)
 
 	case errors.Is(err, apierr.ErrDuplicateEmail):
 		log.Printf("Dropping duplicate message %s on %s", msgID, list.FullName())
@@ -52,7 +54,7 @@ var reservedHeaders = []string{
 	"Sender",
 }
 
-func (b *Backend) ForwardMessage(msg *message.Entity, list *MailingList) error {
+func (b *Backend) ForwardMessage(data []byte, list *MailingList) error {
 	var recipients []string
 	alreadyCopied := make(map[string]bool)
 
@@ -61,6 +63,9 @@ func (b *Backend) ForwardMessage(msg *message.Entity, list *MailingList) error {
 	if err != nil {
 		return err
 	}
+
+	// cannot fail, the message has already been validated
+	msg, _ := message.Read(bytes.NewReader(data))
 
 	// eliminate recipients that were already included in the original message
 	header := mail.Header{Header: msg.Header}

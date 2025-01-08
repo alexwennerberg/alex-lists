@@ -84,13 +84,14 @@ func (s *Session) Data(r io.Reader) error {
 		from  string
 		to    []string
 		err   error
-		data  bytes.Buffer
+		buf   bytes.Buffer
+		data  []byte
 		n     int64
 	)
 
 	EmailsCounter.Inc()
 
-	n, err = io.CopyN(&data, r, Config.MaxMessageSize)
+	n, err = io.CopyN(&buf, r, Config.MaxMessageSize)
 	switch {
 	case n == Config.MaxMessageSize:
 		err = fmt.Errorf("Message too big.")
@@ -104,10 +105,13 @@ func (s *Session) Data(r io.Reader) error {
 		goto end
 	}
 
-	email, err = message.Read(&data)
-	if err != nil {
+	data = buf.Bytes()
+
+	email, err = message.Read(bytes.NewReader(data))
+	if err != nil && message.IsUnknownCharset(err) {
 		goto end
 	}
+
 	switch strings.ToLower(email.Header.Get("Auto-Submitted")) {
 	case "auto-generated", "auto-replied":
 		// disregard automatic emails like OOO replies
@@ -123,7 +127,7 @@ func (s *Session) Data(r io.Reader) error {
 	}
 
 	log.Printf(
-		" message received from=%s to=%s message_id=%s subject=%s",
+		"message received from=%s to=%s message_id=%s subject=%s",
 		s.from,
 		strings.Join(s.to, ","),
 		email.Header.Get("Message-Id"),
@@ -137,7 +141,7 @@ func (s *Session) Data(r io.Reader) error {
 
 	// Defer processing to the ingress worker.
 	s.backend.ingress.Enqueue(work.NewTask(func(context.Context) error {
-		return s.backend.ProcessMessage(from, to, email)
+		return s.backend.ProcessMessage(from, to, data)
 	}).Retries(10))
 
 end:
@@ -150,14 +154,18 @@ end:
 }
 
 func (b *Backend) ProcessMessage(
-	from string, recipients []string, email *message.Entity,
+	from string, recipients []string, data []byte,
 ) error {
 	var (
+		email  *message.Entity
 		list   *MailingList
 		sender *Sender
 		failed int
 		err    error
 	)
+
+	// cannot fail, we already parsed it once in Session.Data()
+	email, _ = message.Read(bytes.NewReader(data))
 
 	for _, to := range recipients {
 		sender, list, err = LookupEmailDetails(email, to)
@@ -178,7 +186,7 @@ func (b *Backend) ProcessMessage(
 			CommandsCounter.Inc()
 			err = b.ConfirmUnsubscribe(sender, email, list)
 		default:
-			err = b.Post(sender, email, list)
+			err = b.Post(sender, data, email, list)
 		}
 	next:
 		if _, ok := err.(BounceError); ok {

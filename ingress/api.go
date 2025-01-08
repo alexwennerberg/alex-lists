@@ -215,12 +215,7 @@ func ConfirmUnsubscription(sender *Sender, list *MailingList, token string) erro
 	)
 }
 
-func ArchiveMessage(msg *message.Entity, list *MailingList) error {
-	var buf bytes.Buffer
-	if err := msg.WriteTo(&buf); err != nil {
-		return err
-	}
-
+func ArchiveMessage(data []byte, list *MailingList) error {
 	ctx := config.Context(context.TODO(), SrhtConfig, LISTS_SERVICE)
 	return client.Do(
 		ctx, list.Owner, LISTS_SERVICE,
@@ -232,7 +227,7 @@ func ArchiveMessage(msg *message.Entity, list *MailingList) error {
 			Uploads: map[string]graphql.Upload{
 				"msg": {
 					Filename:    "archive",
-					File:        bytes.NewReader(buf.Bytes()),
+					File:        bytes.NewReader(data),
 					ContentType: "message/rfc822",
 				},
 			},
