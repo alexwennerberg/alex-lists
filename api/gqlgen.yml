@@ -17,6 +17,8 @@ model:
   filename: graph/model/models_gen.go
   package: model
 
+skip_mod_tidy: true
+
 # Where should the resolver implementations go?
 resolver:
   layout: follow-schema
