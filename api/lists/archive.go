@@ -396,7 +396,7 @@ func (ar *Archiver) updateThreadReplies(threadID int32) error {
 	memberIDs := []int32{threadID}
 	participants := make(map[string]struct{})
 	threadMembers, err := ar.tx.Query(
-		`SELECT id, headers -> 'From' -> 0 FROM email WHERE thread_id = $1`,
+		`SELECT id, (headers -> 'From')::text FROM email WHERE thread_id = $1`,
 		threadID,
 	)
 	if err != nil {
