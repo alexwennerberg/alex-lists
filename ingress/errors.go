@@ -8,13 +8,14 @@ import (
 )
 
 type BounceError interface {
-	Bounce()
+	Error() string
+	Body() string
 }
 
 type HtmlError struct{ sender *Sender }
 
-func (e *HtmlError) Bounce() {}
-func (e *HtmlError) Error() string {
+func (e *HtmlError) Error() string { return "no text/html part found" }
+func (e *HtmlError) Body() string {
 	return fmt.Sprintf(`Hi %s!
 
 We received your email, but were unable to deliver it because it 
@@ -33,8 +34,11 @@ type ForbidenMimeError struct {
 	mime   string
 }
 
-func (e *ForbidenMimeError) Bounce() {}
 func (e *ForbidenMimeError) Error() string {
+	return fmt.Sprintf("forbidden MIME part: %s", e.mime)
+}
+
+func (e *ForbidenMimeError) Body() string {
 	return fmt.Sprintf(`Hi %s!
 
 We received your email, but were unable to deliver it because it 
@@ -53,8 +57,8 @@ admin. We apologise for the inconvenience.
 
 type NoTextError struct{ sender *Sender }
 
-func (e *NoTextError) Bounce() {}
-func (e *NoTextError) Error() string {
+func (e *NoTextError) Error() string { return "no text/plain part found" }
+func (e *NoTextError) Body() string {
 	return fmt.Sprintf(`Hi %s!
 
 We received your email, but were unable to deliver it because there were 
@@ -71,8 +75,11 @@ admin. We apologise for the inconvenience.
 
 type UnknownListError struct{ list string }
 
-func (e *UnknownListError) Bounce() {}
 func (e *UnknownListError) Error() string {
+	return fmt.Sprintf("unknown list: %s", e.list)
+}
+
+func (e *UnknownListError) Body() string {
 	return fmt.Sprintf(`Hi!
 
 We received your email, but were unable to deliver it because the 
@@ -100,8 +107,11 @@ admin. We apologise for the inconvenience.
 
 type UnknownCommandError struct{ list *MailingList }
 
-func (e *UnknownCommandError) Bounce() {}
 func (e *UnknownCommandError) Error() string {
+	return fmt.Sprintf("unknown list command: +%s", e.list.Command)
+}
+
+func (e *UnknownCommandError) Body() string {
 	return fmt.Sprintf(`Hi!
 
 We received your email, but were unable to process it because the 
@@ -136,8 +146,12 @@ type PostPermError struct {
 	list   *MailingList
 }
 
-func (e *PostPermError) Bounce() {}
 func (e *PostPermError) Error() string {
+	return fmt.Sprintf("%s denied posting to %s",
+		e.sender.Email, e.list.Address())
+}
+
+func (e *PostPermError) Body() string {
 	return fmt.Sprintf(`Hi %s!
 
 Sorry, but your account is not allowed to post to: %s
@@ -149,8 +163,12 @@ type SubscribePermError struct {
 	list   *MailingList
 }
 
-func (e *SubscribePermError) Bounce() {}
 func (e *SubscribePermError) Error() string {
+	return fmt.Sprintf("%s denied subscribing to %s",
+		e.sender.Email, e.list.Address())
+}
+
+func (e *SubscribePermError) Body() string {
 	s := fmt.Sprintf(`Hi %s!
 
 We got your request to subscribe to: %s
@@ -170,8 +188,8 @@ However, you are permitted to post mail to this list at this address:
 
 type InvalidHeaderError struct{ message string }
 
-func (e *InvalidHeaderError) Bounce()       {}
 func (e *InvalidHeaderError) Error() string { return e.message }
+func (e *InvalidHeaderError) Body() string  { return e.message }
 
 func InvalidHeaderErrorf(format string, v ...any) error {
 	return &InvalidHeaderError{fmt.Sprintf(format, v...)}
@@ -184,8 +202,12 @@ type ConfirmationError struct {
 	unsubscribe bool
 }
 
-func (e *ConfirmationError) Bounce() {}
 func (e *ConfirmationError) Error() string {
+	return fmt.Sprintf("confirmation error: command=+%s subject=%s",
+		e.list.Command, e.subject)
+}
+
+func (e *ConfirmationError) Body() string {
 	kind := "a subscription"
 	if e.unsubscribe {
 		kind = "an unsubscription"
