@@ -45,15 +45,6 @@ func (b *Backend) Post(sender *Sender, data []byte, msg *message.Entity, list *M
 	}
 }
 
-var reservedHeaders = []string{
-	"List-Unsubscribe",
-	"List-Subscribe",
-	"List-Archive",
-	"List-Post",
-	"List-ID",
-	"Sender",
-}
-
 func (b *Backend) ForwardMessage(data []byte, list *MailingList) error {
 	var recipients []string
 	alreadyCopied := make(map[string]bool)
@@ -88,40 +79,49 @@ func (b *Backend) ForwardMessage(data []byte, list *MailingList) error {
 		return nil
 	}
 
-	// prepare message with appropriate mailing list headers
-	for _, h := range reservedHeaders {
-		msg.Header.Del(h)
+	// prepend message with appropriate mailing list headers
+	var buf bytes.Buffer
+
+	fmt.Fprintf(&buf, "List-Unsubscribe: <mailto:%s?subject=unsubscribe>\r\n",
+		list.PlusAddress(CMD_UNSUBSCRIBE))
+	fmt.Fprintf(&buf, "List-Subscribe: <mailto:%s?subject=subscribe>\r\n",
+		list.PlusAddress(CMD_SUBSCRIBE))
+	fmt.Fprintf(&buf, "List-Archive: <%s/%s>\r\n",
+		Config.OriginUrl, list.FullName())
+	fmt.Fprintf(&buf, "Archived-At: <%s/%s/%s>\r\n",
+		Config.OriginUrl, list.FullName(), msgID)
+	fmt.Fprintf(&buf, "List-Post: <mailto:%s>\r\n",
+		list.Address())
+	fmt.Fprintf(&buf, "List-ID: %s <%s.%s>\r\n",
+		list.FullName(), list.FullName(), Config.Domain)
+	fmt.Fprintf(&buf, "Sender: %s <%s>\r\n",
+		list.FullName(), list.Address())
+
+	// append received message verbatim without reformatting
+	_, err = buf.Write(data)
+	if err != nil {
+		return fmt.Errorf("buf.Write: %w", err)
 	}
-	msg.Header.Set("List-Unsubscribe",
-		fmt.Sprintf("<mailto:%s?subject=unsubscribe>",
-			list.PlusAddress(CMD_UNSUBSCRIBE)))
-	msg.Header.Set("List-Subscribe",
-		fmt.Sprintf("<mailto:%s?subject=subscribe>",
-			list.PlusAddress(CMD_SUBSCRIBE)))
-	msg.Header.Set("List-Archive",
-		fmt.Sprintf("<%s/%s>", Config.OriginUrl, list.FullName()))
-	msg.Header.Set("Archived-At",
-		fmt.Sprintf("<%s/%s/%s>",
-			Config.OriginUrl, list.FullName(),
-			msgID))
-	msg.Header.Set("List-Post",
-		fmt.Sprintf("<mailto:%s>", list.Address()))
-	msg.Header.Set("List-ID",
-		fmt.Sprintf("%s <%s.%s>",
-			list.FullName(), list.FullName(), Config.Domain))
-	msg.Header.Set("Sender",
-		fmt.Sprintf("%s <%s>", list.FullName(), list.Address()))
 
 	// forward the message to all subscribers
 	log.Printf("Forwarding message %s to %d subscribers",
 		msgID, len(recipients))
 	ForwardsCounter.Inc()
-	return email.EnqueueRaw(b.ctx, msg, recipients)
+	return email.EnqueueRaw(b.ctx, buf.Bytes(), recipients)
 }
 
 var (
 	requiredHeaders   = []string{"From", "Subject", "Message-Id"}
-	prohibitedHeaders = []string{"Return-Receipt-To", "Disposition-Notification-To"}
+	prohibitedHeaders = []string{
+		"Return-Receipt-To",
+		"Disposition-Notification-To",
+		"List-Unsubscribe",
+		"List-Subscribe",
+		"List-Archive",
+		"List-Post",
+		"List-ID",
+		"Sender",
+	}
 )
 
 func Validate(sender *Sender, msg *message.Entity, list *MailingList) error {
