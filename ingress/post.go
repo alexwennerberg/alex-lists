@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"path/filepath"
 	"strings"
 
@@ -89,7 +90,7 @@ func (b *Backend) ForwardMessage(data []byte, list *MailingList) error {
 	fmt.Fprintf(&buf, "List-Archive: <%s/%s>\r\n",
 		Config.OriginUrl, list.FullName())
 	fmt.Fprintf(&buf, "Archived-At: <%s/%s/%s>\r\n",
-		Config.OriginUrl, list.FullName(), msgID)
+		Config.OriginUrl, list.FullName(), url.PathEscape(msgID))
 	fmt.Fprintf(&buf, "List-Post: <mailto:%s>\r\n",
 		list.Address())
 	fmt.Fprintf(&buf, "List-ID: %s <%s.%s>\r\n",
@@ -112,16 +113,7 @@ func (b *Backend) ForwardMessage(data []byte, list *MailingList) error {
 
 var (
 	requiredHeaders   = []string{"From", "Subject", "Message-Id"}
-	prohibitedHeaders = []string{
-		"Return-Receipt-To",
-		"Disposition-Notification-To",
-		"List-Unsubscribe",
-		"List-Subscribe",
-		"List-Archive",
-		"List-Post",
-		"List-ID",
-		"Sender",
-	}
+	prohibitedHeaders = []string{"Return-Receipt-To", "Disposition-Notification-To"}
 )
 
 func Validate(sender *Sender, msg *message.Entity, list *MailingList) error {
