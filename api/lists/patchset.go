@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
-	"git.sr.ht/~sircmpwn/lists.sr.ht/api/webhooks"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 )
 
@@ -229,23 +228,6 @@ func (ar *Archiver) importPatch(emailID, threadID int32, subject, status string,
 		patchsetID, threadID,
 	); err != nil {
 		return err
-	}
-
-	if !ar.isImport {
-		webhooks.DeliverListPatchsetEvent(
-			ar.ctx, ar.listID, model.WebhookEventPatchsetReceived,
-			&model.Patchset{
-				ID:            patchsetID,
-				Created:       created,
-				Updated:       updated,
-				Subject:       subject,
-				Prefix:        &patchsetPrefix,
-				Version:       patchsetVersion,
-				MailingListID: ar.listID,
-				CoverLetterID: coverLetterID,
-				RawStatus:     status,
-			},
-		)
 	}
 
 	// TODO: identify patchset that this supersedes, if appropriate

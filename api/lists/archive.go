@@ -14,7 +14,6 @@ import (
 
 	apiErr "git.sr.ht/~sircmpwn/lists.sr.ht/api/errors"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
-	"git.sr.ht/~sircmpwn/lists.sr.ht/api/webhooks"
 	"github.com/emersion/go-mbox"
 	"github.com/emersion/go-message"
 	"github.com/emersion/go-message/mail"
@@ -59,7 +58,7 @@ func (ar *Archiver) ImportSpool(spool io.Reader) error {
 			return fmt.Errorf("Error reading mailing list spool: %v", err)
 		}
 
-		if err = ar.ArchiveMessage(msg); err != nil {
+		if _, err = ar.ArchiveMessage(msg); err != nil {
 			if errors.Is(err, apiErr.ErrDuplicateEmail) {
 				continue
 			}
@@ -74,17 +73,17 @@ func (ar *Archiver) ImportSpool(spool io.Reader) error {
 // Import a single email (RFC 2045 MIME message) into a mailing list archive.
 //
 // Does not enforce access controls.
-func (ar *Archiver) ArchiveMessage(r io.Reader) error {
+func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 	var envelope bytes.Buffer
 
 	mr, err := mail.CreateReader(io.TeeReader(r, &envelope))
 	if err != nil {
-		return err
+		return 0, err
 	}
 	subject, err := mr.Header.Subject()
 	if err != nil {
 		if !message.IsUnknownCharset(err) {
-			return fmt.Errorf("Error reading Subject: %w", err)
+			return 0, fmt.Errorf("Error reading Subject: %w", err)
 		}
 		if subject == "" {
 			// even if the subject is garbage, at least store something in the db
@@ -122,7 +121,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return fmt.Errorf("Error reading message part: %w", err)
+			return 0, fmt.Errorf("Error reading message part: %w", err)
 		}
 
 		switch p.Header.(type) {
@@ -142,7 +141,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 
 	headerMap, err := json.Marshal(mr.Header.Map())
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	var exists bool
@@ -153,12 +152,12 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 		ar.listID, messageID,
 	)
 	if err := row.Scan(&exists); err != nil {
-		return err
+		return 0, err
 	}
 	if exists {
 		// Skip this message
 		log.Printf("Skipping duplicate message %q", messageID)
-		return apiErr.ErrDuplicateEmail
+		return 0, apiErr.ErrDuplicateEmail
 	}
 
 	var emailID int32
@@ -193,7 +192,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 		nil, nil, nil, nil, nil, nil, nil,
 	)
 	if err := row.Scan(&emailID); err != nil {
-		return err
+		return 0, err
 	}
 
 	// Set parent of this email
@@ -204,35 +203,35 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 	)
 	if err := row.Scan(&parentID); err != nil {
 		if err != sql.ErrNoRows {
-			return err
+			return 0, err
 		}
 	} else {
 		if _, err := ar.tx.Exec(
 			`UPDATE email SET parent_id = $1 WHERE id = $2`,
 			parentID, emailID,
 		); err != nil {
-			return err
+			return 0, err
 		}
 	}
 
 	threadID, err := ar.computeThreadID(emailID)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	if threadID != emailID {
 		if _, err := ar.tx.Exec(
 			`UPDATE email SET thread_id = $1 WHERE id = $2`,
 			threadID, emailID,
 		); err != nil {
-			return err
+			return 0, err
 		}
 	}
 
 	if err := ar.reparentEmails(threadID, emailID, messageID); err != nil {
-		return err
+		return 0, err
 	}
 	if err := ar.updateThreadReplies(threadID); err != nil {
-		return err
+		return 0, err
 	}
 
 	// TODO: Enumerate CC's and create SQL relationships for them
@@ -240,10 +239,10 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 	// TODO: Multiple From addresses?
 	senders, err := mr.Header.AddressList("From")
 	if err != nil {
-		return fmt.Errorf("Error reading From: %q %w", mr.Header.Get("From"), err)
+		return 0, fmt.Errorf("Error reading From: %q %w", mr.Header.Get("From"), err)
 	}
 	if len(senders) == 0 {
-		return errors.New("expected at least one From address")
+		return 0, errors.New("expected at least one From address")
 	}
 
 	// Lookup sender by email
@@ -254,14 +253,14 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 	var senderID *int
 	if err := row.Scan(&senderID); err != nil {
 		if err != sql.ErrNoRows {
-			return err
+			return 0, err
 		}
 	} else {
 		if _, err := ar.tx.Exec(
 			`UPDATE email SET sender_id = $1 WHERE id = $2`,
 			*senderID, emailID,
 		); err != nil {
-			return err
+			return 0, err
 		}
 	}
 
@@ -278,7 +277,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 	}
 
 	if err := ar.importPatch(emailID, threadID, subject, status, isPatch); err != nil {
-		return err
+		return 0, err
 	}
 
 	if !ar.isImport {
@@ -304,34 +303,11 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 				log.Println("Failed updating patchset status:", err)
 			}
 		}
-
-		tid := new(int)
-		*tid = int(threadID)
-		var irp *string
-		if inReplyTo.Valid {
-			irp = &inReplyTo.String
-		}
-		webhooks.DeliverListEmailEvent(
-			ar.ctx, ar.listID, model.WebhookEventEmailReceived,
-			&model.Email{
-				ID:            int(emailID),
-				Received:      date,
-				Body:          body,
-				Subject:       subject,
-				MessageID:     messageID,
-				MailingListID: ar.listID,
-				RawHeader:     mr.Header,
-				RawEnvelope:   envelope.Bytes(),
-				ThreadID:      tid,
-				PatchsetID:    patchsetID,
-				InReplyTo:     irp,
-			},
-		)
 	}
 
 	log.Printf("Archived message %q", messageID)
 
-	return nil
+	return int(emailID), nil
 }
 
 // Computes the thread ID for the given email

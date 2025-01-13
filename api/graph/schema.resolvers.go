@@ -1449,10 +1449,18 @@ func (r *mutationResolver) ArchiveMessage(ctx context.Context, listID int, messa
 		return false, errors.New("Messages must not exceed 30 MiB in size")
 	}
 
+	var emailID int
+	var err error
+
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		return lists.NewArchiver(ctx, tx, listID).
+		emailID, err = lists.NewArchiver(ctx, tx, listID).
 			ArchiveMessage(message.File)
+		return err
 	}); err != nil {
+		return false, err
+	}
+
+	if _, err = r.TriggerListEmailWebhooks(ctx, listID, emailID); err != nil {
 		return false, err
 	}
 
