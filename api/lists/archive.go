@@ -10,11 +10,13 @@ import (
 	"io"
 	"log"
 	"strings"
+	"time"
 
 	apiErr "git.sr.ht/~sircmpwn/lists.sr.ht/api/errors"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/webhooks"
 	"github.com/emersion/go-mbox"
+	"github.com/emersion/go-message"
 	"github.com/emersion/go-message/mail"
 	"github.com/lib/pq"
 )
@@ -81,21 +83,30 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) error {
 	}
 	subject, err := mr.Header.Subject()
 	if err != nil {
-		return fmt.Errorf("Error reading Subject: %w", err)
-	}
-	messageID, err := mr.Header.MessageID()
-	if err != nil {
-		return fmt.Errorf("Error reading Message-ID: %w", err)
+		if !message.IsUnknownCharset(err) {
+			return fmt.Errorf("Error reading Subject: %w", err)
+		}
+		if subject == "" {
+			// even if the subject is garbage, at least store something in the db
+			subject = strings.TrimSpace(mr.Header.Get("Subject"))
+		}
 	}
 	// TODO: Store Message-ID without "<>" in database
-	messageID = "<" + messageID + ">"
+	messageID := mr.Header.Get("Message-ID")
 	date, err := mr.Header.Date()
 	if err != nil {
-		return fmt.Errorf("Error reading Date: %w", err)
+		log.Printf("Error reading Date: %v", err)
+		// fallback on using the current time
+		date = time.Now()
 	}
 	inReplyToList, err := mr.Header.MsgIDList("In-Reply-To")
 	if err != nil {
-		return fmt.Errorf("Error reading In-Reply-To: %w", err)
+		// do not fail miserably on malformed In-Reply-To headers
+		log.Printf("Error reading In-Reply-To: %v", err)
+		irp := strings.Trim(mr.Header.Get("In-Reply-To"), " \r\t\n<>,")
+		if irp != "" {
+			inReplyToList = []string{irp}
+		}
 	}
 	var inReplyTo sql.NullString
 	if len(inReplyToList) > 0 {
