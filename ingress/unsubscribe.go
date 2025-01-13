@@ -64,13 +64,7 @@ unsubscribed from the list, or have any other questions, please reach
 out to %s.
 `, sender.Name, sender.Email, list.Address(), Config.OwnerAddr)
 
-	reply, err := message.New(header.Header, &body)
-	if err != nil {
-		return err
-	}
-
-	email.SendRaw(b.ctx, reply, []string{sender.Email})
-	return nil
+	return email.EnqueueStd(b.ctx, header, &body, nil)
 }
 
 func (b *Backend) NotSubscribed(sender *Sender, msg *message.Entity, list *MailingList) error {
@@ -93,13 +87,7 @@ email to:
 Feel free to reply to this email if you have any questions.
 `, sender.Name, list.FullName(), list.PlusAddress(CMD_SUBSCRIBE))
 
-	reply, err := message.New(header.Header, &body)
-	if err != nil {
-		return err
-	}
-
-	email.SendRaw(b.ctx, reply, []string{sender.Email})
-	return nil
+	return email.EnqueueStd(b.ctx, header, &body, nil)
 }
 
 func (b *Backend) ConfirmUnsubscribe(
@@ -140,11 +128,5 @@ If you wish to re-subscribe, send an email to:
 Feel free to reply to this email if you have any questions.
 `, sender.Name, list.FullName(), list.PlusAddress(CMD_SUBSCRIBE))
 
-	reply, err := message.New(header.Header, &body)
-	if err != nil {
-		return err
-	}
-
-	email.SendRaw(b.ctx, reply, []string{sender.Email})
-	return nil
+	return email.EnqueueStd(b.ctx, header, &body, nil)
 }

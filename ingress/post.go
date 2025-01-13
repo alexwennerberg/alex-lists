@@ -116,8 +116,7 @@ func (b *Backend) ForwardMessage(data []byte, list *MailingList) error {
 	log.Printf("Forwarding message %s to %d subscribers",
 		msgID, len(recipients))
 	ForwardsCounter.Inc()
-	email.SendRaw(b.ctx, msg, recipients)
-	return nil
+	return email.EnqueueRaw(b.ctx, msg, recipients)
 }
 
 var (

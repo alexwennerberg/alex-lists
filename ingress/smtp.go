@@ -70,7 +70,7 @@ var contentTypeParams = map[string]string{
 	"format":  "flowed",
 }
 
-func ReplyHeaders(from, subject string, msg *message.Entity) *mail.Header {
+func ReplyHeaders(from, subject string, msg *message.Entity) mail.Header {
 	header := new(mail.Header)
 	header.Set("To", msg.Header.Get("From"))
 	header.Set("From", from)
@@ -81,7 +81,7 @@ func ReplyHeaders(from, subject string, msg *message.Entity) *mail.Header {
 	header.SetDate(time.Now())
 	header.Set("Auto-Submitted", "auto-replied")
 	header.SetContentType("text/plain", contentTypeParams)
-	return header
+	return *header
 }
 
 func SubjectFallback(msg *message.Entity, fallback string) string {

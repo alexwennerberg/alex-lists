@@ -206,17 +206,16 @@ func (b *Backend) ProcessMessage(
 // Instead of letting postfix send an unfriendly bounce message, for some errors
 // we send our own bounce message which is a little easier to understand.
 func (b *Backend) Bounce(msg *message.Entity, to string, err error) {
-	var body bytes.Buffer
-
 	subject := SubjectFallback(msg, "Your recent email to "+Config.Domain)
 	header := ReplyHeaders(Config.MailerAddr, "Re: "+subject, msg)
 	header.Set("Reply-To", Config.OwnerAddr)
 
-	body.WriteString(strings.TrimSpace(err.Error()))
-
 	log.Printf("bouncing message %s: %T", msg.Header.Get("Message-Id"), err)
 	BounceCounter.Inc()
 
-	reply, _ := message.New(header.Header, &body)
-	email.SendRaw(b.ctx, reply, []string{to})
+	body := strings.TrimSpace(err.Error())
+	err = email.EnqueueStd(b.ctx, header, strings.NewReader(body), nil)
+	if err != nil {
+		log.Printf("failed to write bounce message: %s", err)
+	}
 }
