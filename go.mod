@@ -12,7 +12,7 @@ require (
 	github.com/Masterminds/squirrel v1.5.4
 	github.com/bluekeyes/go-gitdiff v0.7.2
 	github.com/emersion/go-mbox v1.0.3
-	github.com/emersion/go-message v0.18.0
+	github.com/emersion/go-message v0.18.2
 	github.com/emersion/go-smtp v0.21.3
 	github.com/go-chi/chi/v5 v5.0.12
 	github.com/google/uuid v1.6.0
@@ -35,7 +35,6 @@ require (
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/emersion/go-pgpmail v0.2.1 // indirect
 	github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43 // indirect
-	github.com/emersion/go-textwrapper v0.0.0-20200911093747-65d896831594 // indirect
 	github.com/fernet/fernet-go v0.0.0-20240119011108-303da6aec611 // indirect
 	github.com/go-redis/redis/v8 v8.11.5 // indirect
 	github.com/gorilla/websocket v1.5.1 // indirect
