@@ -2,6 +2,8 @@ git.sr.ht/~emersion/go-emailthreads v0.0.0-20230220165133-75c43015b6c2 h1:5CkkRD
 git.sr.ht/~emersion/go-emailthreads v0.0.0-20230220165133-75c43015b6c2/go.mod h1:CQUF7XpyupxjwxlNX3PHRCYL+N2COXTRRRS4MgM49R4=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20250113094522-db4d67a2a6fb h1:sHIlZ2QNbC9bXJjYyrEWA3au1Ym/1vPPmtDhOcBI8Fg=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20250113094522-db4d67a2a6fb/go.mod h1:PiQ/74uq73oRAkP3Wkqm9GCCvN4qNolkbq9xGZK6KN0=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20250114120037-aa1834b6643a h1:NhuRJR704bTy9N77QpY3lKtvfKa2vlkdGtnkS3YUQTk=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20250114120037-aa1834b6643a/go.mod h1:UHi3kXwgfZ/DIbMu5LeqZb3KrY/jsdUDefc8+3YWC3c=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c h1:v2opuaN0C5ZpuCifRNR9ZQ8V9IG+Ja80otK1MFj5RnI=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c/go.mod h1:8neHEO3503w/rNtttnR0JFpQgM/GFhaafVwvkPsFIDw=
 git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3/go.mod h1:wMEGFFFNuPos7vHmWXfszqImLppbc0wEhh6JBfJIUgw=
@@ -63,6 +65,8 @@ github.com/emersion/go-message v0.18.2 h1:rl55SQdjd9oJcIoQNhubD2Acs1E6IzlZISRTK7
 github.com/emersion/go-message v0.18.2/go.mod h1:XpJyL70LwRvq2a8rVbHXikPgKj8+aI0kGdHlg16ibYA=
 github.com/emersion/go-pgpmail v0.2.1 h1:ZgdWoA5A6MnfmMSsQskKFQZ89rltbvZd2REM5nye/ms=
 github.com/emersion/go-pgpmail v0.2.1/go.mod h1:CwGcFRLkhYt0zhxKRu4cKeD0CIB3Vns9nfBb5Na18RA=
+github.com/emersion/go-pgpmail v0.2.2 h1:cO2jwsE0gb8aDdCcVH5Dfe1XV3Rhhw2GVWsmQd3CbaI=
+github.com/emersion/go-pgpmail v0.2.2/go.mod h1:mRB5P7QKiAuOvcT36tdRZvm7nSt7V+f6jbzzup3HuvU=
 github.com/emersion/go-sasl v0.0.0-20200509203442-7bfe0ed36a21/go.mod h1:iL2twTeMvZnrg54ZoPDNfJaJaqy0xIQFuBdrLsmspwQ=
 github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43 h1:hH4PQfOndHDlpzYfLAAfl63E8Le6F2+EL/cdhlkyRJY=
 github.com/emersion/go-sasl v0.0.0-20231106173351-e73c9f7bad43/go.mod h1:iL2twTeMvZnrg54ZoPDNfJaJaqy0xIQFuBdrLsmspwQ=
