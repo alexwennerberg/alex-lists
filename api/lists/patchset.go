@@ -159,6 +159,8 @@ func (ar *Archiver) importPatch(emailID, threadID int32, subject, status string,
 		}
 	} else if existing {
 		// TODO: is this a new revision? complicated
+		// TODO: if patch.Index == 0, the cover letter arrived last and
+		// the patchset title should be updated
 		return nil
 	}
 
@@ -180,12 +182,26 @@ func (ar *Archiver) importPatch(emailID, threadID int32, subject, status string,
 		}
 	}
 
-	if coverLetterID == nil {
+	if coverLetterID == nil && patch.Index == 1 {
 		// TODO: handle the case where patch subjects/prefixes/versions/senders
 		// don't match?
 		patchsetSubject = patch.Subject
 		patchsetPrefix = patch.Prefix
 		patchsetVersion = patch.Version
+	} else if coverLetterID == nil {
+		// If no cover letter, use the subject of the first patch of
+		// the series as patchset title
+		row = ar.tx.QueryRow(
+			`SELECT
+				patch_subject, patch_prefix, patch_version
+			FROM email WHERE (id = $1 OR thread_id = $1) AND patch_index = 1`,
+			threadID,
+		)
+		if err := row.Scan(
+			&patchsetSubject, &patchsetPrefix, &patchsetVersion); err != nil {
+			// XXX: can this even happen?
+			return fmt.Errorf("incomplete patchset, database inconsistent: %w", err)
+		}
 	}
 
 	// Get the info need to reply to the last message in the patchset.
