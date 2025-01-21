@@ -339,9 +339,11 @@ func (ar *Archiver) computeThreadID(emailID int32) (int32, error) {
 
 // Reparent emails that arrived out-of-order
 func (ar *Archiver) reparentEmails(threadID, emailID int32, messageID string) error {
+	// Message-ID header is stored with angle brackets. In-reply-to is *not*.
+	// Adjust accordingly.
 	children, err := ar.tx.Query(
 		`SELECT id, thread_id FROM email WHERE list_id = $1 AND in_reply_to = $2`,
-		ar.listID, messageID,
+		ar.listID, strings.Trim(messageID, "<>"),
 	)
 	if err != nil {
 		return err
