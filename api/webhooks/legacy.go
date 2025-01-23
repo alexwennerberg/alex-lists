@@ -3,6 +3,7 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
@@ -69,7 +70,7 @@ func DeliverLegacyUserListEvent(
 	// TODO: User groups
 	user := auth.ForContext(ctx)
 	if user.UserID != list.OwnerID {
-		panic("Invariant broken: sending event for non-authed user")
+		panic(fmt.Errorf("Invariant broken: sending event for non-authed user"))
 	}
 	payload.Owner.CanonicalName = "~" + user.Username
 	payload.Owner.Name = user.Username
@@ -107,7 +108,7 @@ func DeliverLegacyListEvent(
 	// TODO: User groups
 	user := auth.ForContext(ctx)
 	if user.UserID != list.OwnerID {
-		panic("Invariant broken: sending event for non-authed user")
+		panic(fmt.Errorf("Invariant broken: sending event for non-authed user"))
 	}
 	payload.Owner.CanonicalName = "~" + user.Username
 	payload.Owner.Name = user.Username

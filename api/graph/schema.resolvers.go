@@ -750,7 +750,7 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 		valid.Optional(name+"Mime", func(object interface{}) {
 			list, ok := object.([]string)
 			if !ok {
-				panic("Invalid mime list") // GraphQL invariant
+				panic(fmt.Errorf("Invalid mime list")) // GraphQL invariant
 			}
 			// TODO: This should be updated to a native Postgres array type
 			query = query.Set(name+"_mimetypes", strings.Join(list, ","))
@@ -1981,7 +1981,7 @@ func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, erro
 	}
 	payload, ok := raw.(model.WebhookPayload)
 	if !ok {
-		panic("Invalid webhook payload context")
+		panic(fmt.Errorf("Invalid webhook payload context"))
 	}
 	return payload, nil
 }
@@ -2097,7 +2097,7 @@ func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string,
 
 	postTo, ok := config.ForContext(ctx).Get("lists.sr.ht", "posting-domain")
 	if !ok {
-		panic("No posting domain configured")
+		panic(fmt.Errorf("No posting domain configured"))
 	}
 
 	url := url.URL{
@@ -2494,7 +2494,7 @@ func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model
 // Subscription is the resolver for the subscription field.
 func (r *webhookDeliveryResolver) Subscription(ctx context.Context, obj *model.WebhookDelivery) (model.WebhookSubscription, error) {
 	if obj.Name == "" {
-		panic("WebhookDelivery without name")
+		panic(fmt.Errorf("WebhookDelivery without name"))
 	}
 
 	// XXX: This could use a loader but it's unlikely to be a bottleneck

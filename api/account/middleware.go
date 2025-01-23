@@ -3,6 +3,7 @@ package account
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"net/http"
 
@@ -30,7 +31,7 @@ func Middleware(queue *work.Queue) func(next http.Handler) http.Handler {
 func Delete(ctx context.Context, userID int, username string) {
 	queue, ok := ctx.Value(ctxKey).(*work.Queue)
 	if !ok {
-		panic("No account worker for this context")
+		panic(fmt.Errorf("No account worker for this context"))
 	}
 
 	task := work.NewTask(func(ctx context.Context) error {

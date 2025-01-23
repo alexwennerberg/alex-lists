@@ -271,7 +271,7 @@ func (ar *Archiver) updatePatchsetStatus(patchsetID int, status, sender string) 
 		UPDATE patchset SET status = $1 WHERE id = $2;
 	`, status, patchsetID)
 	if n, e := res.RowsAffected(); n == 0 || e != nil {
-		panic("patchsetID not found")
+		panic(fmt.Errorf("patchsetID not found"))
 	}
 	return err
 }

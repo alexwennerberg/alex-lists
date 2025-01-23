@@ -3,6 +3,7 @@ package lists
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -32,7 +33,7 @@ func Middleware(queue *work.Queue) func(next http.Handler) http.Handler {
 func ImportMailingListSpool(ctx context.Context, listID int, spool io.Reader) {
 	queue, ok := ctx.Value(ctxKey).(*work.Queue)
 	if !ok {
-		panic("No lists worker for this context")
+		panic(fmt.Errorf("No lists worker for this context"))
 	}
 	task := work.NewTask(func(ctx context.Context) error {
 		importCtx, cancel := context.WithTimeout(ctx, 30*time.Minute)
@@ -68,7 +69,7 @@ func ImportMailingListSpool(ctx context.Context, listID int, spool io.Reader) {
 func DeleteMailingList(ctx context.Context, listID int) {
 	queue, ok := ctx.Value(ctxKey).(*work.Queue)
 	if !ok {
-		panic("No lists worker for this context")
+		panic(fmt.Errorf("No lists worker for this context"))
 	}
 	task := work.NewTask(func(ctx context.Context) error {
 		if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
