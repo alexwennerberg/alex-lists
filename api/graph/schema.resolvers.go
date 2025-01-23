@@ -1642,7 +1642,7 @@ func (r *mutationResolver) ConfirmUnsubscription(ctx context.Context, token stri
 			RETURNING s.id, s.created, s.email, s.user_id, s.list_id;
 		`, listID, email)
 
-		if err := row.Scan(database.Scan(ctx, &sub)...); err == sql.ErrNoRows {
+		if err := row.Scan(&sub.ID, &sub.Created, &sub.Email, &sub.UserID, &sub.ListID); err == sql.ErrNoRows {
 			return apierr.ErrSubscriptionNotFound
 		} else if err != nil {
 			return err
