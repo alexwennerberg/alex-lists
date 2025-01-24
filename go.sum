@@ -4,6 +4,10 @@ git.sr.ht/~sircmpwn/core-go v0.0.0-20250113094522-db4d67a2a6fb h1:sHIlZ2QNbC9bXJ
 git.sr.ht/~sircmpwn/core-go v0.0.0-20250113094522-db4d67a2a6fb/go.mod h1:PiQ/74uq73oRAkP3Wkqm9GCCvN4qNolkbq9xGZK6KN0=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20250114120037-aa1834b6643a h1:NhuRJR704bTy9N77QpY3lKtvfKa2vlkdGtnkS3YUQTk=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20250114120037-aa1834b6643a/go.mod h1:UHi3kXwgfZ/DIbMu5LeqZb3KrY/jsdUDefc8+3YWC3c=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20250123114639-d3f7b91ae41a h1:xnxfHTjc6ODerntBp+roi8rFGuKkjNxOUvBN7wcMT4s=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20250123114639-d3f7b91ae41a/go.mod h1:UHi3kXwgfZ/DIbMu5LeqZb3KrY/jsdUDefc8+3YWC3c=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20250124094331-e4b0261f350d h1:mweE3oIOIjwSn44bL+uG9DDnIrCvFmS//yQC0I6Tqwk=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20250124094331-e4b0261f350d/go.mod h1:UHi3kXwgfZ/DIbMu5LeqZb3KrY/jsdUDefc8+3YWC3c=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c h1:v2opuaN0C5ZpuCifRNR9ZQ8V9IG+Ja80otK1MFj5RnI=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c/go.mod h1:8neHEO3503w/rNtttnR0JFpQgM/GFhaafVwvkPsFIDw=
 git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3/go.mod h1:wMEGFFFNuPos7vHmWXfszqImLppbc0wEhh6JBfJIUgw=

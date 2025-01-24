@@ -6,7 +6,7 @@ toolchain go1.23.3
 
 require (
 	git.sr.ht/~emersion/go-emailthreads v0.0.0-20230220165133-75c43015b6c2
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20250114120037-aa1834b6643a
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20250124094331-e4b0261f350d
 	git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c
 	github.com/99designs/gqlgen v0.17.45
 	github.com/Masterminds/squirrel v1.5.4
