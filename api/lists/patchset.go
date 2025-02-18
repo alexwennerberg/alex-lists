@@ -57,7 +57,8 @@ func parsePatchSubject(subject string) (*PatchDetails, error) {
 
 	submatch = patchVersionRE.FindStringSubmatch(patch.Prefix)
 	if submatch != nil {
-		patch.Prefix = strings.TrimSuffix(patch.Prefix, submatch[0])
+		patch.Prefix = strings.TrimSpace(
+			strings.TrimSuffix(patch.Prefix, submatch[0]))
 
 		var err error
 		versionMatch := submatch[patchVersionRE.SubexpIndex("version")]
