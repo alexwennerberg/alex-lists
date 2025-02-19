@@ -33,7 +33,6 @@ packages = [
     "listssrht.types",
 ]
 script-files = [
-    "lists.sr.ht-initdb",
     "lists.sr.ht-migrate",
 ]
 [tool.setuptools.package-data]
