@@ -40,8 +40,12 @@ tasks:
       echo "StrictHostKeyChecking=no" >> ~/.ssh/config
       ./pkgkit upload "$remote" "$remote_path" "$project"
   - deploy: |
+      ssh $master doas service lists.sr.ht stop
+      ssh $master doas service lists.sr.ht-api stop
+      ssh $master doas service lists.sr.ht-ingress stop
+      ssh $master doas service lists.sr.ht-process stop
       ssh $master doas apk upgrade -Ua
-      ssh $master doas service lists.sr.ht restart
-      ssh $master doas service lists.sr.ht-api restart
-      ssh $master doas service lists.sr.ht-ingress restart
-      ssh $master doas service lists.sr.ht-process restart
+      ssh $master doas service lists.sr.ht start
+      ssh $master doas service lists.sr.ht-api start
+      ssh $master doas service lists.sr.ht-ingress start
+      ssh $master doas service lists.sr.ht-process start
