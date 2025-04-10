@@ -95,7 +95,7 @@ def gen_cover_letter(patches):
     cover = ""
     authors = {}
     for patch in patches:
-        addr = parseaddr(patch.headers["From"])
+        addr = parseaddr(patch.parsed()["From"])
         authors.setdefault(addr[0], list())
         authors[addr[0]].append(patch)
     # TODO: generate file changes as well
