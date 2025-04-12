@@ -108,7 +108,10 @@ func (s *Session) Data(r io.Reader) error {
 	data = buf.Bytes()
 
 	email, err = message.Read(bytes.NewReader(data))
-	if err != nil && message.IsUnknownCharset(err) {
+	if err != nil && !message.IsUnknownCharset(err) {
+		// We may get a non-fatal UnknownCharsetError, but that does
+		// not mean we should drop the message. Only drop it if parsing
+		// completely failed.
 		goto end
 	}
 
