@@ -100,17 +100,21 @@ def apply_search(query, search):
             #                            '%%zeta%%')
             # ORDER BY email.updated DESC;
             #
-            # Try to find a user with the specified name,
-            # or default to fuzzy search if no such user exists
-
-            username = value
-            if username.startswith("~"):
-                username = username[1:]
+            # Try to find a user with the specified name (if it starts with ~),
+            # or default to fuzzy search
 
             header = cast(Email.headers[header], String)
-            return header.ilike(coalesce(select('%' + User.email + '%')
-                    .where(User.username == username).as_scalar(),
-                    f"%{username}%"))
+
+            if value.startswith("~"):
+                username = value[1:]
+                return header.ilike(
+                    coalesce(
+                        select('%' + User.email + '%').where(User.username == username).as_scalar(),
+                        f"%{value}%"
+                    )
+                )
+            else:
+                return header.ilike(f"%{value}%")
 
         return header_filter(header, value)
 
