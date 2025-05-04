@@ -254,9 +254,11 @@
               class="form-control"
             >
               {% for opt in PatchsetStatus %}
+              {% if opt.value != "unknown" %}
               <option value="{{opt.value}}">
                 {{opt.value.replace("_", " ").upper()}}
               </option>
+              {% endif %}
               {% endfor %}
             </select>
           </div>
