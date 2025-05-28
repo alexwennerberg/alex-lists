@@ -38,6 +38,8 @@ class List(Base):
     mirror_id = sa.Column(sa.Integer, sa.ForeignKey('mirror.id'))
     mirror = sa.orm.relationship("Mirror", uselist=False, back_populates="list")
 
+    last_activity = sa.Column(sa.DateTime, nullable=True)
+
     def __init__(self, owner, valid):
         self.owner = owner
         self.owner_id = owner.id

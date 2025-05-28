@@ -64,6 +64,7 @@ CREATE TABLE list (
 	reject_mimetypes character varying DEFAULT 'text/html'::character varying NOT NULL,
 	import_in_progress boolean DEFAULT false NOT NULL,
 	visibility visibility NOT NULL,
+	last_activity timestamp without time zone,
 	UNIQUE (owner_id, name)
 );
 

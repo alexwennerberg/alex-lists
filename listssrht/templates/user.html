@@ -29,7 +29,9 @@
             ) }}"
           >{{list.owner.canonical_name}}/{{list.name}}</a>
         </h4>
-        <span class="text-muted">Last active {{ list.updated | date }}</span>
+        {% if list.last_activity %}
+        <span class="text-muted">Last active {{ list.last_activity | date }}</span>
+        {% endif %}
       </div>
       {% endfor %}
       <a

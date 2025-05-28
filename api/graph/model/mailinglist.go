@@ -25,13 +25,14 @@ const (
 )
 
 type MailingList struct {
-	ID          int        `json:"id"`
-	Created     time.Time  `json:"created"`
-	Updated     time.Time  `json:"updated"`
-	Name        string     `json:"name"`
-	Description *string    `json:"description"`
-	Visibility  Visibility `json:"visibility"`
-	Importing   bool       `json:"importing"`
+	ID           int        `json:"id"`
+	Created      time.Time  `json:"created"`
+	Updated      time.Time  `json:"updated"`
+	Name         string     `json:"name"`
+	Description  *string    `json:"description"`
+	Visibility   Visibility `json:"visibility"`
+	Importing    bool       `json:"importing"`
+	LastActivity time.Time  `json:"last_activity"`
 
 	OwnerID       int
 	RawPermitMime string
@@ -102,6 +103,7 @@ func (list *MailingList) Fields() *database.ModelFields {
 			{"id", "", &list.ID},
 			{"owner_id", "", &list.OwnerID},
 			{"updated", "", &list.Updated},
+			{"last_activity", "", &list.LastActivity},
 		},
 	}
 	return list.fields

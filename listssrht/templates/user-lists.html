@@ -48,7 +48,9 @@
           {% if list.description %}
           {{list.description|md}}
           {% endif %}
-          <span class="text-muted">Last active {{ list.updated | date }}</span>
+          {% if list.last_activity %}
+          <span class="text-muted">Last active {{ list.last_activity | date }}</span>
+          {% endif %}
         </div>
         {% endfor %}
       </div>

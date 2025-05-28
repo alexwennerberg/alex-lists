@@ -305,6 +305,15 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		}
 	}
 
+	if _, err := ar.tx.ExecContext(ar.ctx, `
+			UPDATE list
+			SET last_activity = NOW() at time zone 'utc'
+			WHERE id = $1
+		`, ar.listID,
+	); err != nil {
+		log.Println("Failed updating list.last_activity: %s", err)
+	}
+
 	log.Printf("Archived message %q", messageID)
 
 	return int(emailID), nil

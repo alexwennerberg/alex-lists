@@ -10,6 +10,7 @@ from srht.graphql import exec_gql
 from srht.search import search_by
 from srht.validation import Validation
 from sqlalchemy import or_
+from sqlalchemy import nullslast
 from listssrht.types import List, ListAccess, User, Email, Subscription, Mirror, Visibility
 from listssrht.webhooks import UserWebhook
 import re
@@ -36,7 +37,7 @@ def index():
     subs = [sub.list for sub in (Subscription.query
             .join(List)
             .filter(Subscription.user_id == current_user.id)
-            .order_by(List.updated.desc())).limit(10).all()]
+            .order_by(nullslast(List.last_activity.desc()))).limit(10).all()]
     notice = session.pop("notice", None)
     return render_template("dashboard.html", recent=recent,
             subs=subs, notice=notice)
@@ -56,7 +57,7 @@ def user_profile(username):
                  .filter(List.default_access == ListAccess.normal.value))
 
     recent = recent.order_by(Email.created.desc()).limit(10).all()
-    lists = lists.order_by(List.updated.desc()).limit(10).all()
+    lists = lists.order_by(nullslast(List.last_activity.desc())).limit(10).all()
 
     return render_template("user.html",
             user=user, recent=recent, lists=lists, parseaddr=parseaddr)
@@ -71,7 +72,7 @@ def lists_for_user(username):
     if not current_user or current_user.id != user.id:
         lists = lists.filter(List.visibility == Visibility.PUBLIC)
 
-    lists = lists.order_by(List.updated.desc())
+    lists = lists.order_by(nullslast(List.last_activity.desc()))
     terms = request.args.get('search')
     if terms:
         lists = search_by(lists, terms, [List.name, List.description], {})
