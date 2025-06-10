@@ -32,7 +32,7 @@ type MailingList struct {
 	Description  *string    `json:"description"`
 	Visibility   Visibility `json:"visibility"`
 	Importing    bool       `json:"importing"`
-	LastActivity time.Time  `json:"last_activity"`
+	LastActivity *time.Time `json:"lastActivity"`
 
 	OwnerID       int
 	RawPermitMime string
