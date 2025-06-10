@@ -14,16 +14,13 @@ import (
 	"strings"
 	"time"
 
-	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/emersion/go-message"
 	"github.com/emersion/go-message/mail"
 	"github.com/emersion/go-smtp"
 )
 
-func StartSMTPServer(
-	ingress *work.Queue, ctx context.Context,
-) (net.Listener, *smtp.Server, error) {
-	s := smtp.NewServer(&Backend{ingress, ctx})
+func StartSMTPServer(ctx context.Context) (net.Listener, *smtp.Server, error) {
+	s := smtp.NewServer(&Backend{ctx})
 	s.Addr = Config.Sock
 	s.Domain = Config.Domain
 	s.WriteTimeout = 10 * time.Second

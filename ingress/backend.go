@@ -15,15 +15,13 @@ import (
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/email"
-	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/emersion/go-message"
 	"github.com/emersion/go-smtp"
 )
 
 // The Backend implements SMTP server methods.
 type Backend struct {
-	ingress *work.Queue
-	ctx     context.Context
+	ctx context.Context
 }
 
 // NewSession is called after client greeting (EHLO, HELO).
@@ -141,11 +139,16 @@ func (s *Session) Data(r io.Reader) error {
 	// still be valid when the queued task function is evaluated.
 	from = s.from
 	to = s.to
-
-	// Defer processing to the ingress worker.
-	s.backend.ingress.Enqueue(work.NewTask(func(context.Context) error {
-		return s.backend.ProcessMessage(from, to, data)
-	}).Retries(10))
+	err = s.backend.ProcessMessage(from, to, data)
+	if err != nil {
+		// Consider any error during archival to be non-fatal.
+		// Return a 421 error code to ask postfix to retry later.
+		err = &smtp.SMTPError{
+			Code:         421,
+			EnhancedCode: smtp.EnhancedCode{4, 0, 0},
+			Message:      err.Error(),
+		}
+	}
 
 end:
 	s.to = nil
@@ -163,7 +166,6 @@ func (b *Backend) ProcessMessage(
 		email  *message.Entity
 		list   *MailingList
 		sender *Sender
-		failed int
 		err    error
 	)
 
@@ -195,13 +197,9 @@ func (b *Backend) ProcessMessage(
 		if bnc, ok := err.(BounceError); ok {
 			b.Bounce(email, from, bnc)
 		} else if err != nil {
-			ErrorsCounter.Inc()
 			log.Printf("ProcessMessage: %s", err)
-			failed++
+			return err
 		}
-	}
-	if failed != 0 {
-		return fmt.Errorf("ingress to %d lists failed", failed)
 	}
 	return nil
 }

@@ -12,7 +12,6 @@ import (
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/email"
-	work "git.sr.ht/~sircmpwn/dowork"
 )
 
 const LogFlags = log.Ldate | log.Ltime | log.Lshortfile
@@ -31,10 +30,9 @@ func main() {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	ctx := config.Context(context.Background(), SrhtConfig, "ingress")
 
-	ingress := work.NewQueue("ingress", Config.QueueSize)
 	egress := email.NewQueue(SrhtConfig)
 
-	smtpSock, smtpSrv, err := StartSMTPServer(ingress, email.Context(ctx, egress))
+	smtpSock, smtpSrv, err := StartSMTPServer(email.Context(ctx, egress))
 	if err != nil {
 		log.Fatalf("smtp: %s", err)
 	}
@@ -49,8 +47,6 @@ func main() {
 		// SMTP client connections.
 		go egress.Run(email.Context(ctx, egress))
 	}
-	// start all ingress workers with the same context
-	ingress.Start(ctx, numWorkers)
 
 	go func() {
 		log.Printf("Listening for incoming emails on %s://%s",
@@ -77,8 +73,6 @@ func main() {
 		log.Printf("http.Shutdown: %s", e)
 	}
 
-	// Wait until all ingress workers have stopped.
-	ingress.Shutdown()
 	// Wait until all egress workers have stopped.
 	egress.Shutdown()
 

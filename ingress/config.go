@@ -19,7 +19,6 @@ type WorkerConfig struct {
 	RejectUrl      string
 	MetricsSock    string
 	Redirects      ini.Section
-	QueueSize      int
 	MaxMessageSize int64
 	Domain         string
 	MailerAddr     string
@@ -30,7 +29,6 @@ type WorkerConfig struct {
 var Config = WorkerConfig{
 	Sock:           ":25",
 	Protocol:       "smtp",
-	QueueSize:      512,
 	MaxMessageSize: 8 * 1024 * 1024,
 	MetricsSock:    ":8006",
 	RejectUrl:      "https://useplaintext.email",
@@ -53,11 +51,6 @@ func LoadConfig() error {
 			Config.SockGroup = v
 		case "reject-url":
 			Config.RejectUrl = v
-		case "ingress-queue-size":
-			Config.QueueSize, err = strconv.Atoi(v)
-			if err != nil {
-				return fmt.Errorf("ingress-queue-size: %w", err)
-			}
 		case "max-message-size":
 			Config.MaxMessageSize, err = strconv.ParseInt(v, 10, 64)
 			if err != nil {
