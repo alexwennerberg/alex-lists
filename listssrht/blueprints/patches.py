@@ -46,6 +46,10 @@ tool_icon_to_icon = {
     ToolIcon.cancelled: "times",
 }
 
+
+# Patch statuses that only moderators can transition patches to
+MODERATOR_ONLY_STATUS = [ "applied", "approved", "rejected" ]
+
 Feedback = namedtuple("Feedback", ["standalone_feedback", "feedback_by_line"])
 FeedbackBlock = namedtuple("FeedbackBlock", ["key", "body", "source_msg", "source_region"])
 
@@ -250,6 +254,7 @@ def patchset(owner_name, list_name, patchset_id):
             thread=thread, patchset=patchset, patches=patches,
             feedback=feedback, gen_cover_letter=gen_cover_letter,
             PatchsetStatus=PatchsetStatus, status_to_color=status_to_color,
+            MODERATOR_ONLY_STATUS=MODERATOR_ONLY_STATUS,
             messages=messages, nextmsg=nextmsg, max=max,
             user_message=user_message, tools=tools, tool_details=tool_details,
             tool_icon_to_class=tool_icon_to_class,
@@ -262,8 +267,6 @@ def patchset_update(owner_name, list_name, patchset_id):
     owner, ml, access = get_list(owner_name, list_name)
     if not ml:
         abort(404)
-    if ListAccess.moderate not in access:
-        abort(403)
     patchset = (Patchset.query
             .filter(Patchset.id == patchset_id)
             .filter(Patchset.list_id == ml.id)).one_or_none()
@@ -274,6 +277,9 @@ def patchset_update(owner_name, list_name, patchset_id):
     if not valid.ok:
         # not possible without end-user fuckery, so no pretty error for you
         abort(400)
+    if ListAccess.moderate not in access:
+        if not patchset.submitter or current_user.email not in patchset.submitter:
+            abort(403)
     patchset.status = status
     db.session.commit()
     return redirect(url_for("patches.patchset", owner_name=owner_name,

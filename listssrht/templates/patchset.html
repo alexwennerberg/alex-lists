@@ -193,7 +193,10 @@
             >Forward this thread to me {{icon('caret-right')}}</button>
           </form>
         </div>
-        {% if ListAccess.moderate in access %}
+        {% set is_moderator = ListAccess.moderate in access %}
+        {% set is_sender = current_user and current_user.canonical_name == msg.sender.canonical_name %}
+        {% set sender_may_update = patchset.status.value not in MODERATOR_ONLY_STATUS %}
+        {% if is_moderator or (is_sender and sender_may_update) %}
         <form
           class="event"
           method="POST"
@@ -210,12 +213,14 @@
             >
               {% for opt in PatchsetStatus %}
                 {% if opt.value != "unknown" %}
+                {% if is_moderator or opt.value not in MODERATOR_ONLY_STATUS %}
                 <option
                   value="{{opt.value}}"
                   {% if patchset.status == opt %}
                   selected
                   {% endif %}
                 >{{opt.value.replace("_", " ").upper()}}</option>
+                {% endif %}
                 {% endif %}
               {% endfor %}
             </select>

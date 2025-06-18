@@ -11,6 +11,7 @@ import (
 
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
+	"github.com/emersion/go-message/mail"
 )
 
 func identifyPatch(body string) bool {
@@ -252,6 +253,52 @@ func (ar *Archiver) importPatch(emailID, threadID int32, subject, status string,
 	return nil
 }
 
+// Returns whether the update comes from the patch submitter and the target
+// status is allowed to patch submitters.
+func (ar *Archiver) allowedUpdateBySubmitter(patchsetID int, status, sender string) bool {
+	switch status {
+	case "rejected", "superseded", "needs_revision":
+		// Only transitions allowed to patch submitters; keep going.
+	default:
+		return false
+	}
+
+	var (
+		currentStatus string
+		submitter     *string
+		err           error
+	)
+	row := ar.tx.QueryRow(
+		`SELECT status, submitter FROM patchset WHERE id = $1`,
+		patchsetID,
+	)
+	if err = row.Scan(&currentStatus, &submitter); err != nil || submitter == nil {
+		return false
+	}
+
+	switch currentStatus {
+	case "applied", "approved", "rejected":
+		// Patches in final state cannot be updated.
+		return false
+	}
+
+	// The submitter is something like "Joe Barr \u003cjoe@bar.tld\u003e" in the
+	// database, and needs unquoting.
+	var (
+		submitterAddr     *mail.Address
+		unquotedSubmitter string
+	)
+	unquotedSubmitter, err = strconv.Unquote(*submitter)
+	if err != nil {
+		return false
+	}
+	submitterAddr, err = mail.ParseAddress(unquotedSubmitter)
+	if err != nil {
+		return false
+	}
+	return submitterAddr.Address == sender
+}
+
 func (ar *Archiver) updatePatchsetStatus(patchsetID int, status, sender string) error {
 	// check new status validity
 	if !model.PatchsetStatus(strings.ToUpper(status)).IsValid() {
@@ -263,7 +310,7 @@ func (ar *Archiver) updatePatchsetStatus(patchsetID int, status, sender string) 
 	access, err := model.UserACL(ar.ctx, ar.tx, ar.listID, sender)
 	if err != nil {
 		return fmt.Errorf("UserACL: %w", err)
-	} else if !access.Moderate {
+	} else if !access.Moderate && !ar.allowedUpdateBySubmitter(patchsetID, status, sender) {
 		return fmt.Errorf("sender does not have moderate permission")
 	}
 
