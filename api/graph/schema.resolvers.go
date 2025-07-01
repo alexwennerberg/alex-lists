@@ -155,6 +155,7 @@ func (r *mailingListResolver) Threads(ctx context.Context, obj *model.MailingLis
 		cursor = coremodel.NewCursor(nil)
 	}
 
+	user := auth.ForContext(ctx)
 	var threads []*model.Thread
 	if err := database.WithTx(ctx, &sql.TxOptions{
 		Isolation: 0,
@@ -164,8 +165,19 @@ func (r *mailingListResolver) Threads(ctx context.Context, obj *model.MailingLis
 		query := database.
 			Select(ctx, thread).
 			From(`email thread`).
-			Where(`thread.list_id = ?`, obj.ID).
-			Where(`thread.thread_id IS NULL`)
+			Join(`list ON thread.list_id = list.id`).
+			LeftJoin(`access ON
+				access.list_id = list.id AND
+				access.user_id = ?`, user.UserID).
+			Where(sq.And{
+				sq.Expr(`thread.list_id = ?`, obj.ID),
+				sq.Expr(`thread.thread_id IS NULL`),
+				sq.Or{
+					sq.Expr(`list.owner_id = ?`, user.UserID),
+					sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+					sq.Expr(`list.default_access & ? > 0`, model.ACCESS_BROWSE),
+				},
+			})
 		threads, cursor = thread.QueryWithCursor(ctx, tx, query, cursor)
 		return nil
 	}); err != nil {
@@ -181,6 +193,7 @@ func (r *mailingListResolver) Emails(ctx context.Context, obj *model.MailingList
 		cursor = coremodel.NewCursor(nil)
 	}
 
+	user := auth.ForContext(ctx)
 	var emails []*model.Email
 	if err := database.WithTx(ctx, &sql.TxOptions{
 		Isolation: 0,
@@ -190,7 +203,18 @@ func (r *mailingListResolver) Emails(ctx context.Context, obj *model.MailingList
 		query := database.
 			Select(ctx, email).
 			From(`email`).
-			Where(`email.list_id = ?`, obj.ID).
+			Join(`list ON email.list_id = list.id`).
+			LeftJoin(`access ON
+				access.list_id = list.id AND
+				access.user_id = ?`, user.UserID).
+			Where(sq.And{
+				sq.Expr(`email.list_id = ?`, obj.ID),
+				sq.Or{
+					sq.Expr(`list.owner_id = ?`, user.UserID),
+					sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+					sq.Expr(`list.default_access & ? > 0`, model.ACCESS_BROWSE),
+				},
+			}).
 			OrderBy("email.created DESC")
 		emails, cursor = email.QueryWithCursor(ctx, tx, query, cursor)
 		return nil
@@ -207,6 +231,7 @@ func (r *mailingListResolver) Patches(ctx context.Context, obj *model.MailingLis
 		cursor = coremodel.NewCursor(nil)
 	}
 
+	user := auth.ForContext(ctx)
 	var patches []*model.Patchset
 	if err := database.WithTx(ctx, &sql.TxOptions{
 		Isolation: 0,
@@ -216,7 +241,18 @@ func (r *mailingListResolver) Patches(ctx context.Context, obj *model.MailingLis
 		query := database.
 			Select(ctx, patch).
 			From(`patchset patch`).
-			Where(`patch.list_id = ?`, obj.ID)
+			Join(`list ON patch.list_id = list.id`).
+			LeftJoin(`access ON
+				access.list_id = list.id AND
+				access.user_id = ?`, user.UserID).
+			Where(sq.And{
+				sq.Expr(`patch.list_id = ?`, obj.ID),
+				sq.Or{
+					sq.Expr(`list.owner_id = ?`, user.UserID),
+					sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+					sq.Expr(`list.default_access & ? > 0`, model.ACCESS_BROWSE),
+				},
+			})
 		patches, cursor = patch.QueryWithCursor(ctx, tx, query, cursor)
 		return nil
 	}); err != nil {
@@ -229,6 +265,7 @@ func (r *mailingListResolver) Patches(ctx context.Context, obj *model.MailingLis
 // Message is the resolver for the message field.
 func (r *mailingListResolver) Message(ctx context.Context, obj *model.MailingList, messageID string) (*model.Email, error) {
 	var email *model.Email
+	user := auth.ForContext(ctx)
 
 	if err := database.WithTx(ctx, &sql.TxOptions{
 		Isolation: 0,
@@ -237,9 +274,20 @@ func (r *mailingListResolver) Message(ctx context.Context, obj *model.MailingLis
 		m := new(model.Email)
 		row := database.
 			Select(ctx, m.As(`e`)).
-			From(`email e`).
-			Where(`e.list_id = ?`, obj.ID).
-			Where(`e.message_id = ?`, messageID).
+			From(`email`).
+			Join(`list ON email.list_id = list.id`).
+			LeftJoin(`access ON
+				access.list_id = list.id AND
+				access.user_id = ?`, user.UserID).
+			Where(sq.And{
+				sq.Expr(`email.list_id = ?`, obj.ID),
+				sq.Expr(`email.message_id = ?`, messageID),
+				sq.Or{
+					sq.Expr(`list.owner_id = ?`, user.UserID),
+					sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
+					sq.Expr(`list.default_access & ? > 0`, model.ACCESS_BROWSE),
+				},
+			}).
 			RunWith(tx).
 			QueryRowContext(ctx)
 		err := row.Scan(database.Scan(ctx, m)...)
