@@ -14,7 +14,7 @@ type BounceError interface {
 
 type HtmlError struct{ sender *Sender }
 
-func (e *HtmlError) Error() string { return "no text/html part found" }
+func (e *HtmlError) Error() string { return "text/html part found" }
 func (e *HtmlError) Body() string {
 	return fmt.Sprintf(`Hi %s!
 
