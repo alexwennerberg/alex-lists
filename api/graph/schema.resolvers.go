@@ -273,7 +273,7 @@ func (r *mailingListResolver) Message(ctx context.Context, obj *model.MailingLis
 	}, func(tx *sql.Tx) error {
 		m := new(model.Email)
 		row := database.
-			Select(ctx, m).
+			Select(ctx, m.As(`email`)).
 			From(`email`).
 			Join(`list ON email.list_id = list.id`).
 			LeftJoin(`access ON
