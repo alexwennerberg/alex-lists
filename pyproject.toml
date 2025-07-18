@@ -9,8 +9,6 @@ description = "lists.sr.ht website"
 readme = "README.md"
 authors = [{name = "Drew DeVault", email = "sir@cmpwn.com"}]
 dependencies = [
-    "aiosmtpd",
-    "asyncpg",
     "pygit2",
     "srht",
 ]
