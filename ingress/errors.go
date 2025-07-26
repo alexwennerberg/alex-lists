@@ -18,14 +18,22 @@ func (e *HtmlError) Error() string { return "text/html part found" }
 func (e *HtmlError) Body() string {
 	return fmt.Sprintf(`Hi %s!
 
-We received your email, but were unable to deliver it because it 
-contains HTML. HTML emails are not permitted. The following guide can 
-help you configure your client to send in plain text instead.
+We received your email, but were unable to deliver it because it
+contains HTML, which has been disabled by the administrators of the
+mailing list you are trying to reach. HTML emails are not permitted on
+this list.
+
+This guide can help you configure your client to send in plain text
+instead:
 
 %s
 
-If you have any questions, please reply to this email to reach the mail 
-admin. We apologise for the inconvenience.
+This is an automated email. You may reply to this email to reach the
+administrators of the mailing list software if you think this response
+was sent in error. Note that we are NOT responsible for the policy of
+this specific mailing list, we are NOT affiliated with this specific
+mailing list or the project that uses it, and we can NOT help you with
+your original inquiry.
 `, e.sender.Name, Config.RejectUrl)
 }
 
@@ -46,12 +54,16 @@ contains content which has been blacklisted by the list admin. Please
 remove your %s attachments and send again. 
 
 You are also advised to configure your email client to send emails in 
-plain text to avoid additional errors in the future.
+plain text to avoid additional errors in the future:
 
 %s
 
-If you have any questions, please reply to this email to reach the mail 
-admin. We apologise for the inconvenience.
+This is an automated email. You may reply to this email to reach the
+administrators of the mailing list software if you think this response
+was sent in error. Note that we are NOT responsible for the policy of
+this specific mailing list, we are NOT affiliated with this specific
+mailing list or the project that uses it, and we can NOT help you with
+your original inquiry.
 `, e.sender.Name, e.mime, Config.RejectUrl)
 }
 
@@ -64,12 +76,16 @@ func (e *NoTextError) Body() string {
 We received your email, but were unable to deliver it because there were 
 no text/plain parts. Our mail system requires all emails to have at 
 least one plain text part. The following guide can help you configure 
-your client to send in plain text.
+your client to send in plain text:
 
 %s
 
-If you have any questions, please reply to this email to reach the mail 
-admin. We apologise for the inconvenience.
+This is an automated email. You may reply to this email to reach the
+administrators of the mailing list software if you think this response
+was sent in error. Note that we are NOT responsible for the policy of
+this specific mailing list, we are NOT affiliated with this specific
+mailing list or the project that uses it, and we can NOT help you with
+your original inquiry.
 `, e.sender.Name, Config.RejectUrl)
 }
 
