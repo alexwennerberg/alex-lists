@@ -88,7 +88,7 @@ func parsePatchSubject(subject string) (*PatchDetails, error) {
 	return &patch, nil
 }
 
-func (ar *Archiver) importPatch(emailID, threadID int32, subject, status string, isPatch bool) error {
+func (ar *Archiver) importPatch(emailID, threadID int, subject, status string, isPatch bool) error {
 	patch, err := parsePatchSubject(subject)
 	if err != nil {
 		return fmt.Errorf("Error parsing patch subject: %v", err)

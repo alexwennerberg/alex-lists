@@ -160,7 +160,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		return 0, apiErr.ErrDuplicateEmail
 	}
 
-	var emailID int32
+	var emailID int
 	row = ar.tx.QueryRow(`
 		INSERT INTO email (
 			created, updated, subject, message_id, message_date,
@@ -320,10 +320,10 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 }
 
 // Computes the thread ID for the given email
-func (ar *Archiver) computeThreadID(emailID int32) (int32, error) {
+func (ar *Archiver) computeThreadID(emailID int) (int, error) {
 	// Keep track of seen emails to avoid reference loops
 	threadID := emailID
-	seen := map[int32]struct{}{}
+	seen := map[int]struct{}{}
 	for {
 		if _, ok := seen[threadID]; ok {
 			// Reference loop
@@ -334,7 +334,7 @@ func (ar *Archiver) computeThreadID(emailID int32) (int32, error) {
 			`SELECT parent_id FROM email WHERE id = $1`,
 			threadID,
 		)
-		var nextID *int32
+		var nextID *int
 		if err := row.Scan(&nextID); err != nil {
 			return 0, err
 		}
@@ -347,7 +347,7 @@ func (ar *Archiver) computeThreadID(emailID int32) (int32, error) {
 }
 
 // Reparent emails that arrived out-of-order
-func (ar *Archiver) reparentEmails(threadID, emailID int32, messageID string) error {
+func (ar *Archiver) reparentEmails(threadID, emailID int, messageID string) error {
 	// Message-ID header is stored with angle brackets. In-reply-to is *not*.
 	// Adjust accordingly.
 	children, err := ar.tx.Query(
@@ -358,11 +358,11 @@ func (ar *Archiver) reparentEmails(threadID, emailID int32, messageID string) er
 		return err
 	}
 	defer children.Close()
-	var childIDs []int32
-	var oldThreadIDs []int32
+	var childIDs []int
+	var oldThreadIDs []int
 	for children.Next() {
-		var childID int32
-		var childThreadID *int32
+		var childID int
+		var childThreadID *int
 		if err := children.Scan(&childID, &childThreadID); err != nil {
 			return err
 		}
@@ -375,13 +375,13 @@ func (ar *Archiver) reparentEmails(threadID, emailID int32, messageID string) er
 	}
 	if _, err := ar.tx.Exec(
 		`UPDATE email SET parent_id = $1, thread_id = $2 WHERE id = ANY($3)`,
-		emailID, threadID, pq.Int32Array(childIDs),
+		emailID, threadID, pq.Array(childIDs),
 	); err != nil {
 		return err
 	}
 	if _, err := ar.tx.Exec(
 		`UPDATE email SET thread_id = $1 WHERE thread_id = ANY($2)`,
-		threadID, pq.Int32Array(oldThreadIDs),
+		threadID, pq.Array(oldThreadIDs),
 	); err != nil {
 		return err
 	}
@@ -389,9 +389,9 @@ func (ar *Archiver) reparentEmails(threadID, emailID int32, messageID string) er
 }
 
 // Updates thread nreplies and nparticipants
-func (ar *Archiver) updateThreadReplies(threadID int32) error {
+func (ar *Archiver) updateThreadReplies(threadID int) error {
 	nreplies := 0
-	memberIDs := []int32{threadID}
+	memberIDs := []int{threadID}
 	participants := make(map[string]struct{})
 	threadMembers, err := ar.tx.Query(
 		`SELECT id, (headers -> 'From')::text FROM email WHERE thread_id = $1`,
@@ -402,7 +402,7 @@ func (ar *Archiver) updateThreadReplies(threadID int32) error {
 	}
 	defer threadMembers.Close()
 	for threadMembers.Next() {
-		var memberID int32
+		var memberID int
 		var fromHeader string
 		if err := threadMembers.Scan(&memberID, &fromHeader); err != nil {
 			return err
