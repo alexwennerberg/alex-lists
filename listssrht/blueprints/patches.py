@@ -99,9 +99,20 @@ def gen_cover_letter(patches):
     cover = ""
     authors = {}
     for patch in patches:
-        addr = parseaddr(patch.parsed()["From"])
-        authors.setdefault(addr[0], list())
-        authors[addr[0]].append(patch)
+        # git send-email passes the author information in:
+        #  - The mail body's first line if it starts with "From: "
+        #  - Otherwise, in the From: header
+        # (see --from in https://git-scm.com/docs/git-format-patch)
+        msg = patch.parsed()
+        author = parseaddr(msg["From"])[0]
+        if not msg.is_multipart():
+            payload = patch.parsed().get_payload(decode=True)
+            charset = msg.get_content_charset('utf-8')
+            first_line = payload.splitlines()[0].decode(charset)
+            if first_line.startswith("From: "):
+                author = parseaddr(first_line)[0]
+        authors.setdefault(author, list())
+        authors[author].append(patch)
     # TODO: generate file changes as well
     nfiles = 0
     insertions = deletions = 0
