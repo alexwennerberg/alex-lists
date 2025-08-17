@@ -88,6 +88,43 @@ func parsePatchSubject(subject string) (*PatchDetails, error) {
 	return &patch, nil
 }
 
+type PatchVersion struct {
+	id      int
+	version int
+	status  string
+}
+
+func (ar *Archiver) findExistingVersions(
+	listID int, subject string, prefix string, submitter sql.NullString) []PatchVersion {
+	previousVersions, err := ar.tx.Query(`
+		SELECT id, version, status FROM patchset
+		WHERE
+			list_id = $1 AND
+			subject = $2 AND
+			prefix = $3 AND
+			submitter = $4
+		ORDER BY version DESC`,
+		listID, subject, prefix, submitter,
+	)
+	if err != nil {
+		return nil
+	}
+	var versions []PatchVersion
+	for previousVersions.Next() {
+		var (
+			id      int
+			version int
+			status  string
+		)
+		if err := previousVersions.Scan(&id, &version, &status); err != nil {
+			continue
+		}
+		versions = append(versions, PatchVersion{id, version, status})
+	}
+	previousVersions.Close()
+	return versions
+}
+
 func (ar *Archiver) importPatch(emailID, threadID int, subject, status string, isPatch bool) error {
 	patch, err := parsePatchSubject(subject)
 	if err != nil {
@@ -248,7 +285,29 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status string, i
 		return err
 	}
 
-	// TODO: identify patchset that this supersedes, if appropriate
+	// Supersede the most recent previous version from the submitter if
+	// it's still active.
+	prevVersions := ar.findExistingVersions(ar.listID,
+		patchsetSubject, patchsetPrefix, submitter)
+	if len(prevVersions) <= 1 {
+		// Nothing to supersede.
+	} else if prevVersions[0].id != patchsetID {
+		// The patch does not have the highest version number; there
+		// has been a user "sequencing error" at some point. Bail out.
+	} else {
+		// If this patchset supersedes anything, it's the second element.
+		candidate := prevVersions[1]
+		if candidate.version < patchsetVersion {
+			switch candidate.status {
+			case "proposed", "needs_revision":
+				ar.tx.Exec(`
+					UPDATE patchset
+					SET status = 'superseded', superseded_by_id = $1
+					WHERE id = $2`,
+					patchsetID, candidate.id)
+			}
+		}
+	}
 
 	return nil
 }
