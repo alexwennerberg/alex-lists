@@ -68,7 +68,7 @@ func parseListAddr(addr string) (owner, name string, cmd Command, err error) {
 
 func LookupEmailDetails(msg *message.Entity, listAddr string) (*Sender, *MailingList, error) {
 	fromAddr := msg.Header.Get("From")
-	msgID := msg.Header.Get("Message-ID")
+	inReplyTo := msg.Header.Get("In-Reply-To")
 
 	from, err := mail.ParseAddress(fromAddr)
 	if err != nil {
@@ -117,7 +117,7 @@ func LookupEmailDetails(msg *message.Entity, listAddr string) (*Sender, *Mailing
 			"owner": owner,
 			"list":  list,
 			"from":  from.Address,
-			"msg":   msgID,
+			"msg":   inReplyTo,
 		},
 		&result,
 	)
