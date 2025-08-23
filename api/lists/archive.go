@@ -144,6 +144,15 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		return 0, err
 	}
 
+	// Take an applicative lock on the list to avoid the race condition
+	// described in https://todo.sr.ht/~sircmpwn/lists.sr.ht/215
+	if _, err := ar.tx.ExecContext(ar.ctx,
+		`SELECT pg_advisory_xact_lock($1)`,
+		ar.listID,
+	); err != nil {
+		return 0, err
+	}
+
 	var exists bool
 	row := ar.tx.QueryRow(`
 		SELECT EXISTS(
