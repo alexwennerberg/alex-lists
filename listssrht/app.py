@@ -15,22 +15,17 @@ class ListsApp(SrhtFlask):
 
         self.url_map.strict_slashes = False
 
-        from listssrht.blueprints.api import register_api
         from listssrht.blueprints.archives import archives
         from listssrht.blueprints.patches import patches
         from listssrht.blueprints.settings import settings
         from listssrht.blueprints.user import user
         from srht.graphql import gql_blueprint
 
-        register_api(self)
         self.register_blueprint(archives)
         self.register_blueprint(patches)
         self.register_blueprint(settings)
         self.register_blueprint(user)
         self.register_blueprint(gql_blueprint)
-
-        from listssrht.webhooks import webhook_metrics_collector
-        self.metrics_registry.register(webhook_metrics_collector)
 
         @self.context_processor
         def inject():

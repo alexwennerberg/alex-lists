@@ -32,10 +32,3 @@ class SubscriptionRequest(Base):
     def __repr__(self):
         return '<SubscriptionRequest {} {} -> list {}>'.format(
                 self.id, self.email, self.list_id)
-
-    def to_dict(self):
-        return {
-            "id": self.id,
-            "email": self.email,
-            "list": self.list.to_dict(short=True),
-        }

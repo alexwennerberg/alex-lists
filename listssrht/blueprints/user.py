@@ -12,7 +12,6 @@ from srht.validation import Validation
 from sqlalchemy import or_
 from sqlalchemy import nullslast
 from listssrht.types import List, ListAccess, User, Email, Subscription, Mirror, Visibility
-from listssrht.webhooks import UserWebhook
 import re
 import smtplib
 
@@ -181,9 +180,6 @@ def create_mirror_POST():
     ml.mirror_id = mirror.id
 
     mirror_subscribe(ml, mirror)
-
-    UserWebhook.deliver(UserWebhook.Events.list_create,
-            ml.to_dict(), UserWebhook.Subscription.user_id == ml.owner_id)
 
     db.session.commit()
     return redirect(url_for("archives.archive",

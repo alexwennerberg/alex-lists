@@ -47,27 +47,6 @@ class Patchset(Base):
             backref=sa.orm.backref('previous_version', remote_side=[id]),
             foreign_keys=[superseded_by_id])
 
-    def to_dict(self, short=True):
-        return {
-            "id": self.id,
-            "created": self.created,
-            "updated": self.updated,
-            "subject": self.subject,
-            "prefix": self.prefix,
-            "version": self.version,
-            "status": self.status.value,
-            "submitter": self.submitter,
-            "reply_to": self.reply_to,
-            "message_id": self.message_id,
-            **({
-                "list": self.list.to_dict(short=True),
-                "cover_letter": self.cover_letter.to_dict(short=True)
-                    if self.cover_letter else None,
-                "superseded_by": self.superseded_by.to_dict(short=True)
-                    if self.superseded_by else None,
-            } if not short else {}),
-        }
-
 class ToolIcon(Enum):
     pending = "pending"
     waiting = "waiting"

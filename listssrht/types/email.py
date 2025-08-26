@@ -78,28 +78,6 @@ class Email(Base):
     def __repr__(self):
         return '<Email {} {}>'.format(self.id, self.subject)
 
-    def to_dict(self, short=False):
-        return {
-            "id": self.id,
-            "created": self.created,
-            "subject": self.subject,
-            "message_id": self.message_id,
-            "parent_id": self.parent_id,
-            "thread_id": self.thread_id,
-            "list": self.list.to_dict(short=True),
-            "sender": self.sender.to_dict(short=True)
-                if self.sender else None,
-            "patchset": self.patchset.to_dict(short=True)
-                if self.patchset else None,
-            **({
-                "is_patch": self.is_patch,
-                "is_request_pull": self.is_request_pull,
-                "replies": self.nreplies,
-                "participants": self.nparticipants,
-                "envelope": self.envelope,
-            } if not short else {})
-        }
-
     def parsed(self):
         if hasattr(self, "_parsed"):
             return self._parsed

@@ -13,7 +13,6 @@ from listssrht.filters import post_address
 from listssrht.types import List, User, Email, Subscription, ListAccess, Access, Visibility
 from listssrht.types import Patchset, PatchsetStatus
 from listssrht.process import forward_thread
-from listssrht.webhooks import ListWebhook, UserWebhook
 from urllib.parse import quote, urlencode
 import email
 import email.policy

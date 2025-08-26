@@ -26,7 +26,6 @@ packages = [
     "listssrht.alembic",
     "listssrht.alembic.versions",
     "listssrht.blueprints",
-    "listssrht.blueprints.api",
     "listssrht.templates",
     "listssrht.types",
 ]

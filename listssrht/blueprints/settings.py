@@ -8,7 +8,6 @@ from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from listssrht.blueprints.archives import get_list
 from listssrht.types import Access, Email, List, ListAccess, User
-from listssrht.webhooks import ListWebhook
 import base64
 import email
 
