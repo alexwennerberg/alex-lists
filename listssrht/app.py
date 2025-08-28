@@ -1,5 +1,5 @@
 from listssrht.filters import diffstat, format_body, post_address
-from listssrht.oauth import ListsOAuthService
+from listssrht.types import User
 from srht.config import cfg
 from srht.database import DbSession
 from srht.flask import SrhtFlask
@@ -10,8 +10,7 @@ db.init()
 
 class ListsApp(SrhtFlask):
     def __init__(self):
-        super().__init__("lists.sr.ht", __name__,
-                oauth_service=ListsOAuthService())
+        super().__init__("lists.sr.ht", __name__, user_class=User)
 
         self.url_map.strict_slashes = False
 
