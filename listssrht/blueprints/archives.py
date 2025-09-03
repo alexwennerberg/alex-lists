@@ -81,6 +81,17 @@ def apply_search(query, search):
 
     def header_filter(name, value):
         header = cast(Email.headers[name], String)
+        # For headers whose values are both stored in a dedicated column
+        # and JSON encoded in the headers map, search in the former to
+        # avoid having to deal with encoding.
+        match name.lower():
+            case "message-id":
+                header = Email.message_id
+            case "in-reply-to":
+                header = Email.in_reply_to
+                # We strip angled brackets when archiving; do the
+                # same for the search term.
+                value = value.replace('<', '').replace('>', '')
         return header.ilike(f"%{value}%")
 
     def user_alias(header, value):
