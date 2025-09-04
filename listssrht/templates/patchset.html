@@ -71,7 +71,7 @@
 <blockquote>
   {% set msg = feedback.source_msg %}
   {{ msg_header(msg) }}
-  <pre class="message-body">{{feedback.body}}</pre>
+  <pre class="message-body">{{format_body(feedback.source_msg)}}</pre>
 </blockquote>
 {% endif %}
 {% endfor %}
