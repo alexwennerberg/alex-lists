@@ -6,12 +6,12 @@ from srht.config import cfg, cfgi
 from srht.database import db
 from srht.oauth import UserType, current_user, loginrequired
 from srht.flask import paginate_query
-from srht.graphql import exec_gql
 from srht.search import search_by
 from srht.validation import Validation
 from sqlalchemy import or_
 from sqlalchemy import nullslast
-from listssrht.types import List, ListAccess, User, Email, Subscription, Mirror, Visibility
+from listssrht.graphql import Client, Visibility
+from listssrht.types import List, ListAccess, User, Email, Subscription, Mirror
 import re
 import smtplib
 
@@ -96,29 +96,21 @@ def create_list_POST():
 
     valid = Validation(request)
     name = valid.require("name", friendly_name="Name")
-    description = valid.optional("description")
-    visibility = valid.require("visibility")
+    desc = valid.optional("description")
+    visibility = valid.require("visibility", cls=Visibility)
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)
 
-    resp = exec_gql(current_app.site, """
-        mutation CreateMailingList($name: String!, $description: String, $visibility: Visibility!) {
-            createMailingList(name: $name, description: $description, visibility: $visibility) {
-                name
-                owner {
-                    canonicalName
-                }
-            }
-        }
-    """, valid=valid, name=name, description=description, visibility=visibility)
+    client = Client()
 
+    with valid:
+        mailing_list = client.create_mailing_list(name, visibility, desc).list
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)
 
-    resp = resp["createMailingList"]
     return redirect(url_for("archives.archive",
-            owner_name=resp["owner"]["canonicalName"],
-            list_name=resp["name"]))
+            owner_name=mailing_list.owner.canonical_name,
+            list_name=mailing_list.name))
 
 @user.route("/lists/create-mirror")
 @loginrequired

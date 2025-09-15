@@ -26,6 +26,7 @@ packages = [
     "listssrht.alembic",
     "listssrht.alembic.versions",
     "listssrht.blueprints",
+    "listssrht.graphql",
     "listssrht.templates",
     "listssrht.types",
 ]
@@ -37,3 +38,18 @@ script-files = [
 "listssrht.templates" = ['*.html']
 
 [tool.setuptools_scm]
+
+[tool.ariadne-codegen]
+async_client = false
+schema_path = "api/graph/schema.graphqls"
+queries_path = "listssrht/graphql/"
+target_package_path = "listssrht"
+target_package_name = "graphql"
+plugins = ["srht.ariadne.AriadnePlugin"]
+
+[tool.ariadne-codegen.sourcehut]
+service_name = "lists.sr.ht"
+
+[tool.ariadne-codegen.scalars.Time]
+type = "datetime.datetime"
+parse = "srht.graphql.gql_time"

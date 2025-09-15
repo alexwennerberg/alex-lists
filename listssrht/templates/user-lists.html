@@ -39,7 +39,7 @@
                 list_name=list.name
               ) }}"
             >{{list.owner.canonical_name}}/{{list.name}}</a>
-            {% if list.visibility.value != 'PUBLIC' %}
+            {% if list.visibility != Visibility.PUBLIC %}
             <small class="pull-right">
               {{ list.visibility.value.lower() }}
             </small>

@@ -57,7 +57,7 @@
               type="radio"
               name="visibility"
               value="PUBLIC"
-              {% if ml.visibility.value == "PUBLIC" %}
+              {% if ml.visibility == Visibility.PUBLIC %}
               checked
               {% endif %}
               > Public
@@ -76,7 +76,7 @@
               type="radio"
               name="visibility"
               value="UNLISTED"
-              {% if ml.visibility.value == "UNLISTED" %}
+              {% if ml.visibility == Visibility.UNLISTED %}
               checked
               {% endif %}
               > Unlisted
@@ -95,7 +95,7 @@
               type="radio"
               name="visibility"
               value="PRIVATE"
-              {% if ml.visibility.value == "PRIVATE" %}
+              {% if ml.visibility == Visibility.PRIVATE %}
               checked
               {% endif %}
               > Private

@@ -10,9 +10,10 @@ from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired, UserType
 from srht.validation import Validation
 from listssrht.filters import post_address
-from listssrht.types import List, User, Email, Subscription, ListAccess, Access, Visibility
-from listssrht.types import Patchset, PatchsetStatus
+from listssrht.graphql import Visibility
 from listssrht.process import forward_thread
+from listssrht.types import List, User, Email, Subscription, ListAccess, Access
+from listssrht.types import Patchset, PatchsetStatus
 from urllib.parse import quote, urlencode
 import email
 import email.policy

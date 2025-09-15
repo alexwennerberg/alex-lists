@@ -46,7 +46,7 @@
               type="radio"
               name="visibility"
               value="PUBLIC"
-              {% if not visibility or visibility == "PUBLIC" %}
+              {% if not visibility or visibility == Visibility.PUBLIC %}
               checked
               {% endif %}> Public
             <small id="visibility-public-help" class="form-text text-muted">
@@ -64,7 +64,7 @@
               type="radio"
               name="visibility"
               value="UNLISTED"
-              {% if visibility == "UNLISTED" %}
+              {% if visibility == Visibility.UNLISTED %}
               checked
               {% endif %}> Unlisted
             <small id="visibility-unlisted-help" class="form-text text-muted">
@@ -82,7 +82,7 @@
               type="radio"
               name="visibility"
               value="PRIVATE"
-              {% if visibility == "PRIVATE" %}
+              {% if visibility == Visibility.PRIVATE %}
               checked
               {% endif %}> Private
             <small id="visibility-unlisted-help" class="form-text text-muted">

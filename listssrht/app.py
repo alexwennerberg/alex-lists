@@ -1,4 +1,5 @@
 from listssrht.filters import diffstat, format_body, post_address
+from listssrht.graphql import Visibility
 from listssrht.types import User
 from srht.config import cfg
 from srht.database import DbSession
@@ -35,6 +36,7 @@ class ListsApp(SrhtFlask):
                 "post_address": post_address,
                 "quote": quote,
                 "ListAccess": ListAccess,
+                "Visibility": Visibility,
             }
 
 app = ListsApp()

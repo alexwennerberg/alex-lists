@@ -2,14 +2,12 @@ from flask import Blueprint, render_template, abort, request, redirect, url_for
 from flask import current_app, session
 from srht.config import cfg
 from srht.database import db
-from srht.flask import paginate_query
-from srht.graphql import exec_gql, GraphQLOperation, GraphQLUpload
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from listssrht.blueprints.archives import get_list
-from listssrht.types import Access, Email, List, ListAccess, User
-import base64
-import email
+from listssrht.graphql import Client, MailingListInput, ACLInput, Visibility
+from listssrht.graphql import Upload
+from listssrht.types import Access, List, ListAccess, User
 
 settings = Blueprint("settings", __name__)
 
@@ -45,21 +43,19 @@ def info_POST(owner_name, list_name):
     if ml.owner_id != current_user.id:
         abort(403)
 
-    valid = Validation(request)
-    rewrite = lambda value: None if value == "" else value
-    input = {
-        key: rewrite(valid.source[key]) for key in [
-            "description", "visibility"
-        ] if valid.source.get(key) is not None
-    }
+    client = Client()
 
-    exec_gql(current_app.site, """
-        mutation UpdateMailingList($id: Int!, $input: MailingListInput!) {
-            updateMailingList(id: $id, input: $input) {
-                id
-            }
-        }
-    """, valid=valid, id=ml.id, input=input)
+    valid = Validation(request)
+    updates = MailingListInput()
+    updates.visibility = valid.require("visibility", cls=Visibility)
+    desc = valid.optional("description")
+    if not desc:
+        updates.description = None
+    else:
+        updates.description = desc
+
+    with valid:
+        client.update_mailing_list(ml.id, updates)
 
     if not valid.ok:
         return render_template("settings-info.html", ml=ml, owner=owner,
@@ -100,21 +96,20 @@ def access_POST(owner_name, list_name):
     if ml.owner_id != current_user.id:
         abort(403)
 
+    client = Client()
+
     valid = Validation(request)
     access = _process_access(valid, "default")
-    input = {
-        perm: ((access & ListAccess[perm].value) != 0) for perm in [
-            "browse", "reply", "post", "moderate",
-        ]
-    }
 
-    exec_gql(current_app.site, """
-        mutation UpdateMailingListACL($id: Int!, $input: ACLInput!) {
-            updateMailingListACL(listID: $id, input: $input) {
-                id
-            }
-        }
-    """, valid=valid, id=ml.id, input=input)
+    acl = ACLInput(
+        browse=(access & ListAccess.browse) != 0,
+        reply=(access & ListAccess.reply) != 0,
+        post=(access & ListAccess.post) != 0,
+        moderate=(access & ListAccess.moderate) != 0,
+    )
+
+    with valid:
+        client.update_mailing_list_access(ml.id, acl)
 
     if not valid.ok:
         return render_template("settings-access.html", view="access",
@@ -224,21 +219,15 @@ def content_POST(owner_name, list_name):
     if ml.owner_id != current_user.id:
         abort(403)
 
-    valid = Validation(request)
-    rewrite = lambda value: [] if value == "" else value.split(",")
-    input = {
-        key: rewrite(valid.source[key]) for key in [
-            "permitMime", "rejectMime"
-        ] if valid.source.get(key) is not None
-    }
+    client = Client()
 
-    exec_gql(current_app.site, """
-        mutation UpdateMailingList($id: Int!, $input: MailingListInput!) {
-            updateMailingList(id: $id, input: $input) {
-                id
-            }
-        }
-    """, valid=valid, id=ml.id, input=input)
+    valid = Validation(request)
+    updates = MailingListInput()
+    updates.permit_mime = valid.require("permitMime").split(",")
+    updates.reject_mime = valid.require("rejectMime").split(",")
+
+    with valid:
+        client.update_mailing_list(ml.id, updates)
 
     if not valid.ok:
         return render_template("settings-content.html",
@@ -278,20 +267,10 @@ def import_POST(owner_name, list_name):
         return render_template("settings-import-export.html",
                 view="import/export", ml=ml, owner=owner, **valid.kwargs)
 
-    op = GraphQLOperation("""
-        mutation ImportMailingListSpool($listID: Int!, $spool: Upload!) {
-            importMailingListSpool(listID: $listID, spool: $spool)
-        }
-    """)
-
-    spool = GraphQLUpload(
-        spool.filename,
-        spool.stream,
-        "application/octet-stream",
-    )
-    op.var("listID", ml.id)
-    op.var("spool", spool)
-    op.execute("lists.sr.ht", valid=valid)
+    client = Client()
+    spool = Upload(spool.filename, spool, "application/octet-stream")
+    with valid:
+        client.import_spool(ml.id, spool)
 
     if not valid.ok:
         return render_template("settings-import-export.html",
@@ -319,10 +298,6 @@ def delete_POST(owner_name, list_name):
         abort(404)
     if ml.owner_id != current_user.id:
         abort(403)
-    exec_gql("lists.sr.ht", """
-        mutation DeleteMailingList($id: Int!) {
-            deleteMailingList(id: $id) { id }
-        }
-    """, user=owner, id=ml.id)
+    Client().delete_mailing_list(ml.id)
     session["notice"] = f"{ml.name} is being deleted. This may take a few minutes."
     return redirect(url_for("user.index"))

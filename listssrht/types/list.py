@@ -1,15 +1,11 @@
 import re
 import sqlalchemy as sa
-import sqlalchemy_utils as sau
 from enum import Enum
-from srht.flagtype import FlagType
-from srht.database import Base
+from listssrht.graphql import Visibility
 from listssrht.types.listaccess import ListAccess
-
-class Visibility(Enum):
-    PUBLIC = 'PUBLIC'
-    UNLISTED = 'UNLISTED'
-    PRIVATE = 'PRIVATE'
+from sqlalchemy.dialects import postgresql
+from srht.database import Base
+from srht.flagtype import FlagType
 
 class List(Base):
     __tablename__ = 'list'
@@ -21,7 +17,9 @@ class List(Base):
     updated = sa.Column(sa.DateTime, nullable=False)
     name = sa.Column(sa.String(128), nullable=False)
     description = sa.Column(sa.Unicode(2048))
-    visibility = sa.Column(sau.ChoiceType(Visibility), nullable=False)
+    visibility = sa.Column(
+            postgresql.ENUM(Visibility, name='visibility'),
+            nullable=False)
     import_in_progress = sa.Column(
             sa.Boolean, nullable=False, server_default='f')
 

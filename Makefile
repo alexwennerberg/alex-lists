@@ -11,19 +11,28 @@ STATICDIR=$(ASSETS)/static/$(SERVICE)
 SASSC?=sassc
 SASSC_INCLUDE=-I$(ASSETS)/scss/
 
+ARIADNE_CODEGEN=ariadne-codegen
+
 BINARIES=\
 	$(SERVICE)-api \
 	$(SERVICE)-ingress
 
-all: all-bin all-share
+all: all-bin all-share all-python
 
 install: install-bin install-share
 
-clean: clean-bin clean-share
+clean: clean-bin clean-share clean-python
 
 all-bin: $(BINARIES)
 
 all-share: static/main.min.css
+
+GRAPHQL_QUERIES != echo listssrht/graphql/*.graphql
+
+listssrht/graphql/__init__.py: pyproject.toml $(GRAPHQL_QUERIES)
+	$(ARIADNE_CODEGEN)
+
+all-python: listssrht/graphql/__init__.py
 
 install-bin: all-bin
 	mkdir -p $(BINDIR)
@@ -43,9 +52,12 @@ clean-bin:
 clean-share:
 	rm -f static/main.min.css static/main.css
 
-.PHONY: all all-bin all-share
+clean-python:
+	rm -rf listssrht/graphql/*.py listssrht/graphql/__pycache__
+
+.PHONY: all all-bin all-share all-python
 .PHONY: install install-bin install-share
-.PHONY: clean clean-bin clean-share
+.PHONY: clean clean-bin clean-share clean-python
 
 static/main.css: scss/main.scss
 	mkdir -p $(@D)

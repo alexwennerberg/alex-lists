@@ -8,12 +8,13 @@ from flask import Blueprint, render_template, abort, Response, request, redirect
 from flask import current_app, url_for, session
 from listssrht.blueprints.archives import get_list, apply_search
 from listssrht.filters import post_address
+from listssrht.graphql import Client, GraphQLClientError
 from listssrht.types import List, Email, Patchset, PatchsetStatus, ListAccess
 from listssrht.types import Subscription, PatchsetTool, ToolIcon
 from sqlalchemy import or_
 from srht.database import db
 from srht.flask import paginate_query
-from srht.graphql import exec_gql, GraphQLError
+from srht.graphql import InternalAuth, exec_gql, GraphQLError
 from srht.markdown import markdown
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
@@ -170,38 +171,17 @@ def patchset(owner_name, list_name, patchset_id):
         messages_by_id[msg.id] = msg
 
     feedback = dict()
+    client = Client(InternalAuth(owner))
     try:
-        resp = exec_gql(current_app.site, """
-            query GetPatchsetThreadBlocks($patchset: Int!) {
-                patchset(id: $patchset) {
-                    thread {
-                        blocks {
-                            key
-                            source {
-                                id
-                            }
-                            sourceRange {
-                                start
-                                end
-                            }
-                            parentRange {
-                                start
-                                end
-                            }
-                        }
-                    }
-                }
-            }
-        """, user=owner, patchset=patchset_id)
-        blocks = resp["patchset"]["thread"]["blocks"]
-    except GraphQLError as err:
+        blocks = (client.get_patchset_thread_blocks(patchset_id).
+            patchset.thread.blocks)
+    except GraphQLClientError:
         # Can happen when an email in the thread is a bad apple
-        # TODO: grab partial result from GraphQLError.data (gqlgen doesn't
-        # support this yet)
         print(f"Warning: failed to parse blocks from thread {thread.id}: {err.errors}")
         blocks = []
+
     for block in blocks:
-        source_email = messages_by_id[block["source"]["id"]]
+        source_email = messages_by_id[block.source.id]
 
         parent_id = source_email.parent_id
         if parent_id is None:
@@ -214,21 +194,21 @@ def patchset(owner_name, list_name, patchset_id):
             fb = Feedback([], {})
             feedback[parent_id] = fb
 
-        source_range = block["sourceRange"]
+        source_range = block.source_range
         source_region = [
-            byte_to_line_index(source_email, source_range["start"]),
-            byte_to_line_index(source_email, source_range["end"]),
+            byte_to_line_index(source_email, source_range.start),
+            byte_to_line_index(source_email, source_range.end),
         ]
 
         try:
-            body = get_byte_range(source_email, source_range["start"], source_range["end"])
+            body = get_byte_range(source_email, source_range.start, source_range.end)
         except UnicodeDecodeError:
             continue
 
-        fb_block = FeedbackBlock(block["key"], body.strip(), source_email, source_region)
+        fb_block = FeedbackBlock(block.key, body.strip(), source_email, source_region)
 
-        if block["parentRange"] is not None:
-            line = byte_to_line_index(parent_email, block["parentRange"]["end"])
+        if block.parent_range is not None:
+            line = byte_to_line_index(parent_email, block.parent_range.end)
             if line not in fb.feedback_by_line:
                 fb.feedback_by_line[line] = [fb_block]
             else:
