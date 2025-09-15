@@ -14,7 +14,7 @@ from listssrht.types import Subscription, PatchsetTool, ToolIcon
 from sqlalchemy import or_
 from srht.database import db
 from srht.flask import paginate_query
-from srht.graphql import InternalAuth, exec_gql, GraphQLError
+from srht.graphql import InternalAuth
 from srht.markdown import markdown
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
@@ -47,12 +47,20 @@ tool_icon_to_icon = {
     ToolIcon.cancelled: "times",
 }
 
-
 # Patch statuses that only moderators can transition patches to
 MODERATOR_ONLY_STATUS = [ "applied", "approved", "rejected" ]
 
 Feedback = namedtuple("Feedback", ["standalone_feedback", "feedback_by_line"])
 FeedbackBlock = namedtuple("FeedbackBlock", ["key", "body", "source_msg", "source_region"])
+
+@patches.context_processor
+def inject():
+    return {
+        "status_to_color": status_to_color,
+        "tool_icon_to_class": tool_icon_to_class,
+        "tool_icon_to_icon": tool_icon_to_icon,
+        "MODERATOR_ONLY_STATUS": MODERATOR_ONLY_STATUS,
+    }
 
 @patches.route("/<owner_name>/<list_name>/patches")
 def patchlist(owner_name, list_name):
@@ -83,10 +91,8 @@ def patchlist(owner_name, list_name):
                 .filter(Subscription.user_id == current_user.id)).one_or_none()
     return render_template("archive.html",
             view="patches", owner=owner, ml=ml, threads=threads,
-            access=access, ListAccess=ListAccess, search=search,
-            search_error=search_error, subscription=subscription,
-            status_to_color=status_to_color, parseaddr=parseaddr,
-            PatchsetStatus=PatchsetStatus, **pagination)
+            access=access, search=search, search_error=search_error,
+            subscription=subscription, **pagination)
 
 def byte_to_line_index(msg, byte_index):
     b = msg.body.replace("\r\n", "\n").encode()
@@ -244,12 +250,8 @@ def patchset(owner_name, list_name, patchset_id):
             parseaddr=parseaddr, reply_to=reply_to, ml=ml, access=access,
             thread=thread, patchset=patchset, patches=patches,
             feedback=feedback, gen_cover_letter=gen_cover_letter,
-            PatchsetStatus=PatchsetStatus, status_to_color=status_to_color,
-            MODERATOR_ONLY_STATUS=MODERATOR_ONLY_STATUS,
             messages=messages, nextmsg=nextmsg, max=max,
-            user_message=user_message, tools=tools, tool_details=tool_details,
-            tool_icon_to_class=tool_icon_to_class,
-            tool_icon_to_icon=tool_icon_to_icon)
+            user_message=user_message, tools=tools, tool_details=tool_details)
 
 @patches.route("/<owner_name>/<list_name>/patches/<int:patchset_id>/update",
         methods=["POST"])

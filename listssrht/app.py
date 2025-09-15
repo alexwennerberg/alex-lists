@@ -1,6 +1,7 @@
+from email.utils import parseaddr
 from listssrht.filters import diffstat, format_body, post_address
 from listssrht.graphql import Visibility
-from listssrht.types import User
+from listssrht.types import User, PatchsetStatus, ListAccess
 from srht.config import cfg
 from srht.database import DbSession
 from srht.flask import SrhtFlask
@@ -29,14 +30,15 @@ class ListsApp(SrhtFlask):
 
         @self.context_processor
         def inject():
-            from listssrht.types import ListAccess
             return {
-                "diffstat": diffstat,
-                "format_body": format_body,
-                "post_address": post_address,
-                "quote": quote,
                 "ListAccess": ListAccess,
                 "Visibility": Visibility,
+                "diffstat": diffstat,
+                "format_body": format_body,
+                "parseaddr": parseaddr,
+                "PatchsetStatus": PatchsetStatus,
+                "post_address": post_address,
+                "quote": quote,
             }
 
 app = ListsApp()
