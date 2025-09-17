@@ -7,6 +7,7 @@ ASSETS=$(SHAREDIR)/sourcehut
 
 SERVICE=lists.sr.ht
 STATICDIR=$(ASSETS)/static/$(SERVICE)
+MIGRATIONDIR=$(ASSETS)/migrations/$(SERVICE)
 
 SASSC?=sassc
 SASSC_INCLUDE=-I$(ASSETS)/scss/
@@ -43,8 +44,10 @@ install-bin: all-bin
 
 install-share: all-share
 	mkdir -p $(STATICDIR)
+	mkdir -p $(MIGRATIONDIR)
 	install -Dm644 static/*.css $(STATICDIR)
 	install -Dm644 api/graph/schema.graphqls $(ASSETS)/$(SERVICE).graphqls
+	install -Dm644 migrations/*.sql $(MIGRATIONDIR)
 
 clean-bin:
 	rm -f $(BINARIES)

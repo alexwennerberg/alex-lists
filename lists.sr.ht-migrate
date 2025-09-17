@@ -1,5 +1,0 @@
-#!/usr/bin/env python3
-import listssrht.alembic
-import srht.alembic
-from srht.database import alembic
-alembic("lists.sr.ht", listssrht.alembic)

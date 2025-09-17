@@ -23,15 +23,10 @@ repository = "https://git.sr.ht/~sircmpwn/lists.sr.ht"
 include-package-data = false
 packages = [
     "listssrht",
-    "listssrht.alembic",
-    "listssrht.alembic.versions",
     "listssrht.blueprints",
     "listssrht.graphql",
     "listssrht.templates",
     "listssrht.types",
-]
-script-files = [
-    "lists.sr.ht-migrate",
 ]
 [tool.setuptools.package-data]
 "listssrht" = ['default_query.graphql', 'schema.graphqls']
