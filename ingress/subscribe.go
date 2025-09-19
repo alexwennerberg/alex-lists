@@ -120,12 +120,17 @@ func (b *Backend) ConfirmSubscribe(
 
 Your subscription to %s is confirmed!
 
+To post to the list, send an email to:
+
+%s
+
 To unsubscribe in the future, send an email to this address:
 
 %s
 
-Feel free to reply to this email if you have any questions.
-`, sender.Name, list.Address(), list.PlusAddress(CMD_UNSUBSCRIBE))
+Feel free to reply to this email if you have any general questions for the 
+admins of the mailing list platform (not the list itself).
+`, sender.Name, list.Address(), list.Address(), list.PlusAddress(CMD_UNSUBSCRIBE))
 
 	return email.EnqueueStd(b.ctx, header, &body, nil)
 }
