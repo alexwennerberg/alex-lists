@@ -12,7 +12,8 @@ dependencies = [
     "pygit2",
     "srht",
 ]
-license.text = "AGPL-3.0-only"
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
 
 [project.urls]
 repository = "https://git.sr.ht/~sircmpwn/lists.sr.ht"
