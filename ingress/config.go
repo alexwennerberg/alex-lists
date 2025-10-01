@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"git.sr.ht/~sircmpwn/core-go/config"
+	"git.sr.ht/~sircmpwn/core-go/crypto"
 	"github.com/vaughan0/go-ini"
 )
 
@@ -39,7 +40,8 @@ var SrhtConfig ini.File
 func LoadConfig() error {
 	var err error
 
-	c := config.LoadConfig("")
+	c := config.LoadConfig()
+	crypto.InitCrypto(c)
 
 	for k, v := range c.Section("lists.sr.ht::worker") {
 		switch k {

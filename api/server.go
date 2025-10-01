@@ -6,6 +6,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"os"
 	"strconv"
 	"time"
 
@@ -30,7 +31,7 @@ import (
 )
 
 func main() {
-	appConfig := config.LoadConfig(":5106")
+	appConfig := config.LoadConfig()
 
 	gqlConfig := api.Config{Resolvers: &graph.Resolver{}}
 	gqlConfig.Directives.Private = server.Private
@@ -56,7 +57,7 @@ func main() {
 	webhookQueue := webhooks.NewQueue(schema, appConfig)
 	legacyWebhooks := webhooks.NewLegacyQueue(appConfig)
 
-	gsrv := server.NewServer("lists.sr.ht", appConfig).
+	gsrv := server.New("lists.sr.ht", ":5106", appConfig, os.Args).
 		WithDefaultMiddleware().
 		WithMiddleware(
 			loaders.Middleware,
