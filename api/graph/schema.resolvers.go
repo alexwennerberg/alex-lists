@@ -100,7 +100,7 @@ func (r *emailResolver) AddressList(ctx context.Context, obj *model.Email, want 
 
 // Envelope is the resolver for the envelope field.
 func (r *emailResolver) Envelope(ctx context.Context, obj *model.Email) (*model.URL, error) {
-	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
+	origin := config.GetAPI(config.ForContext(ctx), "lists.sr.ht", true)
 	uri := fmt.Sprintf("%s/query/email/%d", origin, obj.ID)
 	url, err := url.Parse(uri)
 	if err != nil {
@@ -333,7 +333,7 @@ func (r *mailingListResolver) Subscription(ctx context.Context, obj *model.Maili
 
 // Archive is the resolver for the archive field.
 func (r *mailingListResolver) Archive(ctx context.Context, obj *model.MailingList) (*model.URL, error) {
-	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
+	origin := config.GetAPI(config.ForContext(ctx), "lists.sr.ht", true)
 	uri := fmt.Sprintf("%s/query/list/%d.mbox", origin, obj.ID)
 	url, err := url.Parse(uri)
 	if err != nil {
@@ -344,7 +344,7 @@ func (r *mailingListResolver) Archive(ctx context.Context, obj *model.MailingLis
 
 // Last30days is the resolver for the last30days field.
 func (r *mailingListResolver) Last30days(ctx context.Context, obj *model.MailingList) (*model.URL, error) {
-	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
+	origin := config.GetAPI(config.ForContext(ctx), "lists.sr.ht", true)
 	uri := fmt.Sprintf("%s/query/list/%d.mbox?since=30", origin, obj.ID)
 	url, err := url.Parse(uri)
 	if err != nil {
@@ -1874,7 +1874,7 @@ func (r *patchsetResolver) Tools(ctx context.Context, obj *model.Patchset) ([]*m
 
 // Mbox is the resolver for the mbox field.
 func (r *patchsetResolver) Mbox(ctx context.Context, obj *model.Patchset) (*model.URL, error) {
-	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
+	origin := config.GetAPI(config.ForContext(ctx), "lists.sr.ht", true)
 	uri := fmt.Sprintf("%s/query/patchset/%d.mbox", origin, obj.ID)
 	url, err := url.Parse(uri)
 	if err != nil {
@@ -2160,7 +2160,7 @@ func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string,
 
 // Mbox is the resolver for the mbox field.
 func (r *threadResolver) Mbox(ctx context.Context, obj *model.Thread) (*model.URL, error) {
-	origin := config.GetOrigin(config.ForContext(ctx), "lists.sr.ht", true)
+	origin := config.GetAPI(config.ForContext(ctx), "lists.sr.ht", true)
 	uri := fmt.Sprintf("%s/query/thread/%d.mbox", origin, obj.ID)
 	url, err := url.Parse(uri)
 	if err != nil {
