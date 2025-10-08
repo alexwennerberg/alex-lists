@@ -183,7 +183,7 @@ def patchset(owner_name, list_name, patchset_id):
             patchset.thread.blocks)
     except GraphQLClientError:
         # Can happen when an email in the thread is a bad apple
-        print(f"Warning: failed to parse blocks from thread {thread.id}: {err.errors}")
+        print(f"Warning: failed to parse blocks from thread {thread.id}")
         blocks = []
 
     for block in blocks:
