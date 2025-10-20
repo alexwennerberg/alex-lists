@@ -3,7 +3,6 @@ package graph
 import (
 	"fmt"
 	"io"
-	"io/ioutil"
 	"regexp"
 	"strings"
 
@@ -47,7 +46,7 @@ func getMailText(mr *mail.Reader) (string, error) {
 
 		if ih, ok := part.Header.(*mail.InlineHeader); ok {
 			if t, _, _ := ih.ContentType(); t == "text/plain" {
-				b, err := ioutil.ReadAll(part.Body)
+				b, err := io.ReadAll(part.Body)
 				return strings.ReplaceAll(string(b), "\r\n", "\n"), err
 			}
 		}
