@@ -1923,11 +1923,6 @@ func (r *queryResolver) Email(ctx context.Context, id int) (*model.Email, error)
 	return loaders.ForContext(ctx).EmailsByID.Load(id)
 }
 
-// Message is the resolver for the message field.
-func (r *queryResolver) Message(ctx context.Context, messageID string) (*model.Email, error) {
-	return loaders.ForContext(ctx).EmailsByMessageID.Load(messageID)
-}
-
 // Patchset is the resolver for the patchset field.
 func (r *queryResolver) Patchset(ctx context.Context, id int) (*model.Patchset, error) {
 	return loaders.ForContext(ctx).PatchsetsByID.Load(id)

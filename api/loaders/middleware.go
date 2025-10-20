@@ -25,7 +25,6 @@ type Loaders struct {
 	ACLsByID                ACLsByIDLoader
 	EmailsByID              EmailsByIDLoader
 	EmailsByIDUnsafe        EmailsByIDLoader
-	EmailsByMessageID       EmailsByMessageIDLoader
 	MailingListsByID        MailingListsByIDLoader
 	MailingListsByOwnerName MailingListsByOwnerNameLoader
 	PatchsetsByID           PatchsetsByIDLoader
@@ -384,65 +383,6 @@ func fetchEmailsByID(ctx context.Context) func(ids []int) ([]*model.Email, []err
 	}
 }
 
-func fetchEmailsByMessageID(ctx context.Context) func(ids []string) ([]*model.Email, []error) {
-	return func(ids []string) ([]*model.Email, []error) {
-		emails := make([]*model.Email, len(ids))
-		if err := database.WithTx(ctx, &sql.TxOptions{
-			Isolation: 0,
-			ReadOnly:  true,
-		}, func(tx *sql.Tx) error {
-			var (
-				err  error
-				rows *sql.Rows
-			)
-			user := auth.ForContext(ctx)
-			query := database.
-				Select(ctx, (&model.Email{}).As(`email`)).
-				From(`email`).
-				LeftJoin(`list ON email.list_id = list.id`).
-				LeftJoin(`access ON
-					access.list_id = list.id AND
-					access.user_id = ?`, user.UserID).
-				LeftJoin(`subscription sub ON
-					sub.list_id = list.id AND
-					sub.user_id = ?`, user.UserID).
-				Where(sq.And{
-					sq.Expr(`email.message_id = ANY(?)`, pq.Array(ids)),
-					sq.Or{
-						sq.Expr(`list.owner_id = ?`, user.UserID),
-						sq.Expr(`access.permissions & ? > 0`, model.ACCESS_BROWSE),
-						sq.Expr(`list.default_access & ? > 0`, model.ACCESS_BROWSE),
-					},
-				})
-			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
-				panic(err)
-			}
-			defer rows.Close()
-
-			emailsByMessageID := map[string]*model.Email{}
-			for rows.Next() {
-				var email model.Email
-				if err := rows.Scan(database.Scan(ctx, &email)...); err != nil {
-					panic(err)
-				}
-				email.Populate()
-				emailsByMessageID[email.MessageID] = &email
-			}
-			if err = rows.Err(); err != nil {
-				panic(err)
-			}
-
-			for i, id := range ids {
-				emails[i] = emailsByMessageID[id]
-			}
-			return nil
-		}); err != nil {
-			panic(err)
-		}
-		return emails, nil
-	}
-}
-
 func fetchEmailsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Email, []error) {
 	return func(ids []int) ([]*model.Email, []error) {
 		emails := make([]*model.Email, len(ids))
@@ -695,11 +635,6 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchEmailsByIDUnsafe(r.Context()),
-			},
-			EmailsByMessageID: EmailsByMessageIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchEmailsByMessageID(r.Context()),
 			},
 			MailingListsByID: MailingListsByIDLoader{
 				maxBatch: 100,
