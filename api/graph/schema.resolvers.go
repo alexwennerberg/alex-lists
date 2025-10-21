@@ -1201,13 +1201,15 @@ func (r *mutationResolver) ImportMailingListSpool(ctx context.Context, listID in
 	if spool.Size > limit {
 		return false, errors.New("Mailing list spool must not exceed 30 MiB in size")
 	}
+	var listName string
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		_, err := tx.ExecContext(ctx, `
+		row := tx.QueryRowContext(ctx, `
 			UPDATE list
 			SET import_in_progress = true
 			WHERE id = $1 AND owner_id = $2
+			RETURNING name
 		`, listID, auth.ForContext(ctx).UserID)
-		return err
+		return row.Scan(&listName)
 	}); err != nil {
 		return false, err
 	}
@@ -1216,7 +1218,7 @@ func (r *mutationResolver) ImportMailingListSpool(ctx context.Context, listID in
 	if err != nil {
 		return false, err
 	}
-	lists.ImportMailingListSpool(ctx, listID, bytes.NewReader(b))
+	lists.ImportMailingListSpool(ctx, listID, listName, bytes.NewReader(b))
 	return true, nil
 }
 

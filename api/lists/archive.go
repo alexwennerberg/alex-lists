@@ -36,18 +36,31 @@ func NewArchiver(ctx context.Context, tx *sql.Tx, listID int) *Archiver {
 	return &Archiver{ctx: ctx, tx: tx, listID: listID, isImport: false}
 }
 
+type ImportResult struct {
+	Dropped   []error
+	Imported  int
+	Duplicate int
+}
+
 // Import an mbox spool into a mailing list.
 //
-// Does not enforce access controls.
-func (ar *Archiver) ImportSpool(spool io.Reader) error {
+// Does not enforce access controls. If error is non-nil, the import was aborted
+// and rolled back.
+func (ar *Archiver) ImportSpool(spool io.Reader) (ImportResult, error) {
 	ar.isImport = true
 	defer func() { ar.isImport = false }()
 
+	var (
+		result ImportResult
+		input  int // used to track the source message in the mbox file
+	)
+
 	r := mbox.NewReader(spool)
 	for {
+		input += 1
 		select {
 		case <-ar.ctx.Done():
-			return errors.New("Mailing list spool import timed out")
+			return result, errors.New("Mailing list spool import timed out")
 		default:
 		}
 
@@ -55,19 +68,23 @@ func (ar *Archiver) ImportSpool(spool io.Reader) error {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return fmt.Errorf("Error reading mailing list spool: %v", err)
+			return result, fmt.Errorf("Error reading mailing list spool: %v", err)
 		}
 
 		if _, err = ar.ArchiveMessage(msg); err != nil {
 			if errors.Is(err, apiErr.ErrDuplicateEmail) {
+				result.Duplicate += 1
 				continue
 			}
-			// TODO: Collect errors and email them to the user
-			log.Printf("Error importing message: %v", err)
+			ie := fmt.Errorf("Error importing message %d: %v", input, err)
+			log.Println(err.Error())
+			result.Dropped = append(result.Dropped, ie)
+		} else {
+			result.Imported += 1
 		}
 	}
 
-	return nil
+	return result, nil
 }
 
 // Import a single email (RFC 2045 MIME message) into a mailing list archive.
