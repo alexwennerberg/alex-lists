@@ -12,7 +12,7 @@ type URL struct {
 	Url *url.URL
 }
 
-func (u *URL) UnmarshalGQL(v interface{}) error {
+func (u *URL) UnmarshalGQL(v any) error {
 	raw, ok := v.(string)
 	if !ok {
 		return fmt.Errorf("Mail format is a base64-encoded string")

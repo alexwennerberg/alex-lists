@@ -133,7 +133,7 @@ type UserWebhookSubscription struct {
 	fields *database.ModelFields
 }
 
-func (we *WebhookEvent) Scan(src interface{}) error {
+func (we *WebhookEvent) Scan(src any) error {
 	bytes, ok := src.([]uint8)
 	if !ok {
 		return fmt.Errorf("Unable to scan from %T into WebhookEvent", src)

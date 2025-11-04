@@ -41,7 +41,7 @@ func sendEmail(ctx context.Context, address, message string) error {
 		mutation sendEmail($address: String!, $message: String!) {
 			sendEmail(address: $address, message: $message)
 		}`,
-		Variables: map[string]interface{}{
+		Variables: map[string]any{
 			"address": address,
 			"message": message,
 		},

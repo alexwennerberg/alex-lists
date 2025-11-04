@@ -42,7 +42,7 @@ func main() {
 	}
 
 	numWorkers := config.GetInt(SrhtConfig, "lists.sr.ht::worker", "queue-workers", 1)
-	for i := 0; i < numWorkers; i++ {
+	for range numWorkers {
 		// Use a dedicated context per egress worker to hold persistent
 		// SMTP client connections.
 		go egress.Run(email.Context(ctx, egress))

@@ -774,7 +774,7 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 }
 
 // UpdateMailingList is the resolver for the updateMailingList field.
-func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input map[string]interface{}) (*model.MailingList, error) {
+func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input map[string]any) (*model.MailingList, error) {
 	valid := valid.New(ctx).WithInput(input)
 	query := sq.Update(`list`).PlaceholderFormat(sq.Dollar)
 
@@ -786,7 +786,7 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 		}
 		query = query.Set("description", desc)
 	})
-	valid.Optional("visibility", func(visibility interface{}) {
+	valid.Optional("visibility", func(visibility any) {
 		vis := visibility.(*model.Visibility)
 		if vis == nil {
 			return
@@ -794,7 +794,7 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 		query = query.Set("visibility", *vis)
 	})
 	mime := func(name string) {
-		valid.Optional(name+"Mime", func(object interface{}) {
+		valid.Optional(name+"Mime", func(object any) {
 			list, ok := object.([]string)
 			if !ok {
 				panic(fmt.Errorf("Invalid mime list")) // GraphQL invariant

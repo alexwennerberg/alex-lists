@@ -36,9 +36,9 @@ func main() {
 	gqlConfig := api.Config{Resolvers: &graph.Resolver{}}
 	gqlConfig.Directives.Private = server.Private
 	gqlConfig.Directives.Internal = server.Internal
-	gqlConfig.Directives.Access = func(ctx context.Context, obj interface{},
+	gqlConfig.Directives.Access = func(ctx context.Context, obj any,
 		next graphql.Resolver, scope model.AccessScope,
-		kind model.AccessKind) (interface{}, error) {
+		kind model.AccessKind) (any, error) {
 		return server.Access(ctx, obj, next, scope.String(), kind.String())
 	}
 	schema := api.NewExecutableSchema(gqlConfig)
