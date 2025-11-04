@@ -768,7 +768,6 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 		return nil, err
 	}
 
-	webhooks.DeliverLegacyUserListEvent(ctx, &list, "list:create")
 	webhooks.DeliverUserMailingListEvent(ctx, model.WebhookEventListCreated, &list)
 
 	return &list, nil
@@ -836,7 +835,6 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 		return nil, err
 	}
 
-	webhooks.DeliverLegacyListEvent(ctx, &list, "list:update")
 	webhooks.DeliverUserMailingListEvent(ctx, model.WebhookEventListUpdated, &list)
 	webhooks.DeliverMailingListEvent(ctx, model.WebhookEventListUpdated, &list)
 
@@ -856,7 +854,6 @@ func (r *mutationResolver) DeleteMailingList(ctx context.Context, id int) (*mode
 
 	// We need to do this here so that it picks up the subscription list
 	// before the cascade sets their list_id columns to null.
-	webhooks.DeliverLegacyListEvent(ctx, list, "list:delete")
 	webhooks.DeliverUserMailingListEvent(ctx, model.WebhookEventListDeleted, list)
 	webhooks.DeliverMailingListEvent(ctx, model.WebhookEventListDeleted, list)
 	lists.DeleteMailingList(ctx, list.ID)
@@ -980,7 +977,6 @@ func (r *mutationResolver) UpdateMailingListACL(ctx context.Context, listID int,
 		return nil, err
 	}
 
-	webhooks.DeliverLegacyListEvent(ctx, &list, "list:update")
 	webhooks.DeliverUserMailingListEvent(ctx, model.WebhookEventListUpdated, &list)
 	webhooks.DeliverMailingListEvent(ctx, model.WebhookEventListUpdated, &list)
 	return &list, nil
