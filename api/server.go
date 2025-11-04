@@ -230,7 +230,7 @@ func prepMbox(rows *sql.Rows, w http.ResponseWriter) error {
 		from, err := reader.Header.AddressList("From")
 		reader.Close()
 		if err != nil {
-			from = []*mail.Address{&mail.Address{"unknown", "unknown@example.org"}}
+			from = []*mail.Address{&mail.Address{Name: "unknown", Address: "unknown@example.org"}}
 		}
 		sink, err := mbw.CreateMessage(from[0].Address, created)
 		if err != nil {

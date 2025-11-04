@@ -72,19 +72,19 @@ func (patch *Patchset) Fields() *database.ModelFields {
 	}
 	patch.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"id", "id", &patch.ID},
-			{"updated", "updated", &patch.Updated},
-			{"subject", "subject", &patch.Subject},
-			{"prefix", "prefix", &patch.Prefix},
-			{"version", "version", &patch.Version},
-			{"status", "status", &patch.RawStatus},
+			{SQL: "id", GQL: "id", Ptr: &patch.ID},
+			{SQL: "updated", GQL: "updated", Ptr: &patch.Updated},
+			{SQL: "subject", GQL: "subject", Ptr: &patch.Subject},
+			{SQL: "prefix", GQL: "prefix", Ptr: &patch.Prefix},
+			{SQL: "version", GQL: "version", Ptr: &patch.Version},
+			{SQL: "status", GQL: "status", Ptr: &patch.RawStatus},
 
 			// Always fetch:
-			{"id", "", &patch.ID},
-			{"list_id", "", &patch.MailingListID},
-			{"cover_letter_id", "", &patch.CoverLetterID},
-			{"superseded_by_id", "", &patch.SupersededByID},
-			{"created", "", &patch.Created},
+			{SQL: "id", GQL: "", Ptr: &patch.ID},
+			{SQL: "list_id", GQL: "", Ptr: &patch.MailingListID},
+			{SQL: "cover_letter_id", GQL: "", Ptr: &patch.CoverLetterID},
+			{SQL: "superseded_by_id", GQL: "", Ptr: &patch.SupersededByID},
+			{SQL: "created", GQL: "", Ptr: &patch.Created},
 		},
 	}
 	return patch.fields

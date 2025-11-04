@@ -49,14 +49,14 @@ func (tool *PatchsetTool) Fields() *database.ModelFields {
 	}
 	tool.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"updated", "updated", &tool.Updated},
-			{"icon", "icon", &tool.RawIcon},
-			{"details", "details", &tool.Details},
+			{SQL: "updated", GQL: "updated", Ptr: &tool.Updated},
+			{SQL: "icon", GQL: "icon", Ptr: &tool.RawIcon},
+			{SQL: "details", GQL: "details", Ptr: &tool.Details},
 
 			// Always fetch:
-			{"id", "", &tool.ID},
-			{"created", "", &tool.Created},
-			{"patchset_id", "", &tool.PatchsetID},
+			{SQL: "id", GQL: "", Ptr: &tool.ID},
+			{SQL: "created", GQL: "", Ptr: &tool.Created},
+			{SQL: "patchset_id", GQL: "", Ptr: &tool.PatchsetID},
 		},
 	}
 	return tool.fields

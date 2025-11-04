@@ -89,21 +89,21 @@ func (list *MailingList) Fields() *database.ModelFields {
 	}
 	list.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"id", "id", &list.ID},
-			{"created", "created", &list.Created},
-			{"name", "name", &list.Name},
-			{"description", "description", &list.Description},
-			{"import_in_progress", "importing", &list.Importing},
-			{"permit_mimetypes", "permitMime", &list.RawPermitMime},
-			{"reject_mimetypes", "rejectMime", &list.RawRejectMime},
-			{"visibility", "visibility", &list.Visibility},
-			{"default_access", "defaultACL", &list.DefaultAccess},
+			{SQL: "id", GQL: "id", Ptr: &list.ID},
+			{SQL: "created", GQL: "created", Ptr: &list.Created},
+			{SQL: "name", GQL: "name", Ptr: &list.Name},
+			{SQL: "description", GQL: "description", Ptr: &list.Description},
+			{SQL: "import_in_progress", GQL: "importing", Ptr: &list.Importing},
+			{SQL: "permit_mimetypes", GQL: "permitMime", Ptr: &list.RawPermitMime},
+			{SQL: "reject_mimetypes", GQL: "rejectMime", Ptr: &list.RawRejectMime},
+			{SQL: "visibility", GQL: "visibility", Ptr: &list.Visibility},
+			{SQL: "default_access", GQL: "defaultACL", Ptr: &list.DefaultAccess},
 
 			// Always fetch:
-			{"id", "", &list.ID},
-			{"owner_id", "", &list.OwnerID},
-			{"updated", "", &list.Updated},
-			{"last_activity", "", &list.LastActivity},
+			{SQL: "id", GQL: "", Ptr: &list.ID},
+			{SQL: "owner_id", GQL: "", Ptr: &list.OwnerID},
+			{SQL: "updated", GQL: "", Ptr: &list.Updated},
+			{SQL: "last_activity", GQL: "", Ptr: &list.LastActivity},
 		},
 	}
 	return list.fields

@@ -47,11 +47,11 @@ func (sub *MailingListSubscription) Fields() *database.ModelFields {
 	sub.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
 			// Always fetch everything
-			{"id", "", &sub.ID},
-			{"created", "", &sub.Created},
-			{"user_id", "", &sub.UserID},
-			{"list_id", "", &sub.ListID},
-			{"email", "", &sub.Email},
+			{SQL: "id", GQL: "", Ptr: &sub.ID},
+			{SQL: "created", GQL: "", Ptr: &sub.Created},
+			{SQL: "user_id", GQL: "", Ptr: &sub.UserID},
+			{SQL: "list_id", GQL: "", Ptr: &sub.ListID},
+			{SQL: "email", GQL: "", Ptr: &sub.Email},
 		},
 	}
 	return sub.fields

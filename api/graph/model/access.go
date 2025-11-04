@@ -71,14 +71,14 @@ func (acl *MailingListACL) Fields() *database.ModelFields {
 	}
 	acl.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"created", "created", &acl.Created},
+			{SQL: "created", GQL: "created", Ptr: &acl.Created},
 
 			// Always fetch:
-			{"id", "", &acl.ID},
-			{"permissions", "", &acl.RawAccess},
-			{"list_id", "", &acl.MailingListID},
-			{"user_id", "", &acl.UserID},
-			{"email", "", &acl.Email},
+			{SQL: "id", GQL: "", Ptr: &acl.ID},
+			{SQL: "permissions", GQL: "", Ptr: &acl.RawAccess},
+			{SQL: "list_id", GQL: "", Ptr: &acl.MailingListID},
+			{SQL: "user_id", GQL: "", Ptr: &acl.UserID},
+			{SQL: "email", GQL: "", Ptr: &acl.Email},
 		},
 	}
 	return acl.fields

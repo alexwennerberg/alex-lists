@@ -106,7 +106,7 @@ func (r *emailResolver) Envelope(ctx context.Context, obj *model.Email) (*model.
 	if err != nil {
 		panic(err)
 	}
-	return &model.URL{url}, nil
+	return &model.URL{Url: url}, nil
 }
 
 // Thread is the resolver for the thread field.
@@ -184,7 +184,7 @@ func (r *mailingListResolver) Threads(ctx context.Context, obj *model.MailingLis
 		return nil, err
 	}
 
-	return &model.ThreadCursor{threads, cursor}, nil
+	return &model.ThreadCursor{Results: threads, Cursor: cursor}, nil
 }
 
 // Emails is the resolver for the emails field.
@@ -222,7 +222,7 @@ func (r *mailingListResolver) Emails(ctx context.Context, obj *model.MailingList
 		return nil, err
 	}
 
-	return &model.EmailCursor{emails, cursor}, nil
+	return &model.EmailCursor{Results: emails, Cursor: cursor}, nil
 }
 
 // Patches is the resolver for the patches field.
@@ -259,7 +259,7 @@ func (r *mailingListResolver) Patches(ctx context.Context, obj *model.MailingLis
 		return nil, err
 	}
 
-	return &model.PatchsetCursor{patches, cursor}, nil
+	return &model.PatchsetCursor{Results: patches, Cursor: cursor}, nil
 }
 
 // Message is the resolver for the message field.
@@ -339,7 +339,7 @@ func (r *mailingListResolver) Archive(ctx context.Context, obj *model.MailingLis
 	if err != nil {
 		panic(err)
 	}
-	return &model.URL{url}, nil
+	return &model.URL{Url: url}, nil
 }
 
 // Last30days is the resolver for the last30days field.
@@ -350,7 +350,7 @@ func (r *mailingListResolver) Last30days(ctx context.Context, obj *model.Mailing
 	if err != nil {
 		panic(err)
 	}
-	return &model.URL{url}, nil
+	return &model.URL{Url: url}, nil
 }
 
 // ACL is the resolver for the acl field.
@@ -378,7 +378,7 @@ func (r *mailingListResolver) ACL(ctx context.Context, obj *model.MailingList, c
 		return nil, err
 	}
 
-	return &model.MailingListACLCursor{acls, cursor}, nil
+	return &model.MailingListACLCursor{Results: acls, Cursor: cursor}, nil
 }
 
 // Webhooks is the resolver for the webhooks field.
@@ -408,7 +408,7 @@ func (r *mailingListResolver) Webhooks(ctx context.Context, obj *model.MailingLi
 		return nil, err
 	}
 
-	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
+	return &model.WebhookSubscriptionCursor{Results: subs, Cursor: cursor}, nil
 }
 
 // Webhook is the resolver for the webhook field.
@@ -597,7 +597,7 @@ func (r *mailingListWebhookSubscriptionResolver) Deliveries(ctx context.Context,
 		return nil, err
 	}
 
-	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
+	return &model.WebhookDeliveryCursor{Results: deliveries, Cursor: cursor}, nil
 }
 
 // Sample is the resolver for the sample field.
@@ -1830,7 +1830,7 @@ func (r *patchsetResolver) Patches(ctx context.Context, obj *model.Patchset, cur
 		return nil, err
 	}
 
-	return &model.EmailCursor{emails, cursor}, nil
+	return &model.EmailCursor{Results: emails, Cursor: cursor}, nil
 }
 
 // Tools is the resolver for the tools field.
@@ -1878,7 +1878,7 @@ func (r *patchsetResolver) Mbox(ctx context.Context, obj *model.Patchset) (*mode
 	if err != nil {
 		panic(err)
 	}
-	return &model.URL{url}, nil
+	return &model.URL{Url: url}, nil
 }
 
 // Patchset is the resolver for the patchset field.
@@ -1948,7 +1948,7 @@ func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cur
 		return nil, err
 	}
 
-	return &model.ActivitySubscriptionCursor{subs, cursor}, nil
+	return &model.ActivitySubscriptionCursor{Results: subs, Cursor: cursor}, nil
 }
 
 // UserWebhooks is the resolver for the userWebhooks field.
@@ -1978,7 +1978,7 @@ func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Curs
 		return nil, err
 	}
 
-	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
+	return &model.WebhookSubscriptionCursor{Results: subs, Cursor: cursor}, nil
 }
 
 // UserWebhook is the resolver for the userWebhook field.
@@ -2078,7 +2078,7 @@ func (r *threadResolver) Descendants(ctx context.Context, obj *model.Thread, cur
 		return nil, err
 	}
 
-	return &model.EmailCursor{emails, cursor}, nil
+	return &model.EmailCursor{Results: emails, Cursor: cursor}, nil
 }
 
 // Mailto is the resolver for the mailto field.
@@ -2159,7 +2159,7 @@ func (r *threadResolver) Mbox(ctx context.Context, obj *model.Thread) (*model.UR
 	if err != nil {
 		panic(err)
 	}
-	return &model.URL{url}, nil
+	return &model.URL{Url: url}, nil
 }
 
 // Blocks is the resolver for the blocks field.
@@ -2271,7 +2271,7 @@ func (r *userResolver) Lists(ctx context.Context, obj *model.User, cursor *corem
 		return nil, err
 	}
 
-	return &model.MailingListCursor{lists, cursor}, nil
+	return &model.MailingListCursor{Results: lists, Cursor: cursor}, nil
 }
 
 // Emails is the resolver for the emails field.
@@ -2308,7 +2308,7 @@ func (r *userResolver) Emails(ctx context.Context, obj *model.User, cursor *core
 		return nil, err
 	}
 
-	return &model.EmailCursor{emails, cursor}, nil
+	return &model.EmailCursor{Results: emails, Cursor: cursor}, nil
 }
 
 // Threads is the resolver for the threads field.
@@ -2346,7 +2346,7 @@ func (r *userResolver) Threads(ctx context.Context, obj *model.User, cursor *cor
 		return nil, err
 	}
 
-	return &model.ThreadCursor{threads, cursor}, nil
+	return &model.ThreadCursor{Results: threads, Cursor: cursor}, nil
 }
 
 // Patches is the resolver for the patches field.
@@ -2384,7 +2384,7 @@ func (r *userResolver) Patches(ctx context.Context, obj *model.User, cursor *cor
 		return nil, err
 	}
 
-	return &model.PatchsetCursor{patches, cursor}, nil
+	return &model.PatchsetCursor{Results: patches, Cursor: cursor}, nil
 }
 
 // Client is the resolver for the client field.
@@ -2421,7 +2421,7 @@ func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *m
 		return nil, err
 	}
 
-	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
+	return &model.WebhookDeliveryCursor{Results: deliveries, Cursor: cursor}, nil
 }
 
 // Sample is the resolver for the sample field.

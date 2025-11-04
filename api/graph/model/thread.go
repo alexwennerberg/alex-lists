@@ -53,18 +53,18 @@ func (thread *Thread) Fields() *database.ModelFields {
 	}
 	thread.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"id", "id", &thread.ID},
-			{"created", "created", &thread.Created},
-			{"subject", "subject", &thread.Subject},
-			{"nreplies", "replies", &thread.Replies},
-			{"nparticipants", "participants", &thread.Participants},
+			{SQL: "id", GQL: "id", Ptr: &thread.ID},
+			{SQL: "created", GQL: "created", Ptr: &thread.Created},
+			{SQL: "subject", GQL: "subject", Ptr: &thread.Subject},
+			{SQL: "nreplies", GQL: "replies", Ptr: &thread.Replies},
+			{SQL: "nparticipants", GQL: "participants", Ptr: &thread.Participants},
 
 			// Always fetch:
-			{"id", "", &thread.ID},
-			{"list_id", "", &thread.MailingListID},
-			{"updated", "", &thread.Updated},
-			{"sender_id", "", &thread.SenderID},
-			{"envelope", "", &thread.RawEnvelope},
+			{SQL: "id", GQL: "", Ptr: &thread.ID},
+			{SQL: "list_id", GQL: "", Ptr: &thread.MailingListID},
+			{SQL: "updated", GQL: "", Ptr: &thread.Updated},
+			{SQL: "sender_id", GQL: "", Ptr: &thread.SenderID},
+			{SQL: "envelope", GQL: "", Ptr: &thread.RawEnvelope},
 		},
 	}
 	return thread.fields

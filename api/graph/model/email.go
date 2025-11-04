@@ -57,25 +57,25 @@ func (email *Email) Fields() *database.ModelFields {
 	}
 	email.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{"id", "id", &email.ID},
-			{"body", "body", &email.Body},
-			{"subject", "subject", &email.Subject},
-			{"message_id", "messageID", &email.MessageID},
-			{"patch_index", "patch", &email.Patch.Index},
-			{"patch_count", "patch", &email.Patch.Count},
-			{"patch_version", "patch", &email.Patch.Version},
-			{"patch_prefix", "patch", &email.Patch.Prefix},
-			{"patch_subject", "patch", &email.Patch.Subject},
+			{SQL: "id", GQL: "id", Ptr: &email.ID},
+			{SQL: "body", GQL: "body", Ptr: &email.Body},
+			{SQL: "subject", GQL: "subject", Ptr: &email.Subject},
+			{SQL: "message_id", GQL: "messageID", Ptr: &email.MessageID},
+			{SQL: "patch_index", GQL: "patch", Ptr: &email.Patch.Index},
+			{SQL: "patch_count", GQL: "patch", Ptr: &email.Patch.Count},
+			{SQL: "patch_version", GQL: "patch", Ptr: &email.Patch.Version},
+			{SQL: "patch_prefix", GQL: "patch", Ptr: &email.Patch.Prefix},
+			{SQL: "patch_subject", GQL: "patch", Ptr: &email.Patch.Subject},
 
 			// Always fetch:
-			{"id", "", &email.ID},
-			{"list_id", "", &email.MailingListID},
-			{"patchset_id", "", &email.PatchsetID},
-			{"thread_id", "", &email.ThreadID},
-			{"parent_id", "", &email.ParentID},
-			{"sender_id", "", &email.SenderID},
-			{"created", "", &email.Received},
-			{"envelope", "", &email.RawEnvelope},
+			{SQL: "id", GQL: "", Ptr: &email.ID},
+			{SQL: "list_id", GQL: "", Ptr: &email.MailingListID},
+			{SQL: "patchset_id", GQL: "", Ptr: &email.PatchsetID},
+			{SQL: "thread_id", GQL: "", Ptr: &email.ThreadID},
+			{SQL: "parent_id", GQL: "", Ptr: &email.ParentID},
+			{SQL: "sender_id", GQL: "", Ptr: &email.SenderID},
+			{SQL: "created", GQL: "", Ptr: &email.Received},
+			{SQL: "envelope", GQL: "", Ptr: &email.RawEnvelope},
 		},
 	}
 	return email.fields
