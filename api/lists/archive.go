@@ -146,7 +146,6 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 			b, _ := io.ReadAll(p.Body)
 			body = string(b)
 			// TODO: multiple text parts?
-			break
 		case *mail.AttachmentHeader:
 			// Do nothing
 		}
