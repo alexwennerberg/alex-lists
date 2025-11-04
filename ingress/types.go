@@ -18,10 +18,10 @@ type Command string
 
 const (
 	CMD_SUBSCRIBE     Command = "subscribe"
-	CMD_UNSUBSCRIBE           = "unsubscribe"
-	CMD_CONFIRM_SUB           = "confirm-subscribe"
-	CMD_CONFIRM_UNSUB         = "confirm-unsubscribe"
-	CMD_POST                  = "post"
+	CMD_UNSUBSCRIBE   Command = "unsubscribe"
+	CMD_CONFIRM_SUB   Command = "confirm-subscribe"
+	CMD_CONFIRM_UNSUB Command = "confirm-unsubscribe"
+	CMD_POST          Command = "post"
 )
 
 type MailingList struct {
