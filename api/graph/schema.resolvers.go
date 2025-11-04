@@ -291,10 +291,10 @@ func (r *mailingListResolver) Message(ctx context.Context, obj *model.MailingLis
 			RunWith(tx).
 			QueryRowContext(ctx)
 		err := row.Scan(database.Scan(ctx, m)...)
-		switch {
-		case err == nil:
+		switch err {
+		case nil:
 			email = m
-		case err == sql.ErrNoRows:
+		case sql.ErrNoRows:
 			err = nil
 		}
 		return err

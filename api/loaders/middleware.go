@@ -245,7 +245,7 @@ func fetchMailingListsByOwnerName(ctx context.Context) func(names [][2]string) (
 			var (
 				err    error
 				rows   *sql.Rows
-				_names []string = make([]string, len(names))
+				_names = make([]string, len(names))
 			)
 			for i, name := range names {
 				// This is a hack, but it works around limitations with
