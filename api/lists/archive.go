@@ -337,7 +337,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 			WHERE id = $1
 		`, ar.listID,
 	); err != nil {
-		log.Println("Failed updating list.last_activity: %s", err)
+		log.Printf("Failed updating list.last_activity: %s", err)
 	}
 
 	log.Printf("Archived message %q", messageID)
