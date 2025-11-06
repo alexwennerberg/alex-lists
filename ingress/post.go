@@ -19,7 +19,7 @@ import (
 )
 
 func (b *Backend) Post(sender *Sender, data []byte, msg *message.Entity, list *MailingList) error {
-	if !(sender.ACL.Post || (list.IsReply && sender.ACL.Reply)) {
+	if !(sender.ACL.Post || (list.IsReply && sender.ACL.Reply)) { //nolint:staticcheck
 		return &PostPermError{sender, list}
 	}
 
