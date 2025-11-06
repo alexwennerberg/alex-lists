@@ -144,7 +144,7 @@ CREATE TABLE patchset (
 ALTER TABLE email
 	ADD CONSTRAINT email_patchset_id_fkey
 	FOREIGN KEY (patchset_id)
-	REFERENCES patchset(id) ON DELETE CASCADE;
+	REFERENCES patchset(id) ON DELETE SET NULL;
 
 CREATE TABLE patchset_tool (
 	id serial PRIMARY KEY,

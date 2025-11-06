@@ -69,7 +69,7 @@ class Email(Base):
             foreign_keys=[superseded_by_id])
 
     patchset_id = sa.Column(sa.Integer,
-            sa.ForeignKey('patchset.id', ondelete="CASCADE"))
+            sa.ForeignKey('patchset.id', ondelete="SET NULL"))
     patchset = sa.orm.relationship("Patchset",
             backref=sa.orm.backref("patches"), foreign_keys=[patchset_id])
 
