@@ -136,7 +136,7 @@ type UserWebhookSubscription struct {
 func (we *WebhookEvent) Scan(src any) error {
 	bytes, ok := src.([]uint8)
 	if !ok {
-		return fmt.Errorf("Unable to scan from %T into WebhookEvent", src)
+		return fmt.Errorf("unable to scan from %T into WebhookEvent", src)
 	}
 	*we = WebhookEvent(string(bytes))
 	if !we.IsValid() {

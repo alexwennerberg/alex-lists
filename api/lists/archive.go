@@ -60,7 +60,7 @@ func (ar *Archiver) ImportSpool(spool io.Reader) (ImportResult, error) {
 		input += 1
 		select {
 		case <-ar.ctx.Done():
-			return result, errors.New("Mailing list spool import timed out")
+			return result, errors.New("mailing list spool import timed out")
 		default:
 		}
 
@@ -68,7 +68,7 @@ func (ar *Archiver) ImportSpool(spool io.Reader) (ImportResult, error) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return result, fmt.Errorf("Error reading mailing list spool: %v", err)
+			return result, fmt.Errorf("error reading mailing list spool: %v", err)
 		}
 
 		if _, err = ar.ArchiveMessage(msg); err != nil {
@@ -76,7 +76,7 @@ func (ar *Archiver) ImportSpool(spool io.Reader) (ImportResult, error) {
 				result.Duplicate += 1
 				continue
 			}
-			ie := fmt.Errorf("Error importing message %d: %v", input, err)
+			ie := fmt.Errorf("error importing message %d: %v", input, err)
 			log.Println(err.Error())
 			result.Dropped = append(result.Dropped, ie)
 		} else {
@@ -100,7 +100,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 	subject, err := mr.Header.Subject()
 	if err != nil {
 		if !message.IsUnknownCharset(err) {
-			return 0, fmt.Errorf("Error reading Subject: %w", err)
+			return 0, fmt.Errorf("error reading Subject: %w", err)
 		}
 		if subject == "" {
 			// even if the subject is garbage, at least store something in the db
@@ -138,7 +138,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return 0, fmt.Errorf("Error reading message part: %w", err)
+			return 0, fmt.Errorf("error reading message part: %w", err)
 		}
 
 		switch p.Header.(type) {
@@ -264,7 +264,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 	// TODO: Multiple From addresses?
 	senders, err := mr.Header.AddressList("From")
 	if err != nil {
-		return 0, fmt.Errorf("Error reading From: %q %w", mr.Header.Get("From"), err)
+		return 0, fmt.Errorf("error reading From: %q %w", mr.Header.Get("From"), err)
 	}
 	if len(senders) == 0 {
 		return 0, errors.New("expected at least one From address")

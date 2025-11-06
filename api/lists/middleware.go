@@ -62,11 +62,11 @@ func sendImportReport(ctx context.Context, report importReport) {
 	conf := config.ForContext(ctx)
 	siteName, ok := conf.Get("sr.ht", "site-name")
 	if !ok {
-		panic(fmt.Errorf("Expected [sr.ht]site-name in config"))
+		panic(fmt.Errorf("expected [sr.ht]site-name in config"))
 	}
 	ownerName, ok := conf.Get("sr.ht", "owner-name")
 	if !ok {
-		panic(fmt.Errorf("Expected [sr.ht]owner-name in config"))
+		panic(fmt.Errorf("expected [sr.ht]owner-name in config"))
 	}
 
 	address := mail.Address{
@@ -132,7 +132,7 @@ The import for your mailing list "{{.ListName}}" failed for some messages.
 func ImportMailingListSpool(ctx context.Context, listID int, listName string, spool io.Reader) {
 	queue, ok := ctx.Value(ctxKey).(*work.Queue)
 	if !ok {
-		panic(fmt.Errorf("No lists worker for this context"))
+		panic(fmt.Errorf("no lists worker for this context"))
 	}
 
 	// Capture this here, the task has a context without authentication
@@ -185,7 +185,7 @@ func ImportMailingListSpool(ctx context.Context, listID int, listName string, sp
 func DeleteMailingList(ctx context.Context, listID int) {
 	queue, ok := ctx.Value(ctxKey).(*work.Queue)
 	if !ok {
-		panic(fmt.Errorf("No lists worker for this context"))
+		panic(fmt.Errorf("no lists worker for this context"))
 	}
 	task := work.NewTask(func(ctx context.Context) error {
 		if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {

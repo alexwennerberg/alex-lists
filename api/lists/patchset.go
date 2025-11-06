@@ -128,7 +128,7 @@ func (ar *Archiver) findExistingVersions(
 func (ar *Archiver) importPatch(emailID, threadID int, subject, status string, isPatch bool) error {
 	patch, err := parsePatchSubject(subject)
 	if err != nil {
-		return fmt.Errorf("Error parsing patch subject: %v", err)
+		return fmt.Errorf("error parsing patch subject: %v", err)
 	} else if patch == nil {
 		return nil
 	}

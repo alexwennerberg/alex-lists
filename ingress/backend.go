@@ -92,7 +92,7 @@ func (s *Session) Data(r io.Reader) error {
 	n, err = io.CopyN(&buf, r, Config.MaxMessageSize)
 	switch {
 	case n == Config.MaxMessageSize:
-		err = fmt.Errorf("Message too big.")
+		err = errors.New("message too big")
 		// drain whatever is left in the pipe
 		_, _ = io.Copy(io.Discard, r)
 		goto end

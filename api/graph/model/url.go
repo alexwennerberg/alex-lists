@@ -15,7 +15,7 @@ type URL struct {
 func (u *URL) UnmarshalGQL(v any) error {
 	raw, ok := v.(string)
 	if !ok {
-		return fmt.Errorf("Mail format is a base64-encoded string")
+		return fmt.Errorf("mail format is a base64-encoded string")
 	}
 	parsed, err := url.Parse(raw)
 	if err != nil {

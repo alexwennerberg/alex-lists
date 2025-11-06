@@ -73,7 +73,7 @@ func (thread *Thread) Fields() *database.ModelFields {
 func (thread *Thread) Populate() {
 	reader, err := mail.CreateReader(bytes.NewBuffer(thread.RawEnvelope))
 	if err != nil {
-		panic(fmt.Errorf("Error reading email %d: %e", thread.ID, err))
+		panic(fmt.Errorf("error reading email %d: %e", thread.ID, err))
 	}
 	thread.RawHeader = reader.Header
 	reader.Close()

@@ -51,7 +51,7 @@ func (r *emailResolver) Sender(ctx context.Context, obj *model.Email) (model.Ent
 		return nil, err
 	}
 	if len(list) != 1 {
-		panic(fmt.Errorf("Malformed email %d, multiple senders", obj.ID))
+		panic(fmt.Errorf("malformed email %d, multiple senders", obj.ID))
 	}
 	return &model.Mailbox{
 		Name:    list[0].Name,
@@ -440,7 +440,7 @@ func (r *mailingListResolver) Webhook(ctx context.Context, obj *model.MailingLis
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("No mailing list webhook by ID %d found for this user", id)
+			return nil, fmt.Errorf("no mailing list webhook by ID %d found for this user", id)
 		}
 		return nil, err
 	}
@@ -537,7 +537,7 @@ func (r *mailingListACLResolver) Entity(ctx context.Context, obj *model.MailingL
 			Address: addr.Address,
 		}, nil
 	} else {
-		panic(fmt.Errorf("Invalid ACL record %d", obj.ID))
+		panic(fmt.Errorf("invalid ACL record %d", obj.ID))
 	}
 }
 
@@ -696,7 +696,7 @@ func (r *mailingListWebhookSubscriptionResolver) Sample(ctx context.Context, obj
 			},
 		}
 	default:
-		return "", fmt.Errorf("Unsupported event %s", event.String())
+		return "", fmt.Errorf("unsupported event %s", event.String())
 	}
 
 	subctx := corewebhooks.Context(ctx, webhook.Payload)
@@ -748,7 +748,7 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 			if err, ok := err.(*pq.Error); ok &&
 				err.Code == "23505" && // unique_violation
 				err.Constraint == "list_owner_id_name_key" {
-				return fmt.Errorf("A mailing list with this name already exists.")
+				return fmt.Errorf("a mailing list with this name already exists")
 			}
 			return err
 		}
@@ -797,7 +797,7 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 		valid.Optional(name+"Mime", func(object any) {
 			list, ok := object.([]string)
 			if !ok {
-				panic(fmt.Errorf("Invalid mime list")) // GraphQL invariant
+				panic(fmt.Errorf("invalid mime list")) // GraphQL invariant
 			}
 			// TODO: This should be updated to a native Postgres array type
 			query = query.Set(name+"_mimetypes", strings.Join(list, ","))
@@ -1195,7 +1195,7 @@ func (r *mutationResolver) MailingListUnsubscribe(ctx context.Context, listID in
 func (r *mutationResolver) ImportMailingListSpool(ctx context.Context, listID int, spool graphql.Upload) (bool, error) {
 	const limit = 104857600 // 100 MiB
 	if spool.Size > limit {
-		return false, errors.New("Mailing list spool must not exceed 30 MiB in size")
+		return false, errors.New("mailing list spool must not exceed 30 MiB in size")
 	}
 	var listName string
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -1233,7 +1233,7 @@ func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.U
 
 	var sub model.UserWebhookSubscription
 	if len(config.Events) == 0 {
-		return nil, fmt.Errorf("Must specify at least one event")
+		return nil, fmt.Errorf("must specify at least one event")
 	}
 	events := make([]string, len(config.Events))
 	for i, ev := range config.Events {
@@ -1251,10 +1251,10 @@ func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.U
 		case model.WebhookEventPatchsetReceived:
 			access = "PATCHES"
 		default:
-			return nil, fmt.Errorf("Unsupported event %s", ev.String())
+			return nil, fmt.Errorf("unsupported event %s", ev.String())
 		}
 		if !user.Grants.Has(access, auth.RO) {
-			return nil, fmt.Errorf("Insufficient access granted for webhook event %s", ev.String())
+			return nil, fmt.Errorf("insufficient access granted for webhook event %s", ev.String())
 		}
 	}
 
@@ -1262,9 +1262,9 @@ func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.U
 	if err != nil {
 		return nil, err
 	} else if u.Host == "" {
-		return nil, fmt.Errorf("Cannot use URL without host")
+		return nil, fmt.Errorf("cannot use URL without host")
 	} else if u.Scheme != "http" && u.Scheme != "https" {
-		return nil, fmt.Errorf("Cannot use non-HTTP or HTTPS URL")
+		return nil, fmt.Errorf("cannot use non-HTTP or HTTPS URL")
 	}
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -1320,7 +1320,7 @@ func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("No user webhook by ID %d found for this user", id)
+			return nil, fmt.Errorf("no user webhook by ID %d found for this user", id)
 		}
 		return nil, err
 	}
@@ -1343,7 +1343,7 @@ func (r *mutationResolver) CreateMailingListWebhook(ctx context.Context, listID 
 
 	var sub model.MailingListWebhookSubscription
 	if len(config.Events) == 0 {
-		return nil, fmt.Errorf("Must specify at least one event")
+		return nil, fmt.Errorf("must specify at least one event")
 	}
 	events := make([]string, len(config.Events))
 	for i, ev := range config.Events {
@@ -1360,10 +1360,10 @@ func (r *mutationResolver) CreateMailingListWebhook(ctx context.Context, listID 
 		case model.WebhookEventPatchsetReceived:
 			access = "PATCHES"
 		default:
-			return nil, fmt.Errorf("Unsupported event %s", ev.String())
+			return nil, fmt.Errorf("unsupported event %s", ev.String())
 		}
 		if !user.Grants.Has(access, auth.RO) {
-			return nil, fmt.Errorf("Insufficient access granted for webhook event %s", ev.String())
+			return nil, fmt.Errorf("insufficient access granted for webhook event %s", ev.String())
 		}
 	}
 
@@ -1371,9 +1371,9 @@ func (r *mutationResolver) CreateMailingListWebhook(ctx context.Context, listID 
 	if err != nil {
 		return nil, err
 	} else if u.Host == "" {
-		return nil, fmt.Errorf("Cannot use URL without host")
+		return nil, fmt.Errorf("cannot use URL without host")
 	} else if u.Scheme != "http" && u.Scheme != "https" {
-		return nil, fmt.Errorf("Cannot use non-HTTP or HTTPS URL")
+		return nil, fmt.Errorf("cannot use non-HTTP or HTTPS URL")
 	}
 
 	list, err := loaders.ForContext(ctx).MailingListsByID.Load(listID)
@@ -1438,7 +1438,7 @@ func (r *mutationResolver) DeleteMailingListWebhook(ctx context.Context, id int)
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("No mailing list webhook by ID %d found for this user", id)
+			return nil, fmt.Errorf("no mailing list webhook by ID %d found for this user", id)
 		}
 		return nil, err
 	}
@@ -1492,7 +1492,7 @@ func (r *mutationResolver) DeleteUser(ctx context.Context) (int, error) {
 func (r *mutationResolver) ArchiveMessage(ctx context.Context, listID int, message graphql.Upload) (bool, error) {
 	if message.Size > 32*1024*1024 {
 		// This is much higher than the default max in the ingress worker
-		return false, errors.New("Messages must not exceed 30 MiB in size")
+		return false, errors.New("messages must not exceed 30 MiB in size")
 	}
 
 	var emailID int
@@ -1769,7 +1769,7 @@ func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (
 			return err
 		}
 		if len(list) != 1 {
-			panic(fmt.Errorf("Malformed email %d, multiple senders", obj.ID))
+			panic(fmt.Errorf("malformed email %d, multiple senders", obj.ID))
 		}
 
 		submitter = &model.Mailbox{
@@ -2030,7 +2030,7 @@ func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookS
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("No user webhook by ID %d found for this user", id)
+			return nil, fmt.Errorf("no user webhook by ID %d found for this user", id)
 		}
 		return nil, err
 	}
@@ -2046,7 +2046,7 @@ func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, erro
 	}
 	payload, ok := raw.(model.WebhookPayload)
 	if !ok {
-		panic(fmt.Errorf("Invalid webhook payload context"))
+		panic(fmt.Errorf("invalid webhook payload context"))
 	}
 	return payload, nil
 }
@@ -2103,7 +2103,7 @@ func (r *threadResolver) Sender(ctx context.Context, obj *model.Thread) (model.E
 		return nil, err
 	}
 	if len(list) != 1 {
-		panic(fmt.Errorf("Malformed email %d, multiple senders", obj.ID))
+		panic(fmt.Errorf("malformed email %d, multiple senders", obj.ID))
 	}
 	return &model.Mailbox{
 		Name:    list[0].Name,
@@ -2204,7 +2204,7 @@ func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string,
 
 	postTo, ok := config.ForContext(ctx).Get("lists.sr.ht", "posting-domain")
 	if !ok {
-		panic(fmt.Errorf("No posting domain configured"))
+		panic(fmt.Errorf("no posting domain configured"))
 	}
 
 	url := url.URL{
@@ -2587,7 +2587,7 @@ func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model
 			},
 		}
 	default:
-		return "", fmt.Errorf("Unsupported event %s", event.String())
+		return "", fmt.Errorf("unsupported event %s", event.String())
 	}
 
 	subctx := corewebhooks.Context(ctx, webhook.Payload)
