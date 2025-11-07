@@ -1701,6 +1701,30 @@ func (r *mutationResolver) ConfirmUnsubscription(ctx context.Context, token stri
 	return &sub, nil
 }
 
+// UpdatePreferences is the resolver for the updatePreferences field.
+func (r *mutationResolver) UpdatePreferences(ctx context.Context, preferences model.PreferencesInput) (*model.Preferences, error) {
+	var copySelf bool
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			UPDATE "user" SET copy_self = $1
+			WHERE id = $2
+			RETURNING copy_self;
+		`, preferences.CopySelf, auth.ForContext(ctx).UserID)
+		if err := row.Scan(&copySelf); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			copySelf = false
+		}
+		return nil, err
+	}
+	return &model.Preferences{
+		CopySelf: copySelf,
+	}, nil
+}
+
 // Submitter is the resolver for the submitter field.
 func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (model.Entity, error) {
 	// XXX: It would be nice if we didn't have to fetch the thread details in
@@ -1916,6 +1940,50 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
+// CopySelf is the resolver for the copySelf field.
+func (r *queryResolver) CopySelf(ctx context.Context, email string) (bool, error) {
+	var copySelf bool
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			SELECT copy_self FROM "user" WHERE email = $1
+		`, email)
+		if err := row.Scan(&copySelf); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+	}
+	return copySelf, nil
+}
+
+func (r *mutationResolver) UpdateCopySelf(ctx context.Context, value bool) (bool, error) {
+	var user model.User
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			UPDATE "user" SET copy_self = $1
+			WHERE id = $2
+			RETURNING copy_self;
+		`, value, auth.ForContext(ctx).UserID)
+		if err := row.Scan(&user.CopySelf); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return user.CopySelf, nil
+}
+
 // Email is the resolver for the email field.
 func (r *queryResolver) Email(ctx context.Context, id int) (*model.Email, error) {
 	return loaders.ForContext(ctx).EmailsByID.Load(id)
@@ -2025,6 +2093,26 @@ func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, erro
 		panic(fmt.Errorf("Invalid webhook payload context"))
 	}
 	return payload, nil
+}
+
+// Preferences is the resolver for the preferences field.
+func (r *queryResolver) Preferences(ctx context.Context) (model.Preferences, error) {
+	var copySelf bool
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			SELECT copy_self FROM "user"
+			WHERE id = $1;
+		`, auth.ForContext(ctx).UserID)
+		if err := row.Scan(&copySelf); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return &model.Preferences{
+		CopySelf: copySelf,
+	}, nil
 }
 
 // Sender is the resolver for the sender field.

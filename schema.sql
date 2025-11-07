@@ -45,7 +45,8 @@ CREATE TABLE "user" (
 	url character varying(256),
 	location character varying(256),
 	bio character varying(4096),
-	suspension_notice character varying(4096)
+	suspension_notice character varying(4096),
+	copy_self boolean DEFAULT false NOT NULL
 );
 
 CREATE TABLE list (

@@ -33,6 +33,12 @@ available to normal API users.
 """
 directive @internal on FIELD_DEFINITION
 
+"""
+Used to decorate fields which are for internal use, and are not available to
+normal API users.
+"""
+directive @anoninternal on FIELD_DEFINITION
+
 enum AccessScope {
   ACLS          @scopehelp(details: "access control lists")
   EMAILS        @scopehelp(details: "emails")
@@ -618,6 +624,10 @@ type WebhookSubscriptionCursor {
   cursor: Cursor
 }
 
+type Preferences {
+  copySelf: Boolean!
+}
+
 type Query {
   "Returns API version information"
   version: Version!
@@ -655,6 +665,19 @@ type Query {
   outside of a webhook context.
   """
   webhook: WebhookPayload!
+
+  """
+  Returns the preferences associated with this user account.
+  """
+  preferences: Preferences! @access(scope: PROFILE, kind: RO)
+
+  """
+  If email corresponds to a registered user, return whether they wish to
+  received their own emails; otherwise return false.
+
+  Internal use only.
+  """
+  copySelf(email: String!): Boolean! @anoninternal
 }
 
 # You may omit any fields to leave them unchanged.
@@ -689,6 +712,10 @@ input MailingListWebhookInput {
   url: String!
   events: [WebhookEvent!]!
   query: String!
+}
+
+input PreferencesInput {
+  copySelf: Boolean!
 }
 
 type Mutation {
@@ -832,4 +859,9 @@ type Mutation {
   Internal use only.
   """
   confirmUnsubscription(token: ConfirmationToken!, email: String!): MailingListSubscription! @internal
+
+  """
+  Updates the user's preferences.
+  """
+  updatePreferences(preferences: PreferencesInput!): Preferences! @access(scope: PROFILE, kind: RW)
 }

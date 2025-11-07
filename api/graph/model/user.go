@@ -15,6 +15,7 @@ type User struct {
 	URL      *string   `json:"url"`
 	Location *string   `json:"location"`
 	Bio      *string   `json:"bio"`
+	CopySelf bool      `json:"copy_self"`
 
 	alias  string
 	fields *database.ModelFields
@@ -53,6 +54,7 @@ func (u *User) Fields() *database.ModelFields {
 			{SQL: "url", GQL: "url", Ptr: &u.URL},
 			{SQL: "location", GQL: "location", Ptr: &u.Location},
 			{SQL: "bio", GQL: "bio", Ptr: &u.Bio},
+			{SQL: "copy_self", GQL: "CopySelf", Ptr: &u.CopySelf},
 
 			// Always fetch:
 			{SQL: "id", GQL: "", Ptr: &u.ID},

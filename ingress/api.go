@@ -278,3 +278,21 @@ func LookupSubscribers(list *MailingList) ([]string, error) {
 	}
 	return emails, nil
 }
+
+func CopySelf(address string) bool {
+	var result struct {
+		CopySelf bool `json:"copySelf"`
+	}
+	err := GqlQueryUser(
+		"",
+		`query($email: String!) {
+			copySelf(email: $email)
+		}`,
+		map[string]any{"email": address},
+		&result,
+	)
+	if err != nil {
+		return false
+	}
+	return result.CopySelf
+}

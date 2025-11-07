@@ -10,7 +10,7 @@ from srht.search import search_by
 from srht.validation import Validation
 from sqlalchemy import or_
 from sqlalchemy import nullslast
-from listssrht.graphql import Client, Visibility
+from listssrht.graphql import Client, Visibility, PreferencesInput
 from listssrht.types import List, ListAccess, User, Email, Subscription, Mirror
 import re
 import smtplib
@@ -38,8 +38,20 @@ def index():
             .filter(Subscription.user_id == current_user.id)
             .order_by(nullslast(List.last_activity.desc()))).limit(10).all()]
     notice = session.pop("notice", None)
+    client = Client()
+    copy_self = client.get_preferences().preferences.copy_self
     return render_template("dashboard.html", recent=recent,
-            subs=subs, notice=notice)
+            subs=subs, notice=notice, copy_self=copy_self)
+
+@user.route("/", methods=["POST"])
+@loginrequired
+def index_POST():
+    valid = Validation(request)
+    copy_self = valid.optional("copy-self", default=False)
+    client = Client()
+    client.update_preferences(PreferencesInput(copy_self=copy_self))
+    session["prefs_updated"] = True
+    return redirect(url_for("user.index"))
 
 @user.route("/~<username>")
 def user_profile(username):

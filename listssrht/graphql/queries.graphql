@@ -55,3 +55,15 @@ query GetPatchsetThreadBlocks($patchset: Int!) {
     }
   }
 }
+
+query GetPreferences {
+  preferences {
+    copySelf
+  }
+}
+
+mutation UpdatePreferences($prefs: PreferencesInput!) {
+  updatePreferences(preferences: $prefs) {
+    copySelf
+  }
+}

@@ -60,16 +60,32 @@ func (b *Backend) ForwardMessage(data []byte, list *MailingList) error {
 	msg, _ := message.Read(bytes.NewReader(data))
 
 	// eliminate recipients that were already included in the original message
+	var from string
 	header := mail.Header{Header: msg.Header}
-	for _, name := range []string{"From", "To", "Cc"} {
+	for idx, name := range []string{"From", "To", "Cc"} {
 		addresses, _ := header.AddressList(name)
 		for _, addr := range addresses {
 			alreadyCopied[addr.Address] = true
+			if idx == 0 {
+				from = addr.Address
+			}
 		}
 	}
 	for _, email := range subscribers {
 		if !alreadyCopied[email] {
 			recipients = append(recipients, email)
+		}
+	}
+	copySender := CopySelf(from)
+	if copySender {
+		copied := false
+		for _, addr := range recipients {
+			if addr == from {
+				copied = true
+			}
+		}
+		if !copied {
+			recipients = append(recipients, from)
 		}
 	}
 
