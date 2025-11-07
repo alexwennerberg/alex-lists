@@ -21,7 +21,7 @@ class Email(Base):
     in_reply_to = sa.Column(sa.Unicode(2048))
     headers = sa.Column(sa.JSON, nullable=False)
     body = sa.Column(sa.Unicode, nullable=False)
-    envelope = sa.Column(sa.Unicode, nullable=False)
+    envelope = sa.Column(sa.LargeBinary, nullable=False)
     is_patch = sa.Column(sa.Boolean, nullable=False)
     """true if email is via git format-patch"""
     is_request_pull = sa.Column(sa.Boolean, nullable=False)
@@ -83,7 +83,7 @@ class Email(Base):
             return self._parsed
         policy = email.policy.SMTPUTF8.clone(max_line_length=998)
         self._parsed = email.message_from_bytes(
-                self.envelope.encode('utf-8'), policy=policy)
+                self.envelope, policy=policy)
         self._parsed._email = self
         return self._parsed
 

@@ -86,7 +86,7 @@ CREATE TABLE email (
 	subject character varying(2048) NOT NULL,
 	message_id character varying(2048) NOT NULL,
 	message_date timestamp without time zone,
-	envelope character varying NOT NULL,
+	envelope bytea NOT NULL,
 	headers json NOT NULL,
 	body character varying NOT NULL,
 

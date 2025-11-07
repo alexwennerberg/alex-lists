@@ -216,7 +216,7 @@ func prepMbox(rows *sql.Rows, w http.ResponseWriter) error {
 		w.Header().Add("Content-Type", "application/mbox")
 
 		var (
-			envelope string
+			envelope []byte
 			created  time.Time
 			status   sql.NullString
 		)
@@ -224,7 +224,7 @@ func prepMbox(rows *sql.Rows, w http.ResponseWriter) error {
 			return err
 		}
 
-		reader, err := mail.CreateReader(bytes.NewBufferString(envelope))
+		reader, err := mail.CreateReader(bytes.NewBuffer(envelope))
 		if err != nil {
 			return err
 		}

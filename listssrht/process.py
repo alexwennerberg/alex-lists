@@ -69,7 +69,7 @@ def forward_thread(list_id, thread_id, recipient):
 
     smtp = start_smtp()
     for message in thread:
-        mail = email.message_from_string(message.envelope, policy=policy)
+        mail = email.message_from_bytes(message.envelope, policy=policy)
         mail = _prep_mail(dest, mail)
         try:
             smtp.send_message(mail, smtp_user, [recipient])
