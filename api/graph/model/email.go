@@ -31,8 +31,8 @@ type Email struct {
 	ParentID      *int
 	SenderID      *int
 
-	RawEnvelope []byte
-	RawHeader   mail.Header
+	RawMessage []byte
+	RawHeader  mail.Header
 
 	alias  string
 	fields *database.ModelFields
@@ -75,14 +75,14 @@ func (email *Email) Fields() *database.ModelFields {
 			{SQL: "parent_id", GQL: "", Ptr: &email.ParentID},
 			{SQL: "sender_id", GQL: "", Ptr: &email.SenderID},
 			{SQL: "created", GQL: "", Ptr: &email.Received},
-			{SQL: "envelope", GQL: "", Ptr: &email.RawEnvelope},
+			{SQL: "raw_message", GQL: "", Ptr: &email.RawMessage},
 		},
 	}
 	return email.fields
 }
 
 func (email *Email) Populate() {
-	reader, err := mail.CreateReader(bytes.NewBuffer(email.RawEnvelope))
+	reader, err := mail.CreateReader(bytes.NewBuffer(email.RawMessage))
 	if err != nil {
 		return
 	}
@@ -116,7 +116,7 @@ func (email *Email) QueryWithCursor(ctx context.Context,
 		q = q.Where(database.WithAlias(email.alias, "created")+"<= ?", updated)
 	}
 	q = q.
-		Column(database.WithAlias(email.alias, "envelope")).
+		Column(database.WithAlias(email.alias, "raw_message")).
 		Limit(uint64(cur.Count + 1))
 
 	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {

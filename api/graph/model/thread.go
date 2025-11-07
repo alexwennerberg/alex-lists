@@ -26,9 +26,9 @@ type Thread struct {
 	ID            int
 	MailingListID int
 
-	SenderID    *int
-	RawEnvelope []byte
-	RawHeader   mail.Header
+	SenderID   *int
+	RawMessage []byte
+	RawHeader  mail.Header
 
 	alias  string
 	fields *database.ModelFields
@@ -64,14 +64,14 @@ func (thread *Thread) Fields() *database.ModelFields {
 			{SQL: "list_id", GQL: "", Ptr: &thread.MailingListID},
 			{SQL: "updated", GQL: "", Ptr: &thread.Updated},
 			{SQL: "sender_id", GQL: "", Ptr: &thread.SenderID},
-			{SQL: "envelope", GQL: "", Ptr: &thread.RawEnvelope},
+			{SQL: "raw_message", GQL: "", Ptr: &thread.RawMessage},
 		},
 	}
 	return thread.fields
 }
 
 func (thread *Thread) Populate() {
-	reader, err := mail.CreateReader(bytes.NewBuffer(thread.RawEnvelope))
+	reader, err := mail.CreateReader(bytes.NewBuffer(thread.RawMessage))
 	if err != nil {
 		panic(fmt.Errorf("error reading email %d: %e", thread.ID, err))
 	}

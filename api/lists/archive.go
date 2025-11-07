@@ -91,9 +91,9 @@ func (ar *Archiver) ImportSpool(spool io.Reader) (ImportResult, error) {
 //
 // Does not enforce access controls.
 func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
-	var envelope bytes.Buffer
+	var rawMessage bytes.Buffer
 
-	mr, err := mail.CreateReader(io.TeeReader(r, &envelope))
+	mr, err := mail.CreateReader(io.TeeReader(r, &rawMessage))
 	if err != nil {
 		return 0, err
 	}
@@ -189,7 +189,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 	row = ar.tx.QueryRow(`
 		INSERT INTO email (
 			created, updated, subject, message_id, message_date,
-			envelope, headers, body,
+			raw_message, headers, body,
 			list_id, parent_id, thread_id, sender_id,
 			is_patch, is_request_pull,
 			nreplies,
@@ -210,7 +210,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		) RETURNING id`,
 		ar.isImport, date,
 		subject, messageID, date,
-		envelope.String(), string(headerMap), body,
+		rawMessage.String(), string(headerMap), body,
 		ar.listID, nil, nil, nil,
 		isPatch, isRequestPull,
 		0, 1, inReplyTo,

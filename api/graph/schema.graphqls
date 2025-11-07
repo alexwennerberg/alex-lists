@@ -432,8 +432,8 @@ type Email {
   addressList(want: String!): [Mailbox!]!
   "The decoded text/plain message part of the email, i.e. email body."
   body: String!
-  "A URL from which the full raw message envelope may be downloaded."
-  envelope: URL!
+  "A URL from which the full raw message may be downloaded."
+  rawMessage: URL!
 
   thread: Thread!
   parent: Email

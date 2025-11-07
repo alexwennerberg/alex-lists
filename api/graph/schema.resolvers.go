@@ -98,8 +98,8 @@ func (r *emailResolver) AddressList(ctx context.Context, obj *model.Email, want 
 	return addrs, nil
 }
 
-// Envelope is the resolver for the envelope field.
-func (r *emailResolver) Envelope(ctx context.Context, obj *model.Email) (*model.URL, error) {
+// RawMessage is the resolver for the rawMessage field.
+func (r *emailResolver) RawMessage(ctx context.Context, obj *model.Email) (*model.URL, error) {
 	origin := config.GetAPI(config.ForContext(ctx), "lists.sr.ht", true)
 	uri := fmt.Sprintf("%s/query/email/%d", origin, obj.ID)
 	url, err := url.Parse(uri)
@@ -667,8 +667,8 @@ func (r *mailingListWebhookSubscriptionResolver) Sample(ctx context.Context, obj
 			ParentID:      nil,
 			SenderID:      nil,
 
-			RawEnvelope: []byte("Mime-Version: 1.0\r\nContent-Transfer-Encoding: quoted-printable\r\nContent-Type: text/plain; charset=UTF-8\r\nSubject: Sample email\r\nFrom: <someone@example.com>\r\nTo: <sample-list@example.com>\r\nDate: Tue, 14 Jun 2022 09:31:03 +0000\r\nMessage-Id: <970701.32784@example.com>\r\n\r\nSample email body\r\n"),
-			RawHeader:   mail.Header{},
+			RawMessage: []byte("Mime-Version: 1.0\r\nContent-Transfer-Encoding: quoted-printable\r\nContent-Type: text/plain; charset=UTF-8\r\nSubject: Sample email\r\nFrom: <someone@example.com>\r\nTo: <sample-list@example.com>\r\nDate: Tue, 14 Jun 2022 09:31:03 +0000\r\nMessage-Id: <970701.32784@example.com>\r\n\r\nSample email body\r\n"),
+			RawHeader:  mail.Header{},
 		}
 		email.Populate()
 		webhook.Payload = &model.EmailEvent{
@@ -1737,19 +1737,19 @@ func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
 		var (
-			err      error
-			envelope []byte
-			senderID *int
+			err        error
+			rawMessage []byte
+			senderID   *int
 		)
 		row := tx.QueryRowContext(ctx, `
-			SELECT envelope, sender_id
+			SELECT raw_message, sender_id
 			FROM email
 			WHERE
 				email.thread_id IS NULL AND
 				email.patchset_id = $1
 		`, obj.ID)
 
-		if err = row.Scan(&envelope, &senderID); err != nil {
+		if err = row.Scan(&rawMessage, &senderID); err != nil {
 			return err
 		}
 
@@ -1758,7 +1758,7 @@ func (r *patchsetResolver) Submitter(ctx context.Context, obj *model.Patchset) (
 			return err
 		}
 
-		reader, err := mail.CreateReader(bytes.NewBuffer(envelope))
+		reader, err := mail.CreateReader(bytes.NewBuffer(rawMessage))
 		if err != nil {
 			panic(err)
 		}
@@ -2159,9 +2159,9 @@ func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string,
 		Isolation: 0,
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
-		var envelope []byte
+		var rawMessage []byte
 		row := tx.QueryRowContext(ctx, `
-			SELECT envelope, "user".username, list.name
+			SELECT raw_message, "user".username, list.name
 			FROM email
 			JOIN list ON list.id = email.list_id
 			JOIN "user" ON "user".id = list.owner_id
@@ -2170,11 +2170,11 @@ func (r *threadResolver) Mailto(ctx context.Context, obj *model.Thread) (string,
 			LIMIT 1;
 		`, obj.ID)
 
-		if err := row.Scan(&envelope, &ownerName, &listName); err != nil {
+		if err := row.Scan(&rawMessage, &ownerName, &listName); err != nil {
 			return err
 		}
 
-		reader, err := mail.CreateReader(bytes.NewBuffer(envelope))
+		reader, err := mail.CreateReader(bytes.NewBuffer(rawMessage))
 		if err != nil {
 			panic(err)
 		}
@@ -2257,7 +2257,7 @@ func (r *threadResolver) Blocks(ctx context.Context, obj *model.Thread) ([]*mode
 			}
 			email.Populate()
 
-			mr, err := mail.CreateReader(bytes.NewReader(email.RawEnvelope))
+			mr, err := mail.CreateReader(bytes.NewReader(email.RawMessage))
 			if err != nil {
 				log.Printf("Failed to create reader for email %v: %v", email.ID, err)
 				continue
@@ -2558,8 +2558,8 @@ func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model
 			ParentID:      nil,
 			SenderID:      nil,
 
-			RawEnvelope: []byte("Mime-Version: 1.0\r\nContent-Transfer-Encoding: quoted-printable\r\nContent-Type: text/plain; charset=UTF-8\r\nSubject: Sample email\r\nFrom: <someone@example.com>\r\nTo: <sample-list@example.com>\r\nDate: Tue, 14 Jun 2022 09:31:03 +0000\r\nMessage-Id: <970701.32784@example.com>\r\n\r\nSample email body\r\n"),
-			RawHeader:   mail.Header{},
+			RawMessage: []byte("Mime-Version: 1.0\r\nContent-Transfer-Encoding: quoted-printable\r\nContent-Type: text/plain; charset=UTF-8\r\nSubject: Sample email\r\nFrom: <someone@example.com>\r\nTo: <sample-list@example.com>\r\nDate: Tue, 14 Jun 2022 09:31:03 +0000\r\nMessage-Id: <970701.32784@example.com>\r\n\r\nSample email body\r\n"),
+			RawHeader:  mail.Header{},
 		}
 		email.Populate()
 		webhook.Payload = &model.EmailEvent{

@@ -287,7 +287,7 @@ def raw(owner_name, list_name, message_id):
         ).one_or_none()
     if not message:
         abort(404)
-    return Response(message.envelope, mimetype='application/octet-stream')
+    return Response(message.raw_message, mimetype='application/octet-stream')
 
 def format_mbox(msg):
     parsed = msg.parsed()

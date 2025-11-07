@@ -90,7 +90,7 @@ func main() {
 			return
 		}
 		w.Header().Add("Content-Type", "message/rfc822")
-		w.Write([]byte(mail.RawEnvelope))
+		w.Write([]byte(mail.RawMessage))
 	})
 
 	gsrv.Router().Get("/query/thread/{id}.mbox", func(w http.ResponseWriter, r *http.Request) {
@@ -106,7 +106,7 @@ func main() {
 			ReadOnly:  true,
 		}, func(tx *sql.Tx) error {
 			rows, err := tx.QueryContext(r.Context(), `
-				SELECT email.envelope, email.created, patchset.status
+				SELECT email.raw_message, email.created, patchset.status
 				FROM email
 				JOIN list ON list.id = email.list_id
 				LEFT JOIN access ON access.user_id = $2 AND access.list_id = list.id
@@ -139,7 +139,7 @@ func main() {
 			ReadOnly:  true,
 		}, func(tx *sql.Tx) error {
 			rows, err := tx.QueryContext(r.Context(), `
-				SELECT email.envelope, email.created, patchset.status
+				SELECT email.raw_message, email.created, patchset.status
 				FROM email
 				JOIN list ON list.id = email.list_id
 				LEFT JOIN access ON access.user_id = $2 AND access.list_id = list.id
@@ -183,7 +183,7 @@ func main() {
 			ReadOnly:  true,
 		}, func(tx *sql.Tx) error {
 			rows, err := tx.QueryContext(r.Context(), `
-				SELECT email.envelope, email.created, patchset.status
+				SELECT email.raw_message, email.created, patchset.status
 				FROM email
 				JOIN list ON list.id = email.list_id
 				LEFT JOIN access ON access.user_id = $3 AND access.list_id = list.id
@@ -216,15 +216,15 @@ func prepMbox(rows *sql.Rows, w http.ResponseWriter) error {
 		w.Header().Add("Content-Type", "application/mbox")
 
 		var (
-			envelope []byte
-			created  time.Time
-			status   sql.NullString
+			rawMessage []byte
+			created    time.Time
+			status     sql.NullString
 		)
-		if err := rows.Scan(&envelope, &created, &status); err != nil {
+		if err := rows.Scan(&rawMessage, &created, &status); err != nil {
 			return err
 		}
 
-		reader, err := mail.CreateReader(bytes.NewBuffer(envelope))
+		reader, err := mail.CreateReader(bytes.NewBuffer(rawMessage))
 		if err != nil {
 			return err
 		}
@@ -242,7 +242,7 @@ func prepMbox(rows *sql.Rows, w http.ResponseWriter) error {
 				return err
 			}
 		}
-		if _, err = sink.Write([]byte(envelope)); err != nil {
+		if _, err = sink.Write([]byte(rawMessage)); err != nil {
 			return err
 		}
 	}
