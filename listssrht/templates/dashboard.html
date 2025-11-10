@@ -18,6 +18,9 @@
           class="btn btn-primary btn-block"
         >Create new list {{icon("caret-right")}}</a>
         {% endif %}
+        <a href="/~{{ current_user.username }}" class="btn btn-default btn-block">
+          View your profile {{icon("caret-right")}}
+        </a>
         <details
           class="prefs"
           {% if prefs_updated %}
@@ -40,9 +43,6 @@
             </button>
           </form>
         </details>
-        <a href="/~{{ current_user.username }}" class="btn btn-default btn-block">
-          View your profile {{icon("caret-right")}}
-        </a>
       </p>
       {% for list in subs %}
       <div style="margin-top: 1rem">

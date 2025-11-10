@@ -774,7 +774,7 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 }
 
 // UpdateMailingList is the resolver for the updateMailingList field.
-func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input map[string]any) (*model.MailingList, error) {
+func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input map[string]interface{}) (*model.MailingList, error) {
 	valid := valid.New(ctx).WithInput(input)
 	query := sq.Update(`list`).PlaceholderFormat(sq.Dollar)
 
@@ -1940,50 +1940,6 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
-// CopySelf is the resolver for the copySelf field.
-func (r *queryResolver) CopySelf(ctx context.Context, email string) (bool, error) {
-	var copySelf bool
-	if err := database.WithTx(ctx, &sql.TxOptions{
-		Isolation: 0,
-		ReadOnly:  true,
-	}, func(tx *sql.Tx) error {
-		row := tx.QueryRowContext(ctx, `
-			SELECT copy_self FROM "user" WHERE email = $1
-		`, email)
-		if err := row.Scan(&copySelf); err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil
-		}
-	}
-	return copySelf, nil
-}
-
-func (r *mutationResolver) UpdateCopySelf(ctx context.Context, value bool) (bool, error) {
-	var user model.User
-	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		row := tx.QueryRowContext(ctx, `
-			UPDATE "user" SET copy_self = $1
-			WHERE id = $2
-			RETURNING copy_self;
-		`, value, auth.ForContext(ctx).UserID)
-		if err := row.Scan(&user.CopySelf); err != nil {
-			return err
-		}
-		return nil
-	}); err != nil {
-		if err == sql.ErrNoRows {
-			return false, nil
-		}
-		return false, err
-	}
-
-	return user.CopySelf, nil
-}
-
 // Email is the resolver for the email field.
 func (r *queryResolver) Email(ctx context.Context, id int) (*model.Email, error) {
 	return loaders.ForContext(ctx).EmailsByID.Load(id)
@@ -2096,7 +2052,7 @@ func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, erro
 }
 
 // Preferences is the resolver for the preferences field.
-func (r *queryResolver) Preferences(ctx context.Context) (model.Preferences, error) {
+func (r *queryResolver) Preferences(ctx context.Context) (*model.Preferences, error) {
 	var copySelf bool
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
@@ -2113,6 +2069,28 @@ func (r *queryResolver) Preferences(ctx context.Context) (model.Preferences, err
 	return &model.Preferences{
 		CopySelf: copySelf,
 	}, nil
+}
+
+// CopySelf is the resolver for the copySelf field.
+func (r *queryResolver) CopySelf(ctx context.Context, email string) (bool, error) {
+	var copySelf bool
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			SELECT copy_self FROM "user" WHERE email = $1
+		`, email)
+		if err := row.Scan(&copySelf); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+	}
+	return copySelf, nil
 }
 
 // Sender is the resolver for the sender field.
@@ -2722,3 +2700,33 @@ type threadResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
 type userWebhookSubscriptionResolver struct{ *Resolver }
 type webhookDeliveryResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *mutationResolver) UpdateCopySelf(ctx context.Context, value bool) (bool, error) {
+	var user model.User
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			UPDATE "user" SET copy_self = $1
+			WHERE id = $2
+			RETURNING copy_self;
+		`, value, auth.ForContext(ctx).UserID)
+		if err := row.Scan(&user.CopySelf); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return false, nil
+		}
+		return false, err
+	}
+
+	return user.CopySelf, nil
+}
+*/

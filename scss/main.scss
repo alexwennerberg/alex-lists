@@ -158,3 +158,34 @@ label.status {
 .sidebar .markdown {
   margin-bottom: 1rem;
 }
+
+.prefs {
+  margin: -0.5rem 0 0.5rem 0;
+  padding: 0 1rem;
+
+  summary {
+    background: $gray-300;
+
+    @media(prefers-color-scheme: dark) {
+      background: $gray-800;
+    }
+
+    padding: 0 1rem;
+    margin: 0 -1rem;
+  }
+
+  &[open] {
+    border-left: 4px solid $gray-300;
+    @media(prefers-color-scheme: dark) {
+      border-color: $gray-800;
+    }
+
+    summary {
+      margin: 0 -1rem 0 calc(-1rem - 4px);
+    }
+  }
+
+  .form-check {
+    padding-left: 0;
+  }
+}
