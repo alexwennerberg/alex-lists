@@ -673,7 +673,7 @@ type Query {
 
   """
   If email corresponds to a registered user, return whether they wish to
-  received their own emails; otherwise return false.
+  receive their own emails; otherwise return false.
 
   Internal use only.
   """
