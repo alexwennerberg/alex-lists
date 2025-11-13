@@ -61,14 +61,17 @@ func (b *Backend) ForwardMessage(data []byte, list *MailingList) error {
 
 	// eliminate recipients that were already included in the original message
 	var from string
+	senderIsCopied := false
 	header := mail.Header{Header: msg.Header}
 	for idx, name := range []string{"From", "To", "Cc"} {
 		addresses, _ := header.AddressList(name)
 		for _, addr := range addresses {
-			alreadyCopied[addr.Address] = true
 			if idx == 0 {
 				from = addr.Address
+			} else if addr.Address == from {
+				senderIsCopied = true
 			}
+			alreadyCopied[addr.Address] = true
 		}
 	}
 	for _, email := range subscribers {
@@ -76,17 +79,8 @@ func (b *Backend) ForwardMessage(data []byte, list *MailingList) error {
 			recipients = append(recipients, email)
 		}
 	}
-	copySender := CopySelf(from)
-	if copySender {
-		copied := false
-		for _, addr := range recipients {
-			if addr == from {
-				copied = true
-			}
-		}
-		if !copied {
-			recipients = append(recipients, from)
-		}
+	if !senderIsCopied && CopySelf(from) {
+		recipients = append(recipients, from)
 	}
 
 	msgID := msg.Header.Get("Message-Id")
