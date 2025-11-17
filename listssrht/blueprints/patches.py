@@ -12,8 +12,8 @@ from listssrht.graphql import Client, GraphQLClientError
 from listssrht.types import List, Email, Patchset, PatchsetStatus, ListAccess
 from listssrht.types import Subscription, PatchsetTool, ToolIcon
 from sqlalchemy import or_
+from srht.app import paginate_query
 from srht.database import db
-from srht.flask import paginate_query
 from srht.graphql import InternalAuth
 from srht.markdown import markdown
 from srht.oauth import current_user, loginrequired

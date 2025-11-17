@@ -3,10 +3,10 @@ from flask import Blueprint, render_template, abort, request, redirect, url_for
 from flask import Response, session, send_file
 from sqlalchemy import String, select, cast, or_
 from sqlalchemy.sql.functions import coalesce
+from srht.app import paginate_query
 from srht.config import cfg
 from srht.database import db
 from srht.search import search_by
-from srht.flask import paginate_query
 from srht.oauth import current_user, loginrequired, UserType
 from srht.validation import Validation
 from listssrht.filters import post_address

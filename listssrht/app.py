@@ -2,15 +2,15 @@ from email.utils import parseaddr
 from listssrht.filters import diffstat, format_body, post_address
 from listssrht.graphql import Visibility
 from listssrht.types import User, PatchsetStatus, ListAccess
+from srht.app import Flask
 from srht.config import cfg
 from srht.database import DbSession
-from srht.flask import SrhtFlask
 from urllib.parse import quote
 
 db = DbSession(cfg("lists.sr.ht", "connection-string"))
 db.init()
 
-class ListsApp(SrhtFlask):
+class ListsApp(Flask):
     def __init__(self):
         super().__init__("lists.sr.ht", __name__, user_class=User)
 
