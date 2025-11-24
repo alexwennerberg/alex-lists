@@ -443,12 +443,18 @@ type Email {
   list: MailingList! @access(scope: LISTS, kind: RO)
 }
 
+type Trailer {
+  name: String!
+  value: String!
+}
+
 """
-Information parsed from the subject line of a patch, such that the following:
+Information parsed from a patch emailed by git send-email. Given the following
+subject line:
 
     [PATCH myproject v2 3/4] Add foo to bar
 
-Will produce:
+The following fields are produced:
 
     index: 3
     count: 4
@@ -462,6 +468,11 @@ type Patch {
   version: Int
   prefix: String
   subject: String
+
+  """
+  git-style commit trailers parsed from the commit message of the patch.
+  """
+  trailers: [Trailer!]!
 }
 
 enum PatchsetStatus {

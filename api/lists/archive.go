@@ -301,7 +301,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		}
 	}
 
-	if err := ar.importPatch(emailID, threadID, subject, status, isPatch); err != nil {
+	if err := ar.importPatch(emailID, threadID, subject, status, body, isPatch); err != nil {
 		return 0, err
 	}
 

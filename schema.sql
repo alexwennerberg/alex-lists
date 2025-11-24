@@ -108,9 +108,12 @@ CREATE TABLE email (
 	patch_prefix character varying,
 	patch_subject character varying,
 	superseded_by_id integer REFERENCES email(id) ON DELETE SET NULL,
+	patch_trailers text[] NOT NULL DEFAULT '{}',
 
 	UNIQUE (list_id, message_id)
 );
+
+CREATE INDEX email_patch_trailer_key ON email USING GIN (patch_trailers);
 
 -- TODO: Remove me
 CREATE TABLE mirror (

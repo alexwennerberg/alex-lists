@@ -1,6 +1,8 @@
 package lists
 
 import (
+	"bufio"
+	"bytes"
 	"database/sql"
 	"fmt"
 	"log"
@@ -12,6 +14,7 @@ import (
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/emersion/go-message/mail"
+	"github.com/lib/pq"
 )
 
 func identifyPatch(body string) bool {
@@ -125,7 +128,7 @@ func (ar *Archiver) findExistingVersions(
 	return versions
 }
 
-func (ar *Archiver) importPatch(emailID, threadID int, subject, status string, isPatch bool) error {
+func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body string, isPatch bool) error {
 	patch, err := parsePatchSubject(subject)
 	if err != nil {
 		return fmt.Errorf("error parsing patch subject: %v", err)
@@ -146,13 +149,36 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status string, i
 		return nil
 	}
 
+	// Parse git trailers
+	trailers := make([]*model.Trailer, 0)
+	rd := bytes.NewBufferString(body)
+	scanner := bufio.NewScanner(rd)
+	for scanner.Scan() {
+		if scanner.Text() == "---" {
+			break
+		}
+		t := model.ParseTrailer(scanner.Text())
+		if t == nil {
+			// Reset the list
+			trailers = make([]*model.Trailer, 0)
+			continue
+		}
+		trailers = append(trailers, t)
+	}
+
+	trailerStrings := make([]string, len(trailers))
+	for i, t := range trailers {
+		trailerStrings[i] = t.String()
+	}
+
 	if _, err := ar.tx.Exec(
 		`UPDATE email SET
 			patch_index = $1, patch_count = $2, patch_version = $3,
-			patch_prefix = $4, patch_subject = $5
-		WHERE id = $6`,
+			patch_prefix = $4, patch_subject = $5,
+			patch_trailers = $6
+		WHERE id = $7`,
 		patch.Index, patch.Count, patch.Version, patch.Prefix, patch.Subject,
-		emailID,
+		pq.Array(trailerStrings), emailID,
 	); err != nil {
 		return err
 	}

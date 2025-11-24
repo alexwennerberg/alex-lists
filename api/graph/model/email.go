@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"fmt"
 	"log"
 	"strconv"
 	"time"
@@ -11,10 +12,34 @@ import (
 	sq "github.com/Masterminds/squirrel"
 	_ "github.com/emersion/go-message/charset"
 	"github.com/emersion/go-message/mail"
+	"github.com/lib/pq"
 
 	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/core-go/model"
 )
+
+type Patch struct {
+	Index    *int     `json:"index,omitempty"`
+	Count    *int     `json:"count,omitempty"`
+	Version  *int     `json:"version,omitempty"`
+	Prefix   *string  `json:"prefix,omitempty"`
+	Subject  *string  `json:"subject,omitempty"`
+	trailers []string `json:"trailers"`
+}
+
+func (p *Patch) Trailers() []*Trailer {
+	trailers := make([]*Trailer, len(p.trailers))
+
+	for i, s := range p.trailers {
+		t := ParseTrailer(s)
+		if t == nil {
+			panic(fmt.Errorf("Invalid trailer '%s' in database", s))
+		}
+		trailers[i] = t
+	}
+
+	return trailers
+}
 
 type Email struct {
 	ID        int       `json:"id"`
@@ -66,6 +91,7 @@ func (email *Email) Fields() *database.ModelFields {
 			{SQL: "patch_version", GQL: "patch", Ptr: &email.Patch.Version},
 			{SQL: "patch_prefix", GQL: "patch", Ptr: &email.Patch.Prefix},
 			{SQL: "patch_subject", GQL: "patch", Ptr: &email.Patch.Subject},
+			{SQL: "patch_trailers", GQL: "", Ptr: pq.Array(&email.Patch.trailers)},
 
 			// Always fetch:
 			{SQL: "id", GQL: "", Ptr: &email.ID},
