@@ -24,7 +24,7 @@ type Patch struct {
 	Version  *int     `json:"version,omitempty"`
 	Prefix   *string  `json:"prefix,omitempty"`
 	Subject  *string  `json:"subject,omitempty"`
-	trailers []string `json:"trailers"`
+	trailers []string
 }
 
 func (p *Patch) Trailers() []*Trailer {
@@ -33,7 +33,7 @@ func (p *Patch) Trailers() []*Trailer {
 	for i, s := range p.trailers {
 		t := ParseTrailer(s)
 		if t == nil {
-			panic(fmt.Errorf("Invalid trailer '%s' in database", s))
+			panic(fmt.Errorf("invalid trailer '%s' in database", s))
 		}
 		trailers[i] = t
 	}
