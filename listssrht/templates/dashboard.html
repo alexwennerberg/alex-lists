@@ -100,9 +100,7 @@
               >{{email.list.owner.canonical_name}}/{{email.list.name}}</a>
           </p>
           <blockquote>
-            <pre
-              style="background: transparent"
-            >{{ format_body(email, limit=15) }}</pre>
+            {{ format_body(email, limit=15) }}
           </blockquote>
         </div>
         {% endfor %}

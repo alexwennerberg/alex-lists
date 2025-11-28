@@ -40,7 +40,7 @@
 {% set feedback = feedback.get(msg.id) %}
 
 <pre class="message-body">
-  {%- for line in (feedback_block.body if feedback_block else format_body(msg)).splitlines() -%}
+  {%- for line in (feedback_block.body if feedback_block else format_body(msg, nowrap=True)).splitlines() -%}
   {{- line + "\n" -}}
   {%- set line_offset = feedback_block.source_region[0] if feedback_block else 0 -%}
   {%- set line_index = loop.index + line_offset - 1 -%}
@@ -71,7 +71,7 @@
 <blockquote>
   {% set msg = feedback.source_msg %}
   {{ msg_header(msg) }}
-  <pre class="message-body">{{format_body(feedback.source_msg)}}</pre>
+  {{format_body(feedback.source_msg)}}
 </blockquote>
 {% endif %}
 {% endfor %}

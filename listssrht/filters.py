@@ -1,3 +1,4 @@
+import re
 from markupsafe import Markup, escape
 from jinja2.filters import urlize
 from srht.config import cfg
@@ -17,8 +18,35 @@ def post_address(ml, suffix=""):
     return "{}/{}{}@{}".format(
             ml.owner.canonical_name, ml.name, suffix, domain)
 
-def _format_patch(msg, limit=None):
+def format_body(msg, limit=None, nowrap=False):
+    if msg.patch() is not None:
+        return _format_patch(msg, limit, nowrap)
+
+    message = msg.parsed()
+    body = message.get_body(preferencelist=('plain'))
+    if not body:
+        return _format_plain(msg, limit, nowrap)
+
+    content_type = body.get("Content-Type")
+    if content_type:
+        attrs = [attr.strip() for attr in content_type.split(";")]
+        for attr in attrs:
+            # This is under-specified by the RFC and can appear in many
+            # different ways in practice; be tolerant of variants
+            flowed_attrs = [
+                "format=flowed",
+                "format='flowed'",
+                'format="flowed"',
+            ]
+            if attr.lower() in flowed_attrs:
+                return _format_flowed(msg, limit, nowrap)
+
+    return _format_plain(msg, limit, nowrap)
+
+def _format_patch(msg, limit=None, nowrap=False):
     text = Markup("")
+    if not nowrap:
+        text += Markup("<pre class='message-body'>")
     is_diff = False
 
     # Predict the starting lines of each file name
@@ -120,12 +148,15 @@ def _format_patch(msg, limit=None):
                     + escape(line[1:] + "\n"))
             else:
                 text += escape(line + "\n")
-    return text.rstrip()
+    text = text.rstrip()
+    if not nowrap:
+        text += Markup("</pre>")
+    return text
 
-def format_body(msg, limit=None):
-    if msg.patch() is not None:
-        return _format_patch(msg, limit)
+def _format_plain(msg, limit=None, nowrap=False):
     text = Markup("")
+    if not nowrap:
+        text += Markup("<pre class='message-body'>")
     line_no = 0
     body = urlize(msg.body, rel="noopener nofollow")
     for line in msg.body.replace("\r", "").split("\n"):
@@ -139,7 +170,88 @@ def format_body(msg, limit=None):
                 + Markup("</span>\n"))
         else:
             text += Markup(urlize(escape(line), rel="noopener nofollow")) + "\n"
-    return text.rstrip()
+    text = text.rstrip()
+    if not nowrap:
+        text += Markup("</pre>")
+    return text
+
+_whitespace_re = r"^[ \t]*"
+
+def _format_flowed(msg, limit=None, nowrap=False):
+    text = Markup("")
+    if not nowrap:
+        text += Markup("<div class='message-body flowed'>")
+    line_no = 0
+    body = urlize(msg.body, rel="noopener nofollow")
+
+    was_flowed = False
+    was_code = False
+    prior_quote_depth = 0
+    code_prefix = ""
+    for line in msg.body.replace("\r", "").split("\n"):
+        line_no += 1
+        if line_no == limit:
+            break
+
+        if line == "-- ":
+            text += Markup("<p>&mdash; <br />")
+            continue
+
+        content = line.lstrip(">")
+        quote_depth = len(line) - len(content)
+        is_stuffed = content.startswith(" ")
+        if is_stuffed:
+            content = content[1:]
+        is_flowed = content.endswith(" ")
+        if is_flowed:
+            content = content[:-1]
+
+        # XXX: Extension not specified by RFC 3676
+        is_code = content.startswith("    ") or content.startswith("\t")
+        if is_code and code_prefix == "":
+            # Trim off leading whitespace based on the first line depth
+            code_prefix = re.match(_whitespace_re, content).group()
+
+        if quote_depth > prior_quote_depth:
+            n = prior_quote_depth
+            while n < quote_depth:
+                text += Markup("<blockquote>")
+                n += 1
+        elif quote_depth < prior_quote_depth:
+            n = prior_quote_depth
+            while n > quote_depth:
+                text += Markup("</blockquote>")
+                n -= 1
+
+        if not is_code and was_code:
+            text += Markup("</pre>")
+            code_prefix = ""
+        if is_code and not was_code:
+            text += Markup("<pre>")
+
+        if is_code:
+            line = content.removeprefix(code_prefix)
+            text += Markup(urlize(escape(line), rel="noopener nofollow")) + "\n"
+        else:
+            if is_flowed and not was_flowed or content == "":
+                text += Markup("<p>")
+            text += Markup(urlize(escape(content), rel="noopener nofollow")) + "\n"
+
+        was_flowed = is_flowed
+        was_code = is_code
+        prior_quote_depth = quote_depth
+
+    while prior_quote_depth != 0:
+        text += Markup("</blockquote>")
+        prior_quote_depth -= 1
+
+    if was_code:
+        text += Markup("</pre>")
+
+    text = text.rstrip()
+    if not nowrap:
+        text += Markup("</div>")
+    return text
 
 def diffstat(patch_email):
     stats = patch_email.patch().stats
