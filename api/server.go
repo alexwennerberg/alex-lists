@@ -120,7 +120,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			return prepMbox(rows, w)
+			return prepMbox(rows, w, false)
 		}); err != nil {
 			panic(err)
 		}
@@ -153,7 +153,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			return prepMbox(rows, w)
+			return prepMbox(rows, w, false)
 		}); err != nil {
 			panic(err)
 		}
@@ -197,7 +197,7 @@ func main() {
 			if err != nil {
 				return err
 			}
-			return prepMbox(rows, w)
+			return prepMbox(rows, w, true)
 		}); err != nil {
 			panic(err)
 		}
@@ -206,7 +206,7 @@ func main() {
 	gsrv.Run()
 }
 
-func prepMbox(rows *sql.Rows, w http.ResponseWriter) error {
+func prepMbox(rows *sql.Rows, w http.ResponseWriter, allowEmpty bool) error {
 	mbw := mbox.NewWriter(w)
 	defer mbw.Close()
 
@@ -248,8 +248,13 @@ func prepMbox(rows *sql.Rows, w http.ResponseWriter) error {
 	}
 
 	if !results {
-		w.WriteHeader(http.StatusNotFound)
-		w.Write([]byte("Not found\r\n"))
+		if allowEmpty {
+			w.WriteHeader(http.StatusOK)
+			w.Header().Add("Content-Type", "application/mbox")
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+			w.Write([]byte("Not found\r\n"))
+		}
 	}
 
 	return nil
