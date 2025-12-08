@@ -1195,7 +1195,7 @@ func (r *mutationResolver) MailingListUnsubscribe(ctx context.Context, listID in
 func (r *mutationResolver) ImportMailingListSpool(ctx context.Context, listID int, spool graphql.Upload) (bool, error) {
 	const limit = 104857600 // 100 MiB
 	if spool.Size > limit {
-		return false, errors.New("mailing list spool must not exceed 30 MiB in size")
+		return false, errors.New("mailing list spool must not exceed 100 MiB in size")
 	}
 	var listName string
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
