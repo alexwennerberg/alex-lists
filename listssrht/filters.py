@@ -186,6 +186,7 @@ def _format_flowed(msg, limit=None, nowrap=False):
 
     was_flowed = False
     was_code = False
+    p_open = False
     prior_quote_depth = 0
     code_prefix = ""
     for line in msg.body.replace("\r", "").split("\n"):
@@ -195,6 +196,7 @@ def _format_flowed(msg, limit=None, nowrap=False):
 
         if line == "-- ":
             text += Markup("<p>&mdash; <br />")
+            p_open = True
             continue
 
         content = line.lstrip(">")
@@ -215,11 +217,17 @@ def _format_flowed(msg, limit=None, nowrap=False):
         if quote_depth > prior_quote_depth:
             n = prior_quote_depth
             while n < quote_depth:
-                text += Markup("<blockquote>")
+                if p_open:
+                    text += Markup("</p>")
+                    p_open = False
+                text += Markup('<blockquote class="text-muted">')
                 n += 1
         elif quote_depth < prior_quote_depth:
             n = prior_quote_depth
             while n > quote_depth:
+                if p_open:
+                    text += Markup("</p>")
+                    p_open = False
                 text += Markup("</blockquote>")
                 n -= 1
 
@@ -233,8 +241,13 @@ def _format_flowed(msg, limit=None, nowrap=False):
             line = content.removeprefix(code_prefix)
             text += Markup(urlize(escape(line), rel="noopener nofollow")) + "\n"
         else:
-            if is_flowed and not was_flowed or content == "":
+            if content == "" and p_open:
+                text += Markup("</p>")
+                p_open = False
+            elif content != "" and (is_flowed and not was_flowed or not p_open
+                    or quote_depth != prior_quote_depth):
                 text += Markup("<p>")
+                p_open = True
             text += Markup(urlize(escape(content), rel="noopener nofollow")) + "\n"
 
         was_flowed = is_flowed
@@ -242,6 +255,9 @@ def _format_flowed(msg, limit=None, nowrap=False):
         prior_quote_depth = quote_depth
 
     while prior_quote_depth != 0:
+        if p_open:
+            text += Markup("</p>")
+            p_open = False
         text += Markup("</blockquote>")
         prior_quote_depth -= 1
 

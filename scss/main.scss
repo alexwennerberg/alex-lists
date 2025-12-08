@@ -105,7 +105,26 @@ a[href^="mailto:"], .from a {
 .message-body {
   &.flowed {
     background: #131618;
-    padding: 0 0.5rem;
+    padding: 0.25rem;
+    margin-bottom: 1rem;
+    font-family: monospace;
+    font-size: $code-font-size;
+
+    p {
+      max-width: 72ch;
+
+      &:last-child {
+          margin-bottom: 0;
+      }
+    }
+
+    blockquote {
+      padding-left: calc(2ch - 3px);
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+    }
   }
 
   @media(prefers-color-scheme: light) {
