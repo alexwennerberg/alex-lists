@@ -1,9 +1,7 @@
 git.sr.ht/~emersion/go-emailthreads v0.0.0-20230220165133-75c43015b6c2 h1:5CkkRDW3WrCkoitA4euYbIOVyCAoCh2MnBtGt/neTQc=
 git.sr.ht/~emersion/go-emailthreads v0.0.0-20230220165133-75c43015b6c2/go.mod h1:CQUF7XpyupxjwxlNX3PHRCYL+N2COXTRRRS4MgM49R4=
-git.sr.ht/~sircmpwn/core-go v0.0.0-20251001134638-898f2e950ea0 h1:vGRTI5/RIqMfrXRfZDx3v5ApS+xOokUnywU9fcnvweI=
-git.sr.ht/~sircmpwn/core-go v0.0.0-20251001134638-898f2e950ea0/go.mod h1:5vgN2i6a9Lu0rFf01H9WcMM5KT1NhxU7XxUPPWEQ0VU=
-git.sr.ht/~sircmpwn/core-go v0.0.0-20251204110457-522372683c08 h1:JNzTv6TFtZNSv5ZOn9g3dNcoKVnKldSIzHDMSRNs1LU=
-git.sr.ht/~sircmpwn/core-go v0.0.0-20251204110457-522372683c08/go.mod h1:JmathMemB+hBk1IgrMn6RuBGusd+fTg1s/X6rNVKXXU=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20251211090556-3dc39b678422 h1:3reAnso+VApF3Ut+4YLUJwizyzTYiqLosT5QVv73i/E=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20251211090556-3dc39b678422/go.mod h1:JmathMemB+hBk1IgrMn6RuBGusd+fTg1s/X6rNVKXXU=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c h1:v2opuaN0C5ZpuCifRNR9ZQ8V9IG+Ja80otK1MFj5RnI=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20241216125407-2b00aa42322c/go.mod h1:8neHEO3503w/rNtttnR0JFpQgM/GFhaafVwvkPsFIDw=
 git.sr.ht/~sircmpwn/getopt v0.0.0-20191230200459-23622cc906b3/go.mod h1:wMEGFFFNuPos7vHmWXfszqImLppbc0wEhh6JBfJIUgw=
