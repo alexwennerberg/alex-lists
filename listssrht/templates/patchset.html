@@ -126,6 +126,15 @@
       </div>
       {% endif %}
 
+      {% if patchset.superseded_by_id %}
+      <div class="alert alert-info">
+        <b>Notice</b>: This patchset has been superseded by a
+        <a href="{{url_for('patches.patchset',
+            owner_name=owner.canonical_name, list_name=ml.name,
+            patchset_id=patchset.superseded_by_id)}}">newer revision</a>.
+      </div>
+      {% endif %}
+
       {% for m in messages %}
       {% if m.id in feedback %}
       {% set fb = feedback[m.id] %}
