@@ -184,7 +184,9 @@ def _format_flowed(msg, limit=None, nowrap=False):
     line_no = 0
     body = urlize(msg.body, rel="noopener nofollow")
 
+    first_line = True
     was_flowed = False
+    was_empty = False
     was_code = False
     p_open = False
     prior_quote_depth = 0
@@ -207,12 +209,17 @@ def _format_flowed(msg, limit=None, nowrap=False):
         is_flowed = content.endswith(" ")
         if is_flowed:
             content = content[:-1]
+        is_empty = content == ""
 
         # XXX: Extension not specified by RFC 3676
         is_code = content.startswith("    ") or content.startswith("\t")
         if is_code and code_prefix == "":
             # Trim off leading whitespace based on the first line depth
             code_prefix = re.match(_whitespace_re, content).group()
+
+        if not is_empty and not was_empty and not is_code and not was_code:
+            if not first_line and not was_flowed:
+                text += Markup("<br>")
 
         if quote_depth > prior_quote_depth:
             n = prior_quote_depth
@@ -241,16 +248,18 @@ def _format_flowed(msg, limit=None, nowrap=False):
             line = content.removeprefix(code_prefix)
             text += Markup(urlize(escape(line), rel="noopener nofollow")) + "\n"
         else:
-            if content == "" and p_open:
+            if is_empty and p_open:
                 text += Markup("</p>")
                 p_open = False
-            elif content != "" and (is_flowed and not was_flowed or not p_open
+            elif not is_empty and (is_flowed and not was_flowed or not p_open
                     or quote_depth != prior_quote_depth):
                 text += Markup("<p>")
                 p_open = True
             text += Markup(urlize(escape(content), rel="noopener nofollow")) + "\n"
 
+        first_line = False
         was_flowed = is_flowed
+        was_empty = is_empty
         was_code = is_code
         prior_quote_depth = quote_depth
 
