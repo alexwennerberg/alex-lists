@@ -152,19 +152,21 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 
 	// Parse git trailers
 	trailers := make([]*model.Trailer, 0)
-	rd := bytes.NewBufferString(body)
-	scanner := bufio.NewScanner(rd)
-	for scanner.Scan() {
-		if scanner.Text() == "---" {
-			break
+	if isPatch {
+		rd := bytes.NewBufferString(body)
+		scanner := bufio.NewScanner(rd)
+		for scanner.Scan() {
+			if scanner.Text() == "---" {
+				break
+			}
+			t := model.ParseTrailer(scanner.Text())
+			if t == nil {
+				// Reset the list
+				trailers = make([]*model.Trailer, 0)
+				continue
+			}
+			trailers = append(trailers, t)
 		}
-		t := model.ParseTrailer(scanner.Text())
-		if t == nil {
-			// Reset the list
-			trailers = make([]*model.Trailer, 0)
-			continue
-		}
-		trailers = append(trailers, t)
 	}
 
 	trailerStrings := make([]string, len(trailers))
