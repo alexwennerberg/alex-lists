@@ -1,16 +1,18 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from flask import Blueprint, render_template, abort, request, redirect, url_for
 from flask import Response, session, send_file
 from sqlalchemy import String, select, cast, or_
 from sqlalchemy.sql.functions import coalesce
 from srht.app import paginate_query
 from srht.config import cfg
+from srht.crypto import encrypt_request_authorization
 from srht.database import db
-from srht.search import search_by
+from srht.graphql import InternalAuth
 from srht.oauth import current_user, loginrequired, UserType
+from srht.search import search_by
 from srht.validation import Validation
 from listssrht.filters import post_address
-from listssrht.graphql import Visibility
+from listssrht.graphql import Client, Visibility
 from listssrht.process import forward_thread
 from listssrht.types import List, User, Email, Subscription, ListAccess, Access
 from listssrht.types import Patchset, PatchsetStatus
@@ -18,9 +20,7 @@ from urllib.parse import quote, urlencode
 import email
 import email.policy
 import email.utils
-import hashlib
-import mailbox
-import os
+import requests
 
 archives = Blueprint("archives", __name__)
 
@@ -414,36 +414,18 @@ def export_archive(owner_name, list_name):
         abort(404)
     if ListAccess.browse not in access:
         abort(403)
+    client = Client(InternalAuth(owner))
+    archive = client.export_archive(owner.username, ml.name).user.list
 
     days = request.form.get("days")
-    if not days:
-        abort(400)
-    try:
-        days = int(days)
-    except:
-        abort(400)
+    if days == 30:
+        url = archive.last_30_days
+    else:
+        url = archive.archive
 
-    sha = hashlib.sha256()
-    sha.update(os.urandom(24))
-    digest = sha.hexdigest()
-    export_dir = cfg('lists.sr.ht', 'export-directory', default='/tmp')
-    path = f"/{export_dir}/{digest}.mbox"
-
-    mbox = mailbox.mbox(path)
-    query = (Email.query
-            .filter(Email.list_id == ml.id)
-            .order_by(Email.created))
-    if days > 0:
-        query = query.filter(Email.created >
-                datetime.utcnow() - timedelta(days=days))
-    for message in query.all():
-        try:
-            mbox.add(message.parsed())
-        except:
-            continue # plow on forward
-    mbox.close()
-
-    f = open(path, "rb")
-    os.unlink(path)
-    return send_file(f, as_attachment=True,
-            download_name=f"{owner.username}-{list_name}.mbox")
+    auth = encrypt_request_authorization(user=owner)
+    resp = requests.get(url, headers=auth, stream=True)
+    return send_file(resp.raw,
+        mimetype="application/octet-stream",
+        as_attachment=True,
+        download_name=f"{owner.username}-{list_name}.mbox")

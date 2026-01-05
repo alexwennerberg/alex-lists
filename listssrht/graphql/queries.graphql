@@ -35,6 +35,15 @@ mutation DeleteMailingList($id: Int!) {
   deleteMailingList(id: $id) { id }
 }
 
+query ExportArchive($owner: String!, $listName: String!) {
+  user(username: $owner) {
+    list(name: $listName) {
+      archive
+      last30days
+    }
+  }
+}
+
 query GetPatchsetThreadBlocks($patchset: Int!) {
   patchset(id: $patchset) {
     thread {
