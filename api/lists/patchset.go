@@ -128,7 +128,7 @@ func (ar *Archiver) findExistingVersions(
 	return versions
 }
 
-func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body string, isPatch bool) error {
+func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body string, isPatch, isReply bool) error {
 	patch, err := parsePatchSubject(subject)
 	if err != nil {
 		return fmt.Errorf("error parsing patch subject: %v", err)
@@ -145,7 +145,8 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 	// Consider cover letters (index = 0) as valid patches. This makes it much
 	// easier to look up the cover letter later on by querying patch_index = 0.
 	// This also handles the case where the cover letter is received last.
-	if !isPatch && patch.Index != 0 {
+	// However, make sure to ignore replies to the cover letter.
+	if !isPatch && (patch.Index != 0 || isReply) {
 		return nil
 	}
 
