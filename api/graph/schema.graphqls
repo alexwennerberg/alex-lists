@@ -1,10 +1,11 @@
 # This schema definition is available in the public domain, or under the terms
 # of CC-0, at your choice.
 
+scalar Cursor
+
 "String of the format %Y-%m-%dT%H:%M:%SZ"
 scalar Time
-"Opaque string"
-scalar Cursor
+
 """
 URL from which some secondary data may be retrieved. You must provide the
 same Authentication header to this address as you did to the GraphQL resolver
@@ -13,6 +14,13 @@ length of time; applications should submit a new GraphQL query each time they
 wish to access the data at the provided URL.
 """
 scalar URL
+
+"""
+A file uploaded alongside the GraphQL request. This API is compatible with the
+multipart request specification for requests that include uploads:
+
+https://github.com/jaydenseric/graphql-multipart-request-spec
+"""
 scalar Upload
 
 "Confirmation token associated with a subscription request"
