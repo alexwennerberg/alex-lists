@@ -19,11 +19,11 @@ import (
 )
 
 type Patch struct {
-	Index    *int     `json:"index,omitempty"`
-	Count    *int     `json:"count,omitempty"`
-	Version  *int     `json:"version,omitempty"`
-	Prefix   *string  `json:"prefix,omitempty"`
-	Subject  *string  `json:"subject,omitempty"`
+	Index    *int    `json:"index,omitempty"`
+	Count    *int    `json:"count,omitempty"`
+	Version  *int    `json:"version,omitempty"`
+	Prefix   *string `json:"prefix,omitempty"`
+	Subject  *string `json:"subject,omitempty"`
 	trailers []string
 }
 

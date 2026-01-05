@@ -52,8 +52,8 @@ type importReport struct {
 	userID   int
 	username string
 	email    string
-	listID   int
 	listName string
+	fileName string
 	result   ImportResult
 	err      error
 }
@@ -78,6 +78,7 @@ func sendImportReport(ctx context.Context, report importReport) {
 		SiteName  string
 		Username  string
 		ListName  string
+		FileName  string
 		Result    ImportResult
 		Fatal     error
 	}
@@ -86,6 +87,7 @@ func sendImportReport(ctx context.Context, report importReport) {
 		SiteName:  siteName,
 		Username:  report.username,
 		ListName:  report.listName,
+		FileName:  report.fileName,
 		Result:    report.result,
 		Fatal:     report.err,
 	}
@@ -94,14 +96,17 @@ func sendImportReport(ctx context.Context, report importReport) {
 
 Hello ~{{.Username}}!
 
+Some errors occurred while importing messages from file "{{.FileName}}"
+to your mailing list "{{.ListName}}".
+
 {{ if .Fatal -}}
-The import for your mailing list "{{.ListName}}" failed:
+The import failed:
 
 {{.Fatal}}
 
 The transaction was rolled back and no messages were imported.
 {{- else -}}
-The import for your mailing list "{{.ListName}}" failed for some messages.
+The import failed for some messages.
 
 - {{.Result.Imported}} messages were imported
 - {{.Result.Duplicate}} messages were dropped as duplicates
@@ -129,7 +134,7 @@ The import for your mailing list "{{.ListName}}" failed for some messages.
 }
 
 // Schedules a mailing list import.
-func ImportMailingListSpool(ctx context.Context, listID int, listName string, spool io.Reader) {
+func ImportMailingListSpool(ctx context.Context, listID int, listName, fileName string, spool io.Reader) {
 	queue, ok := ctx.Value(ctxKey).(*work.Queue)
 	if !ok {
 		panic(fmt.Errorf("no lists worker for this context"))
@@ -163,8 +168,8 @@ func ImportMailingListSpool(ctx context.Context, listID int, listName string, sp
 					userID:   user.UserID,
 					username: user.Username,
 					email:    user.Email,
-					listID:   listID,
 					listName: listName,
+					fileName: fileName,
 					result:   result,
 					err:      err,
 				}

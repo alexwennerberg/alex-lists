@@ -1215,7 +1215,7 @@ func (r *mutationResolver) ImportMailingListSpool(ctx context.Context, listID in
 	if err != nil {
 		return false, err
 	}
-	lists.ImportMailingListSpool(ctx, listID, listName, bytes.NewReader(b))
+	lists.ImportMailingListSpool(ctx, listID, listName, spool.Filename, bytes.NewReader(b))
 	return true, nil
 }
 
