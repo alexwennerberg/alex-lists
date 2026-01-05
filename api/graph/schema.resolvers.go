@@ -302,6 +302,8 @@ func (r *mailingListResolver) Message(ctx context.Context, obj *model.MailingLis
 		return nil, err
 	}
 
+	email.Populate()
+
 	return email, nil
 }
 
