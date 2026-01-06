@@ -294,6 +294,7 @@ func (r *mailingListResolver) Message(ctx context.Context, obj *model.MailingLis
 		switch err {
 		case nil:
 			email = m
+			email.Populate()
 		case sql.ErrNoRows:
 			err = nil
 		}
@@ -301,8 +302,6 @@ func (r *mailingListResolver) Message(ctx context.Context, obj *model.MailingLis
 	}); err != nil {
 		return nil, err
 	}
-
-	email.Populate()
 
 	return email, nil
 }
