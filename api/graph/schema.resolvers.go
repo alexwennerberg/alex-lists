@@ -435,10 +435,7 @@ func (r *mailingListResolver) Webhook(ctx context.Context, obj *model.MailingLis
 			}).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		if err := row.Scan(database.Scan(ctx, &sub)...); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(database.Scan(ctx, &sub)...)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("no mailing list webhook by ID %d found for this user", id)
@@ -998,11 +995,8 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.Mailin
 				access.id, access.created, access.list_id, access.user_id,
 				access.email, access.permissions;
 		`, id, auth.ForContext(ctx).UserID)
-		if err := row.Scan(&acl.ID, &acl.Created, &acl.MailingListID,
-			&acl.UserID, &acl.Email, &acl.RawAccess); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(&acl.ID, &acl.Created, &acl.MailingListID,
+			&acl.UserID, &acl.Email, &acl.RawAccess)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -1036,13 +1030,10 @@ func (r *mutationResolver) UpdatePatchset(ctx context.Context, id int, status mo
 				list_id, cover_letter_id, superseded_by_id;`,
 			auth.ForContext(ctx).UserID, model.ACCESS_MODERATE,
 			strings.ToLower(status.String()), id)
-		if err := row.Scan(&patchset.ID, &patchset.Created, &patchset.Updated,
+		return row.Scan(&patchset.ID, &patchset.Created, &patchset.Updated,
 			&patchset.Subject, &patchset.Prefix, &patchset.Version,
 			&patchset.RawStatus, &patchset.MailingListID,
-			&patchset.CoverLetterID, &patchset.SupersededByID); err != nil {
-			return err
-		}
-		return nil
+			&patchset.CoverLetterID, &patchset.SupersededByID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -1286,11 +1277,8 @@ func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.U
 			ac.NodeID, // INTERNAL
 			user.UserID)
 
-		if err := row.Scan(&sub.ID, &sub.URL,
-			&sub.Query, pq.Array(&sub.Events), &sub.UserID); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID)
 	}); err != nil {
 		return nil, err
 	}
@@ -1314,11 +1302,8 @@ func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model
 			Suffix(`RETURNING id, url, query, events, user_id`).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		if err := row.Scan(&sub.ID, &sub.URL,
-			&sub.Query, pq.Array(&sub.Events), &sub.UserID); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("no user webhook by ID %d found for this user", id)
@@ -1404,11 +1389,8 @@ func (r *mutationResolver) CreateMailingListWebhook(ctx context.Context, listID 
 			user.UserID,
 			list.ID)
 
-		if err := row.Scan(&sub.ID, &sub.URL,
-			&sub.Query, pq.Array(&sub.Events), &sub.UserID, &sub.ListID); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID, &sub.ListID)
 	}); err != nil {
 		return nil, err
 	}
@@ -1432,11 +1414,8 @@ func (r *mutationResolver) DeleteMailingListWebhook(ctx context.Context, id int)
 			Suffix(`RETURNING id, url, query, events, user_id, list_id`).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		if err := row.Scan(&sub.ID, &sub.URL,
-			&sub.Query, pq.Array(&sub.Events), &sub.UserID, &sub.ListID); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID, &sub.ListID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("no mailing list webhook by ID %d found for this user", id)
@@ -1711,10 +1690,7 @@ func (r *mutationResolver) UpdatePreferences(ctx context.Context, preferences mo
 			WHERE id = $2
 			RETURNING copy_self;
 		`, preferences.CopySelf, auth.ForContext(ctx).UserID)
-		if err := row.Scan(&copySelf); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(&copySelf)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			copySelf = false
@@ -2027,10 +2003,7 @@ func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookS
 			Where(sq.And{sq.Expr(`id = ?`, id), filter}).
 			RunWith(tx).
 			QueryRowContext(ctx)
-		if err := row.Scan(database.Scan(ctx, &sub)...); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(database.Scan(ctx, &sub)...)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("no user webhook by ID %d found for this user", id)
@@ -2062,10 +2035,7 @@ func (r *queryResolver) Preferences(ctx context.Context) (*model.Preferences, er
 			SELECT copy_self FROM "user"
 			WHERE id = $1;
 		`, auth.ForContext(ctx).UserID)
-		if err := row.Scan(&copySelf); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(&copySelf)
 	}); err != nil {
 		return nil, err
 	}
@@ -2084,10 +2054,7 @@ func (r *queryResolver) CopySelf(ctx context.Context, email string) (bool, error
 		row := tx.QueryRowContext(ctx, `
 			SELECT copy_self FROM "user" WHERE email = $1
 		`, email)
-		if err := row.Scan(&copySelf); err != nil {
-			return err
-		}
-		return nil
+		return row.Scan(&copySelf)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return false, nil

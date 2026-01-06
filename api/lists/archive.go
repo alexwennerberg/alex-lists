@@ -404,13 +404,11 @@ func (ar *Archiver) reparentEmails(threadID, emailID int, messageID string) erro
 	); err != nil {
 		return err
 	}
-	if _, err := ar.tx.Exec(
+	_, err = ar.tx.Exec(
 		`UPDATE email SET thread_id = $1 WHERE thread_id = ANY($2)`,
 		threadID, pq.Array(oldThreadIDs),
-	); err != nil {
-		return err
-	}
-	return nil
+	)
+	return err
 }
 
 // Updates thread nreplies and nparticipants
@@ -437,11 +435,9 @@ func (ar *Archiver) updateThreadReplies(threadID int) error {
 		participants[fromHeader] = struct{}{}
 		nreplies++
 	}
-	if _, err := ar.tx.Exec(
+	_, err = ar.tx.Exec(
 		`UPDATE email SET nreplies = $1, nparticipants = $2 WHERE id = $3`,
 		nreplies, len(participants), threadID,
-	); err != nil {
-		return err
-	}
-	return nil
+	)
+	return err
 }
