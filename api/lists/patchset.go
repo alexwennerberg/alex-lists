@@ -98,8 +98,8 @@ type PatchVersion struct {
 }
 
 func (ar *Archiver) findExistingVersions(
-	listID int, subject string, prefix string, submitter sql.NullString) []PatchVersion {
-	previousVersions, err := ar.tx.Query(`
+	tx *sql.Tx, listID int, subject string, prefix string, submitter sql.NullString) []PatchVersion {
+	previousVersions, err := tx.Query(`
 		SELECT id, version, status FROM patchset
 		WHERE
 			list_id = $1 AND
@@ -128,7 +128,7 @@ func (ar *Archiver) findExistingVersions(
 	return versions
 }
 
-func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body string, isPatch, isReply bool) error {
+func (ar *Archiver) importPatch(tx *sql.Tx, emailID, threadID int, subject, status, body string, isPatch, isReply bool) error {
 	patch, err := parsePatchSubject(subject)
 	if err != nil {
 		return fmt.Errorf("error parsing patch subject: %v", err)
@@ -174,7 +174,7 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 		trailerStrings[i] = t.String()
 	}
 
-	if _, err := ar.tx.Exec(
+	if _, err := tx.Exec(
 		`UPDATE email SET
 			patch_index = $1, patch_count = $2, patch_version = $3,
 			patch_prefix = $4, patch_subject = $5,
@@ -192,7 +192,7 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 	complete := true
 	for i := 1; i <= patch.Count; i++ {
 		var exists bool
-		row := ar.tx.QueryRow(
+		row := tx.QueryRow(
 			`SELECT EXISTS (
 				SELECT FROM email
 				WHERE (id = $1 OR thread_id = $1) AND patch_index = $2
@@ -214,7 +214,7 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 
 	// Look for existing patchset
 	var existing bool
-	row := ar.tx.QueryRow(
+	row := tx.QueryRow(
 		`SELECT EXISTS (
 			SELECT FROM email
 			WHERE (id = $1 OR thread_id = $1) AND patchset_id IS NOT NULL
@@ -237,7 +237,7 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 	var patchsetSubject string
 	var patchsetPrefix string
 	var patchsetVersion int
-	row = ar.tx.QueryRow(
+	row = tx.QueryRow(
 		`SELECT
 			id, patch_subject, patch_prefix, patch_version
 		FROM email WHERE (id = $1 OR thread_id = $1) AND patch_index = 0`,
@@ -259,7 +259,7 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 	} else if coverLetterID == nil {
 		// If no cover letter, use the subject of the first patch of
 		// the series as patchset title
-		row = ar.tx.QueryRow(
+		row = tx.QueryRow(
 			`SELECT
 				patch_subject, patch_prefix, patch_version
 			FROM email WHERE (id = $1 OR thread_id = $1) AND patch_index = 1`,
@@ -278,7 +278,7 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 	var messageID string
 	var submitter sql.NullString
 	var replyTo sql.NullString
-	row = ar.tx.QueryRow(
+	row = tx.QueryRow(
 		`SELECT
 			message_id, headers -> 'From' -> 0, headers -> 'Reply-To' -> 0
 		FROM email WHERE (id = $1 OR thread_id = $1) AND patch_index = $2`,
@@ -290,7 +290,7 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 
 	var patchsetID int
 	var created, updated time.Time
-	row = ar.tx.QueryRow(`
+	row = tx.QueryRow(`
 		INSERT INTO patchset (
 			created, updated,
 			subject, prefix, version, list_id, cover_letter_id,
@@ -307,7 +307,7 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 		return err
 	}
 
-	if _, err := ar.tx.Exec(
+	if _, err := tx.Exec(
 		`UPDATE email SET patchset_id = $1 WHERE id = $2 OR thread_id = $2`,
 		patchsetID, threadID,
 	); err != nil {
@@ -316,7 +316,7 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 
 	// Supersede the most recent previous version from the submitter if
 	// it's still active.
-	prevVersions := ar.findExistingVersions(ar.listID,
+	prevVersions := ar.findExistingVersions(tx, ar.listID,
 		patchsetSubject, patchsetPrefix, submitter)
 	if len(prevVersions) <= 1 {
 		// Nothing to supersede.
@@ -329,7 +329,7 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 		if candidate.version < patchsetVersion {
 			switch candidate.status {
 			case "proposed", "needs_revision":
-				ar.tx.Exec(`
+				tx.Exec(`
 					UPDATE patchset
 					SET status = 'superseded', superseded_by_id = $1
 					WHERE id = $2`,
@@ -343,7 +343,7 @@ func (ar *Archiver) importPatch(emailID, threadID int, subject, status, body str
 
 // Returns whether the update comes from the patch submitter and the target
 // status is allowed to patch submitters.
-func (ar *Archiver) allowedUpdateBySubmitter(patchsetID int, status, sender string) bool {
+func (ar *Archiver) allowedUpdateBySubmitter(tx *sql.Tx, patchsetID int, status, sender string) bool {
 	switch status {
 	case "rejected", "superseded", "needs_revision":
 		// Only transitions allowed to patch submitters; keep going.
@@ -356,7 +356,7 @@ func (ar *Archiver) allowedUpdateBySubmitter(patchsetID int, status, sender stri
 		submitter     *string
 		err           error
 	)
-	row := ar.tx.QueryRow(
+	row := tx.QueryRow(
 		`SELECT status, submitter FROM patchset WHERE id = $1`,
 		patchsetID,
 	)
@@ -387,7 +387,7 @@ func (ar *Archiver) allowedUpdateBySubmitter(patchsetID int, status, sender stri
 	return submitterAddr.Address == sender
 }
 
-func (ar *Archiver) updatePatchsetStatus(patchsetID int, status, sender string) error {
+func (ar *Archiver) updatePatchsetStatus(tx *sql.Tx, patchsetID int, status, sender string) error {
 	// check new status validity
 	if !model.PatchsetStatus(strings.ToUpper(status)).IsValid() {
 		return fmt.Errorf("invalid status %q", status)
@@ -395,15 +395,15 @@ func (ar *Archiver) updatePatchsetStatus(patchsetID int, status, sender string) 
 	status = strings.ToLower(status)
 
 	// check sender has permissions to update patchset status
-	access, err := model.UserACL(ar.ctx, ar.tx, ar.listID, sender)
+	access, err := model.UserACL(ar.ctx, tx, ar.listID, sender)
 	if err != nil {
 		return fmt.Errorf("UserACL: %w", err)
-	} else if !access.Moderate && !ar.allowedUpdateBySubmitter(patchsetID, status, sender) {
+	} else if !access.Moderate && !ar.allowedUpdateBySubmitter(tx, patchsetID, status, sender) {
 		return fmt.Errorf("sender does not have moderate permission")
 	}
 
 	// update status
-	res, err := ar.tx.ExecContext(ar.ctx, `
+	res, err := tx.ExecContext(ar.ctx, `
 		UPDATE patchset SET status = $1 WHERE id = $2;
 	`, status, patchsetID)
 	if n, e := res.RowsAffected(); n == 0 || e != nil {

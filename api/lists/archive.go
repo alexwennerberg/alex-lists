@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"git.sr.ht/~sircmpwn/core-go/database"
 	apiErr "git.sr.ht/~sircmpwn/lists.sr.ht/api/errors"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"github.com/emersion/go-mbox"
@@ -22,7 +23,6 @@ import (
 
 type Archiver struct {
 	ctx      context.Context
-	tx       *sql.Tx
 	listID   int
 	isImport bool
 }
@@ -33,7 +33,7 @@ type Archiver struct {
 // unconditionally complete the requested operation. The user is expected to
 // verify the necessary permissions are available before use.
 func NewArchiver(ctx context.Context, tx *sql.Tx, listID int) *Archiver {
-	return &Archiver{ctx: ctx, tx: tx, listID: listID, isImport: false}
+	return &Archiver{ctx: ctx, listID: listID, isImport: false}
 }
 
 type ImportResult struct {
@@ -68,7 +68,7 @@ func (ar *Archiver) ImportSpool(spool io.Reader) (ImportResult, error) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return result, fmt.Errorf("error reading mailing list spool: %v", err)
+			return result, fmt.Errorf("error reading message %d from spool: %v", input, err)
 		}
 
 		if _, err = ar.ArchiveMessage(msg); err != nil {
@@ -91,6 +91,18 @@ func (ar *Archiver) ImportSpool(spool io.Reader) (ImportResult, error) {
 //
 // Does not enforce access controls.
 func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
+	var (
+		emailID int
+		err_    error
+	)
+	err := database.WithTx(ar.ctx, nil, func(tx *sql.Tx) error {
+		emailID, err_ = ar.archiveMessage(tx, r)
+		return err_
+	})
+	return emailID, err
+}
+
+func (ar *Archiver) archiveMessage(tx *sql.Tx, r io.Reader) (int, error) {
 	var rawMessage bytes.Buffer
 
 	mr, err := mail.CreateReader(io.TeeReader(r, &rawMessage))
@@ -111,7 +123,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 	messageID := mr.Header.Get("Message-ID")
 	date, err := mr.Header.Date()
 	if err != nil {
-		log.Printf("Error reading Date: %v", err)
+		log.Printf("Error reading Date in message %q: %v", messageID, err)
 		// fallback on using the current time
 		date = time.Now()
 	}
@@ -138,7 +150,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		if err == io.EOF {
 			break
 		} else if err != nil {
-			return 0, fmt.Errorf("error reading message part: %w", err)
+			return 0, fmt.Errorf("error reading part of message %q: %w", messageID, err)
 		}
 
 		switch p.Header.(type) {
@@ -157,12 +169,12 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 
 	headerMap, err := json.Marshal(mr.Header.Map())
 	if err != nil {
-		return 0, err
+		return 0, fmt.Errorf("error marshalling message %q: %v", messageID, err)
 	}
 
 	// Take an applicative lock on the list to avoid the race condition
 	// described in https://todo.sr.ht/~sircmpwn/lists.sr.ht/215
-	if _, err := ar.tx.ExecContext(ar.ctx,
+	if _, err := tx.ExecContext(ar.ctx,
 		`SELECT pg_advisory_xact_lock($1)`,
 		ar.listID,
 	); err != nil {
@@ -170,7 +182,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 	}
 
 	var exists bool
-	row := ar.tx.QueryRow(`
+	row := tx.QueryRow(`
 		SELECT EXISTS(
 			SELECT FROM email WHERE list_id = $1 AND message_id = $2
 		)`,
@@ -186,7 +198,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 	}
 
 	var emailID int
-	row = ar.tx.QueryRow(`
+	row = tx.QueryRow(`
 		INSERT INTO email (
 			created, updated, subject, message_id, message_date,
 			raw_message, headers, body,
@@ -217,12 +229,12 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		nil, nil, nil, nil, nil, nil, nil,
 	)
 	if err := row.Scan(&emailID); err != nil {
-		return 0, err
+		return 0, fmt.Errorf("error inserting message %q: %v", messageID, err)
 	}
 
 	// Set parent of this email
 	var parentID int
-	row = ar.tx.QueryRow(
+	row = tx.QueryRow(
 		`SELECT id FROM email WHERE list_id = $1 AND message_id = $2;`,
 		ar.listID, "<"+inReplyTo.String+">",
 	)
@@ -231,7 +243,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 			return 0, err
 		}
 	} else {
-		if _, err := ar.tx.Exec(
+		if _, err := tx.Exec(
 			`UPDATE email SET parent_id = $1 WHERE id = $2`,
 			parentID, emailID,
 		); err != nil {
@@ -239,12 +251,12 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		}
 	}
 
-	threadID, err := ar.computeThreadID(emailID)
+	threadID, err := ar.computeThreadID(tx, emailID)
 	if err != nil {
 		return 0, err
 	}
 	if threadID != emailID {
-		if _, err := ar.tx.Exec(
+		if _, err := tx.Exec(
 			`UPDATE email SET thread_id = $1 WHERE id = $2`,
 			threadID, emailID,
 		); err != nil {
@@ -252,10 +264,10 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		}
 	}
 
-	if err := ar.reparentEmails(threadID, emailID, messageID); err != nil {
+	if err := ar.reparentEmails(tx, threadID, emailID, messageID); err != nil {
 		return 0, err
 	}
-	if err := ar.updateThreadReplies(threadID); err != nil {
+	if err := ar.updateThreadReplies(tx, threadID); err != nil {
 		return 0, err
 	}
 
@@ -271,7 +283,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 	}
 
 	// Lookup sender by email
-	row = ar.tx.QueryRow(
+	row = tx.QueryRow(
 		`SELECT id FROM "user" WHERE email = $1`,
 		senders[0].Address,
 	)
@@ -281,7 +293,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 			return 0, err
 		}
 	} else {
-		if _, err := ar.tx.Exec(
+		if _, err := tx.Exec(
 			`UPDATE email SET sender_id = $1 WHERE id = $2`,
 			*senderID, emailID,
 		); err != nil {
@@ -301,13 +313,13 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		}
 	}
 
-	if err := ar.importPatch(emailID, threadID, subject, status, body, isPatch, inReplyTo.Valid); err != nil {
+	if err := ar.importPatch(tx, emailID, threadID, subject, status, body, isPatch, inReplyTo.Valid); err != nil {
 		return 0, err
 	}
 
 	if !ar.isImport {
 		var patchsetID *int
-		row = ar.tx.QueryRow(`
+		row = tx.QueryRow(`
 			SELECT patchset_id FROM email
 			WHERE (id = $1 OR thread_id = $1)
 			AND patchset_id IS NOT NULL;
@@ -320,6 +332,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		const updateHeader = "X-Sourcehut-Patchset-Update"
 		if patchsetID != nil && mr.Header.Has(updateHeader) {
 			err := ar.updatePatchsetStatus(
+				tx,
 				*patchsetID,
 				mr.Header.Get(updateHeader),
 				senders[0].Address,
@@ -330,7 +343,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		}
 	}
 
-	if _, err := ar.tx.ExecContext(ar.ctx, `
+	if _, err := tx.ExecContext(ar.ctx, `
 			UPDATE list
 			SET last_activity = NOW() at time zone 'utc'
 			WHERE id = $1
@@ -345,7 +358,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 }
 
 // Computes the thread ID for the given email
-func (ar *Archiver) computeThreadID(emailID int) (int, error) {
+func (ar *Archiver) computeThreadID(tx *sql.Tx, emailID int) (int, error) {
 	// Keep track of seen emails to avoid reference loops
 	threadID := emailID
 	seen := map[int]struct{}{}
@@ -355,7 +368,7 @@ func (ar *Archiver) computeThreadID(emailID int) (int, error) {
 			break
 		}
 		seen[threadID] = struct{}{}
-		row := ar.tx.QueryRow(
+		row := tx.QueryRow(
 			`SELECT parent_id FROM email WHERE id = $1`,
 			threadID,
 		)
@@ -372,10 +385,10 @@ func (ar *Archiver) computeThreadID(emailID int) (int, error) {
 }
 
 // Reparent emails that arrived out-of-order
-func (ar *Archiver) reparentEmails(threadID, emailID int, messageID string) error {
+func (ar *Archiver) reparentEmails(tx *sql.Tx, threadID, emailID int, messageID string) error {
 	// Message-ID header is stored with angle brackets. In-reply-to is *not*.
 	// Adjust accordingly.
-	children, err := ar.tx.Query(
+	children, err := tx.Query(
 		`SELECT id, thread_id FROM email WHERE list_id = $1 AND in_reply_to = $2`,
 		ar.listID, strings.Trim(messageID, "<>"),
 	)
@@ -398,13 +411,13 @@ func (ar *Archiver) reparentEmails(threadID, emailID int, messageID string) erro
 			oldThreadIDs = append(oldThreadIDs, *childThreadID)
 		}
 	}
-	if _, err := ar.tx.Exec(
+	if _, err := tx.Exec(
 		`UPDATE email SET parent_id = $1, thread_id = $2 WHERE id = ANY($3)`,
 		emailID, threadID, pq.Array(childIDs),
 	); err != nil {
 		return err
 	}
-	_, err = ar.tx.Exec(
+	_, err = tx.Exec(
 		`UPDATE email SET thread_id = $1 WHERE thread_id = ANY($2)`,
 		threadID, pq.Array(oldThreadIDs),
 	)
@@ -412,11 +425,11 @@ func (ar *Archiver) reparentEmails(threadID, emailID int, messageID string) erro
 }
 
 // Updates thread nreplies and nparticipants
-func (ar *Archiver) updateThreadReplies(threadID int) error {
+func (ar *Archiver) updateThreadReplies(tx *sql.Tx, threadID int) error {
 	nreplies := 0
 	memberIDs := []int{threadID}
 	participants := make(map[string]struct{})
-	threadMembers, err := ar.tx.Query(
+	threadMembers, err := tx.Query(
 		`SELECT id, (headers -> 'From')::text FROM email WHERE thread_id = $1`,
 		threadID,
 	)
@@ -435,7 +448,7 @@ func (ar *Archiver) updateThreadReplies(threadID int) error {
 		participants[fromHeader] = struct{}{}
 		nreplies++
 	}
-	_, err = ar.tx.Exec(
+	_, err = tx.Exec(
 		`UPDATE email SET nreplies = $1, nparticipants = $2 WHERE id = $3`,
 		nreplies, len(participants), threadID,
 	)

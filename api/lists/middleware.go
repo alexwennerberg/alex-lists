@@ -100,13 +100,12 @@ Some errors occurred while importing messages from file "{{.FileName}}"
 to your mailing list "{{.ListName}}".
 
 {{ if .Fatal -}}
-The import failed:
+The import was aborted due to following error:
 
 {{.Fatal}}
-
-The transaction was rolled back and no messages were imported.
 {{- else -}}
 The import failed for some messages.
+{{- end }}
 
 - {{.Result.Imported}} messages were imported
 - {{.Result.Duplicate}} messages were dropped as duplicates
@@ -119,7 +118,6 @@ The import failed for some messages.
 {{- end -}}
 {{ . }}
 {{ end -}}
-{{- end }}
 --
 {{.OwnerName}}
 {{.SiteName}}`))
@@ -163,7 +161,7 @@ func ImportMailingListSpool(ctx context.Context, listID int, listName, fileName 
 		return database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 			result, err := NewArchiver(importCtx, tx, listID).
 				ImportSpool(spool)
-			if len(result.Dropped) > 0 || err != nil {
+			if err != nil || len(result.Dropped)+result.Duplicate > 0 {
 				report := importReport{
 					userID:   user.UserID,
 					username: user.Username,
