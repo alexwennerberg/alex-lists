@@ -2,7 +2,7 @@ from email.mime.text import MIMEText
 from email.utils import parseaddr, formatdate, make_msgid
 from flask import current_app, Blueprint, render_template, request, redirect, url_for, abort
 from flask import session
-from srht.app import paginate_query
+from srht.app import paginate_query, get_profile
 from srht.config import cfg, cfgi
 from srht.database import db
 from srht.oauth import UserType, current_user, loginrequired
@@ -55,29 +55,10 @@ def index_POST():
 
 @user.route("/~<username>")
 def user_profile(username):
-    user = User.query.filter(User.username == username).first()
+    user = User.query.filter(User.username == username).one_or_none()
     if not user:
         abort(404)
-    recent = Email.query.filter(Email.sender_id == user.id)
-    lists = List.query.filter(List.owner_id == user.id)
 
-    if not current_user or current_user.id != user.id:
-        lists = lists.filter(List.visibility == Visibility.PUBLIC)
-        recent = (recent.join(List)
-                 .filter(List.visibility == Visibility.PUBLIC)
-                 .filter(List.default_access == ListAccess.normal.value))
-
-    recent = recent.order_by(Email.created.desc()).limit(10).all()
-    lists = lists.order_by(nullslast(List.last_activity.desc())).limit(10).all()
-
-    return render_template("user.html",
-            user=user, recent=recent, lists=lists, parseaddr=parseaddr)
-
-@user.route("/lists/~<username>")
-def lists_for_user(username):
-    user = User.query.filter(User.username == username).first()
-    if not user:
-        abort(404)
     lists = List.query.filter(List.owner_id == user.id)
 
     if not current_user or current_user.id != user.id:
@@ -89,8 +70,15 @@ def lists_for_user(username):
         lists = search_by(lists, terms, [List.name, List.description], {})
     lists, pagination = paginate_query(lists)
 
-    return render_template("user-lists.html",
-            user=user, lists=lists, search=terms, **pagination)
+    return render_template("profile-lists.html",
+            user=user, lists=lists, search=terms,
+            profile=get_profile(user), view="lists",
+            **pagination)
+
+# Deprecated route
+@user.route("/lists/~<username>")
+def lists_for_user(username):
+    return redirect(url_for(".user_profile", username=username))
 
 @user.route("/lists/create")
 @loginrequired
