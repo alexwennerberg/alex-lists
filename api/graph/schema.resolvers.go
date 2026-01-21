@@ -735,11 +735,11 @@ func (r *mutationResolver) CreateMailingList(ctx context.Context, name string, d
 				NOW() at time zone 'utc',
 				$1, $2, $3, $4
 			) RETURNING
-				id, created, updated, name, description, visibility, owner_id,
+				id, rid, created, updated, name, description, visibility, owner_id,
 				permit_mimetypes, reject_mimetypes, default_access;
 		`, name, description, visibility.String(), auth.ForContext(ctx).UserID)
 
-		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
+		if err := row.Scan(&list.ID, &list.RID, &list.Created, &list.Updated, &list.Name,
 			&list.Description, &list.Visibility, &list.OwnerID,
 			&list.RawPermitMime, &list.RawRejectMime,
 			&list.DefaultAccess); err != nil {
@@ -813,12 +813,12 @@ func (r *mutationResolver) UpdateMailingList(ctx context.Context, id int, input 
 			Where(`list.id = ? AND list.owner_id = ?`,
 				id, auth.ForContext(ctx).UserID).
 			Suffix(`RETURNING
-				id, created, updated, name, description, visibility, owner_id,
+				id, rid, created, updated, name, description, visibility, owner_id,
 				permit_mimetypes, reject_mimetypes, default_access`).
 			RunWith(tx).
 			QueryRowContext(ctx)
 
-		if err := row.Scan(&list.ID, &list.Created, &list.Updated, &list.Name,
+		if err := row.Scan(&list.ID, &list.RID, &list.Created, &list.Updated, &list.Name,
 			&list.Description, &list.Visibility, &list.OwnerID,
 			&list.RawPermitMime, &list.RawRejectMime,
 			&list.DefaultAccess); err != nil {
@@ -1917,6 +1917,38 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 // User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, username string) (*model.User, error) {
 	return loaders.ForContext(ctx).UsersByName.Load(username)
+}
+
+// List is the resolver for the list field.
+func (r *queryResolver) List(ctx context.Context, rid coremodel.RID) (*model.MailingList, error) {
+	user := auth.ForContext(ctx)
+	ml := (&model.MailingList{}).As(`ml`)
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := database.
+			Select(ctx, ml).
+			From(`list ml`).
+			Where(sq.And{
+				sq.Expr(`ml.rid = ?`, rid),
+				sq.Or{
+					sq.Expr(`ml.owner_id = ?`, user.UserID),
+					sq.Expr(`ml.visibility != 'PRIVATE'`),
+				},
+			}).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		return row.Scan(database.Scan(ctx, ml)...)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return ml, nil
 }
 
 // Email is the resolver for the email field.

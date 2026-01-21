@@ -26,6 +26,7 @@ const (
 
 type MailingList struct {
 	ID           int        `json:"id"`
+	RID          model.RID  `json:"rid"`
 	Created      time.Time  `json:"created"`
 	Updated      time.Time  `json:"updated"`
 	Name         string     `json:"name"`
@@ -101,6 +102,7 @@ func (list *MailingList) Fields() *database.ModelFields {
 
 			// Always fetch:
 			{SQL: "id", GQL: "", Ptr: &list.ID},
+			{SQL: "rid", GQL: "", Ptr: &list.RID},
 			{SQL: "owner_id", GQL: "", Ptr: &list.OwnerID},
 			{SQL: "updated", GQL: "", Ptr: &list.Updated},
 			{SQL: "last_activity", GQL: "", Ptr: &list.LastActivity},

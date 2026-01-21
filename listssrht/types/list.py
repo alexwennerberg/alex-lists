@@ -13,6 +13,7 @@ class List(Base):
                 name="uq_list_owner_id_name"),
 
     id = sa.Column(sa.Integer, primary_key=True)
+    rid = sa.Column(sa.UUID, nullable=False)
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
     name = sa.Column(sa.String(128), nullable=False)

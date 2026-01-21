@@ -121,6 +121,7 @@ enum Visibility {
 
 type MailingList {
   id: Int!
+  rid: ID!
   created: Time!
   updated: Time!
   name: String!
@@ -658,6 +659,9 @@ type Query {
 
   "Looks up a specific user"
   user(username: String!): User @access(scope: PROFILE, kind: RO)
+
+  "Looks up a list based on its resource ID."
+  list(rid: ID!): MailingList @access(scope: LISTS, kind: RO)
 
   "Looks up a specific email by its ID"
   email(id: Int!): Email @access(scope: EMAILS, kind: RO)
