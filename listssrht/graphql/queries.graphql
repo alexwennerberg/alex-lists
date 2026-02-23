@@ -3,7 +3,7 @@ mutation CreateMailingList(
   $visibility: Visibility!,
   $description: String,
 ) {
-  list: createMailingList(
+  mailingList: createMailingList(
     name: $name,
     visibility: $visibility,
     description: $description,

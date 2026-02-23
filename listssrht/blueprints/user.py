@@ -104,7 +104,7 @@ def create_list_POST():
     client = Client()
 
     with valid:
-        mailing_list = client.create_mailing_list(name, visibility, desc).list
+        mailing_list = client.create_mailing_list(name, visibility, desc).mailing_list
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)
 
