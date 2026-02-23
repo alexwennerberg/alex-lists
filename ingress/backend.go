@@ -207,6 +207,14 @@ func (b *Backend) ProcessMessage(
 // Instead of letting postfix send an unfriendly bounce message, for some errors
 // we send our own bounce message which is a little easier to understand.
 func (b *Backend) Bounce(msg *message.Entity, to string, bnc BounceError) {
+	if list := msg.Header.Get("List-Id"); list != "" {
+		// Don't create backscatter if we're getting emails forwarded
+		// from another mailing list.
+		log.Printf("would have bounced message %s from mailing list %s: %s",
+			msg.Header.Get("Message-Id"), bnc, list)
+		return
+	}
+
 	subject := SubjectFallback(msg, "Your recent email to "+Config.Domain)
 	header := ReplyHeaders(Config.MailerAddr, "Re: "+subject, msg)
 	header.Set("Reply-To", Config.OwnerAddr)
