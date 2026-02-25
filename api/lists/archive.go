@@ -155,9 +155,15 @@ func (ar *Archiver) archiveMessage(tx *sql.Tx, r io.Reader) (int, error) {
 
 		switch p.Header.(type) {
 		case *mail.InlineHeader:
-			b, _ := io.ReadAll(p.Body)
-			body = string(b)
-			// TODO: multiple text parts?
+			// This could be an inline attachment, so check content type
+			h := p.Header.(*mail.InlineHeader)
+			ct, _, _ := h.ContentType()
+
+			// text/plain always wins, text/* used as fallback
+			if ct == "text/plain" || (strings.HasPrefix("text/", ct) && body == "") {
+				b, _ := io.ReadAll(p.Body)
+				body = string(b)
+			}
 		case *mail.AttachmentHeader:
 			// Do nothing
 		}
