@@ -48,6 +48,10 @@ class Patchset(Base):
     superseded_by = sa.orm.relationship('Patchset',
             backref=sa.orm.backref('previous_version', remote_side=[id]),
             foreign_keys=[superseded_by_id])
+    supersedes_id = sa.Column(sa.Integer, sa.ForeignKey('patchset.id'))
+    supersedes = sa.orm.relationship('Patchset',
+            backref=sa.orm.backref('next_version', remote_side=[id]),
+            foreign_keys=[supersedes_id])
 
 class ToolIcon(Enum):
     pending = "pending"

@@ -509,6 +509,7 @@ type Patchset {
   coverLetter: Email @access(scope: EMAILS, kind: RO)
   thread: Thread! @access(scope: EMAILS, kind: RO)
   supersededBy: Patchset
+  supersedes: Patchset
   list: MailingList! @access(scope: LISTS, kind: RO)
   patches(cursor: Cursor): EmailCursor! @access(scope: EMAILS, kind: RO)
   tools: [PatchsetTool!]!

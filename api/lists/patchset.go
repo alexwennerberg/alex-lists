@@ -334,6 +334,11 @@ func (ar *Archiver) importPatch(tx *sql.Tx, emailID, threadID int, subject, stat
 					SET status = 'superseded', superseded_by_id = $1
 					WHERE id = $2`,
 					patchsetID, candidate.id)
+				tx.Exec(`
+					UPDATE patchset
+					SET supersedes_id = $1
+					WHERE id = $2`,
+					candidate.id, patchsetID)
 			}
 		}
 	}

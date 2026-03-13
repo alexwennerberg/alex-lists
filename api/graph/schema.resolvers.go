@@ -1027,13 +1027,14 @@ func (r *mutationResolver) UpdatePatchset(ctx context.Context, id int, status mo
 				id = $4
 			RETURNING
 				id, created, updated, subject, prefix, version, status,
-				list_id, cover_letter_id, superseded_by_id;`,
+				list_id, cover_letter_id, superseded_by_id, supersedes_id;`,
 			auth.ForContext(ctx).UserID, model.ACCESS_MODERATE,
 			strings.ToLower(status.String()), id)
 		return row.Scan(&patchset.ID, &patchset.Created, &patchset.Updated,
 			&patchset.Subject, &patchset.Prefix, &patchset.Version,
 			&patchset.RawStatus, &patchset.MailingListID,
-			&patchset.CoverLetterID, &patchset.SupersededByID)
+			&patchset.CoverLetterID, &patchset.SupersededByID,
+			&patchset.SupersedesID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
@@ -1799,7 +1800,19 @@ func (r *patchsetResolver) Thread(ctx context.Context, obj *model.Patchset) (*mo
 
 // SupersededBy is the resolver for the supersededBy field.
 func (r *patchsetResolver) SupersededBy(ctx context.Context, obj *model.Patchset) (*model.Patchset, error) {
-	// TODO: This feature has not been completed
+	supId := obj.SupersededByID
+	if supId != nil {
+		return loaders.ForContext(ctx).PatchsetsByID.Load(*supId)
+	}
+	return nil, nil
+}
+
+// Supersedes is the resolver for the supersedes field.
+func (r *patchsetResolver) Supersedes(ctx context.Context, obj *model.Patchset) (*model.Patchset, error) {
+	supId := obj.SupersedesID
+	if supId != nil {
+		return loaders.ForContext(ctx).PatchsetsByID.Load(*supId)
+	}
 	return nil, nil
 }
 

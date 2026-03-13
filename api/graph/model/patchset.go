@@ -24,6 +24,7 @@ type Patchset struct {
 	MailingListID  int
 	CoverLetterID  *int
 	SupersededByID *int
+	SupersedesID   *int
 
 	RawStatus string
 
@@ -84,6 +85,7 @@ func (patch *Patchset) Fields() *database.ModelFields {
 			{SQL: "list_id", GQL: "", Ptr: &patch.MailingListID},
 			{SQL: "cover_letter_id", GQL: "", Ptr: &patch.CoverLetterID},
 			{SQL: "superseded_by_id", GQL: "", Ptr: &patch.SupersededByID},
+			{SQL: "supersedes_id", GQL: "", Ptr: &patch.SupersedesID},
 			{SQL: "created", GQL: "", Ptr: &patch.Created},
 		},
 	}

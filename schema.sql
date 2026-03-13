@@ -156,6 +156,7 @@ CREATE TABLE patchset (
 	list_id integer NOT NULL REFERENCES list(id) ON DELETE CASCADE,
 	cover_letter_id integer REFERENCES email(id) ON DELETE SET NULL,
 	superseded_by_id integer REFERENCES patchset(id) ON DELETE SET NULL,
+	supersedes_id integer REFERENCES patchset(id) ON DELETE SET NULL,
 	submitter character varying,
 	message_id character varying,
 	reply_to character varying
