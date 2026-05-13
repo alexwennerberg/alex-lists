@@ -162,7 +162,9 @@ func (ar *Archiver) archiveMessage(tx *sql.Tx, r io.Reader) (int, error) {
 			// text/plain always wins, text/* used as fallback
 			if ct == "text/plain" || (strings.HasPrefix("text/", ct) && body == "") {
 				b, _ := io.ReadAll(p.Body)
-				body = string(b)
+				// The decoded body is only used for display purposes, so accept lossy
+				// conversion in case of encoding errors...
+				body = strings.ToValidUTF8(string(b), "\uFFFD")
 			}
 		case *mail.AttachmentHeader:
 			// Do nothing
