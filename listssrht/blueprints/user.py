@@ -66,12 +66,16 @@ def user_profile(username):
 
     lists = lists.order_by(nullslast(List.last_activity.desc()))
     terms = request.args.get('search')
+    search_error = None
     if terms:
-        lists = search_by(lists, terms, [List.name, List.description], {})
+        try:
+            lists = search_by(lists, terms, [List.name, List.description], {})
+        except ValueError as ex:
+            search_error = str(ex)
     lists, pagination = paginate_query(lists)
 
     return render_template("profile-lists.html",
-            user=user, lists=lists, search=terms,
+            user=user, lists=lists, search=terms, search_error=search_error,
             profile=get_profile(user), view="lists",
             **pagination)
 
