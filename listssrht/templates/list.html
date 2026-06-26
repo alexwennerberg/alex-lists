@@ -45,11 +45,13 @@
           owner_name=owner.canonical_name,
           list_name=ml.name), "archives")}}
       </li>
+      {% if ListAccess.browse in access %}
       <li class="nav-item">
         {{link(url_for("patches.patchlist",
           owner_name=owner.canonical_name,
           list_name=ml.name), "patches")}}
       </li>
+      {% endif %}
       {% if not ml.mirror_id or ml.mirror.configured %}
       {% set posting_address = post_address(ml) %}
       {% if posting_address %}

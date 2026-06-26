@@ -91,6 +91,7 @@
         posting. Thanks!
       </div>
       {% endif %}
+      {% if ListAccess.browse in access %}
       <form
         class="mt-auto d-none d-lg-block"
         method="POST"
@@ -116,6 +117,7 @@
           threads can be exported from their respective pages.
         </small>
       </form>
+      {% endif %}
     </div>
     <div class="col-lg-9">
     {% else %}
@@ -313,6 +315,7 @@
   <div class="row">
     {% if view == "archives" %}
     <div class="col-lg-3 order-md-2 order-lg-1">
+      {% if ListAccess.browse in access %}
       <form
         class="d-lg-none"
         method="POST"
@@ -338,6 +341,7 @@
           threads can be exported from their respective pages.
         </small>
       </form>
+      {% endif %}
       <footer class="text-center">
         <small class="text-muted" title="The resource ID for this mailing list, used to identify it in the GraphQL API.">
           List RID: {{to_rid(ml.rid)}}
@@ -348,7 +352,9 @@
     {% else %}
     <div class="col-lg-12">
     {% endif %}
+    {% if ListAccess.browse in access %}
       {{ pagination() }}
+    {% endif %}
     </div>
   </div>
 </div>
