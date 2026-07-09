@@ -447,13 +447,16 @@ func (ar *Archiver) updateThreadReplies(tx *sql.Tx, threadID int) error {
 	defer threadMembers.Close()
 	for threadMembers.Next() {
 		var memberID int
-		var fromHeader string
-		if err := threadMembers.Scan(&memberID, &fromHeader); err != nil {
+		var from string
+		if err := threadMembers.Scan(&memberID, &from); err != nil {
 			return err
 		}
+		parsedFrom, err := mail.ParseAddressList(from)
+		if err == nil && len(parsedFrom) > 0 {
+			from = parsedFrom[0].Address
+		}
 		memberIDs = append(memberIDs, memberID)
-		// TODO: multiple From addresses?
-		participants[fromHeader] = struct{}{}
+		participants[from] = struct{}{}
 		nreplies++
 	}
 	_, err = tx.Exec(
