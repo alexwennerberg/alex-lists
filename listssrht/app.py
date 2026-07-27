@@ -10,6 +10,17 @@ from urllib.parse import quote
 db = DbSession(cfg("lists.sr.ht", "connection-string"))
 db.init()
 
+access_help_map = {
+    ListAccess.browse:
+        "Permission to subscribe and browse the archives",
+    ListAccess.reply:
+        "Permission to reply to threads submitted by an authorized user.",
+    ListAccess.post:
+        "Permission to submit new threads.",
+    ListAccess.moderate:
+        "Permission to moderate threads and patches.",
+}
+
 class ListsApp(Flask):
     def __init__(self):
         super().__init__("lists.sr.ht", __name__, user_class=User)
@@ -32,6 +43,7 @@ class ListsApp(Flask):
         def inject():
             return {
                 "ListAccess": ListAccess,
+                "access_help_map": access_help_map,
                 "Visibility": Visibility,
                 "diffstat": diffstat,
                 "format_body": format_body,

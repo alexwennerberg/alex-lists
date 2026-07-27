@@ -4,16 +4,14 @@
   {{ owner.canonical_name }}/{{ ml.name }} settings &mdash; {{ cfg("sr.ht", "site-name") }} lists
 </title>
 {% endblock %}
-{% block content %}
+
+{% block settings %}
 <div class="container">
   <form class="row" method="POST">
     <div class="col-md-6">
       {{csrf_token()}}
       <div class="form-group">
-        <label for="name">
-          Name
-          <span class="text-muted">(you can't edit this)</p>
-        </label>
+        <label for="name">Name</label>
         <input
           type="text"
           name="name"

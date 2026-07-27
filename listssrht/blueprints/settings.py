@@ -4,23 +4,13 @@ from srht.config import cfg
 from srht.database import db
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
+from listssrht.lists import get_access, project_nav
 from listssrht.blueprints.archives import get_list
 from listssrht.graphql import Client, MailingListInput, ACLInput, Visibility
 from listssrht.graphql import Upload
 from listssrht.types import Access, List, ListAccess, User
 
 settings = Blueprint("settings", __name__)
-
-access_help_map = {
-    ListAccess.browse:
-        "Permission to subscribe and browse the archives",
-    ListAccess.reply:
-        "Permission to reply to threads submitted by an authorized user.",
-    ListAccess.post:
-        "Permission to submit new threads.",
-    ListAccess.moderate:
-        "Permission to moderate threads and patches.",
-}
 
 @settings.route("/<owner_name>/<list_name>/settings/info")
 @loginrequired
@@ -30,9 +20,10 @@ def info_GET(owner_name, list_name):
         abort(404)
     if ml.owner_id != current_user.id:
         abort(403)
-    return render_template("settings-info.html", view="info",
-            ml=ml, owner=owner, access_type_list=ListAccess,
-            access_help_map=access_help_map)
+    return render_template("settings-info.html",
+            view="settings", subview="info",
+            ml=ml, access=ListAccess.all,
+            **project_nav(ml))
 
 @settings.route("/<owner_name>/<list_name>/settings/info", methods=["POST"])
 @loginrequired
@@ -58,9 +49,10 @@ def info_POST(owner_name, list_name):
         client.update_mailing_list(ml.id, updates)
 
     if not valid.ok:
-        return render_template("settings-info.html", ml=ml, owner=owner,
-                access_type_list=ListAccess, access_help_map=access_help_map,
-                view="info", **valid.kwargs)
+        return render_template("settings-info.html",
+                view="settings", subview="info",
+                ml=ml, access=ListAccess.all,
+                **project_nav(ml), **valid.kwargs)
 
     return redirect(url_for("settings.info_GET",
         owner_name=owner_name, list_name=list_name))
@@ -73,9 +65,10 @@ def access_GET(owner_name, list_name):
         abort(404)
     if ml.owner_id != current_user.id:
         abort(403)
-    return render_template("settings-access.html", view="access",
-            ml=ml, owner=owner, access_type_list=ListAccess,
-            access_help_map=access_help_map)
+    return render_template("settings-access.html",
+            view="settings", subview="access",
+            ml=ml, access=ListAccess.all,
+            **project_nav(ml))
 
 def _process_access(valid, perm):
     bitfield = ListAccess.none
@@ -112,9 +105,10 @@ def access_POST(owner_name, list_name):
         client.update_mailing_list_access(ml.id, acl)
 
     if not valid.ok:
-        return render_template("settings-access.html", view="access",
-                ml=ml, owner=owner, access_type_list=ListAccess,
-                access_help_map=access_help_map, **valid.kwargs)
+        return render_template("settings-access.html",
+                view="settings", subview="access",
+                ml=ml, access=ListAccess.all,
+                **project_nav(ml), **valid.kwargs)
 
     return redirect(url_for("settings.access_GET",
         owner_name=owner_name, list_name=list_name))
@@ -132,10 +126,10 @@ def acl_POST(owner_name, list_name):
 
     username = valid.require("user")
     if not valid.ok:
-        return render_template("settings-access.html", view="access",
-                ml=ml, owner=owner, access_type_list=ListAccess,
-                access_help_map=access_help_map, hide_global=True,
-                **valid.kwargs)
+        return render_template("settings-access.html",
+                view="settings", subview="access",
+                ml=ml, access=ListAccess.all, hide_global=True,
+                **project_nav(ml), **valid.kwargs)
     if username.startswith("~"):
         username = username[1:]
 
@@ -148,10 +142,10 @@ def acl_POST(owner_name, list_name):
         valid.expect(user, "User not found", field="user")
 
     if not valid.ok:
-        return render_template("settings-access.html", view="access",
-                ml=ml, owner=owner, access_type_list=ListAccess,
-                access_help_map=access_help_map, hide_global=True,
-                **valid.kwargs)
+        return render_template("settings-access.html",
+                view="settings", subview="access",
+                ml=ml, access=ListAccess.all, hide_global=True,
+                **project_nav(ml), **valid.kwargs)
 
     # Edit existing ACL entry if present
     if user:
@@ -208,7 +202,9 @@ def content_GET(owner_name, list_name):
     if ml.owner_id != current_user.id:
         abort(403)
     return render_template("settings-content.html",
-            view="content", ml=ml, owner=owner)
+            view="settings", subview="content",
+            ml=ml, access=ListAccess.all,
+            **project_nav(ml))
 
 @settings.route("/<owner_name>/<list_name>/settings/content", methods=["POST"])
 @loginrequired
@@ -231,8 +227,9 @@ def content_POST(owner_name, list_name):
 
     if not valid.ok:
         return render_template("settings-content.html",
-                view="content", ml=ml, owner=owner,
-                **valid.kwargs)
+                view="settings", subview="content",
+                ml=ml, access=ListAccess.all,
+                **project_nav(ml), **valid.kwargs)
 
     return redirect(url_for("settings.content_GET",
         owner_name=owner_name, list_name=list_name))
@@ -246,7 +243,9 @@ def import_export_GET(owner_name, list_name):
     if ml.owner_id != current_user.id:
         abort(403)
     return render_template("settings-import-export.html",
-            view="import/export", ml=ml, owner=owner)
+            view="settings", subview="import/export",
+            ml=ml, access=ListAccess.all,
+            **project_nav(ml))
 
 @settings.route("/<owner_name>/<list_name>/settings/import", methods=["POST"])
 @loginrequired
@@ -265,7 +264,9 @@ def import_POST(owner_name, list_name):
 
     if not valid.ok:
         return render_template("settings-import-export.html",
-                view="import/export", ml=ml, owner=owner, **valid.kwargs)
+                view="settings", subview="import/export",
+                ml=ml, access=ListAccess.all,
+                **valid.kwargs, **project_nav(ml))
 
     client = Client()
     spool = Upload(spool.filename, spool, "application/octet-stream")
@@ -274,7 +275,9 @@ def import_POST(owner_name, list_name):
 
     if not valid.ok:
         return render_template("settings-import-export.html",
-                view="import/export", ml=ml, owner=owner, **valid.kwargs)
+                view="settings", subview="import/export",
+                ml=ml, access=ListAccess.all,
+                **valid.kwargs, **project_nav(ml))
 
     return redirect(url_for("archives.archive",
         owner_name=owner_name, list_name=list_name))
@@ -288,7 +291,9 @@ def delete_GET(owner_name, list_name):
     if ml.owner_id != current_user.id:
         abort(403)
     return render_template("settings-delete.html",
-            view="delete", ml=ml, owner=owner)
+            view="settings", subview="delete",
+            ml=ml, access=ListAccess.all,
+            **project_nav(ml))
 
 @settings.route("/<owner_name>/<list_name>/settings/delete", methods=["POST"])
 @loginrequired

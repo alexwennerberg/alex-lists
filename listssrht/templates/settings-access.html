@@ -40,11 +40,11 @@
 {% endif %}
 {% endmacro %}
 
-{% block content %}
+{% block settings %}
 <div class="container">
   {% if not hide_global %}
   <div class="row">
-    <div class="col-md-10">
+    <div class="col-md-12">
       <form method="POST">
         <h3>Global permissions</h3>
         {{csrf_token()}}
@@ -60,7 +60,7 @@
                 These permissions are used for anyone who does not have a more
                 specific access configuration.
               </p>
-              {% for a in access_type_list %}
+              {% for a in ListAccess %}
               {{ perm_checkbox(a, ml.default_access, "default") }}
               {% endfor %}
               {{ valid.summary("list_default_access") }}
@@ -107,7 +107,7 @@
             </td>
             <td>{{ acl.created | date }}</td>
             <td>
-              {% for a in access_type_list %}
+              {% for a in ListAccess %}
               {{ perm_checkbox(a, acl.permissions, None, readonly=True) }}
               {% endfor %}
             </td>
@@ -152,7 +152,7 @@
           <div class="event">
             <h4>Access grants</h4>
             <p>These will override any other permissions for this user.</p>
-            {% for a in access_type_list %}
+            {% for a in ListAccess %}
             {{ perm_checkbox(a, ListAccess.all, "acl") }}
             {% endfor %}
             {{ valid.summary("list_acl_access") }}

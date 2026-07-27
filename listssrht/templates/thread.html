@@ -4,11 +4,13 @@
   {{ thread.subject }} &mdash; {{ cfg("sr.ht", "site-name") }} lists
 </title>
 {% endblock %}
+
 {% block head %}
 <link rel="alternate" type="application/mbox" href="{{ url_for('archives.mbox',
     owner_name=owner.canonical_name, list_name=ml.name,
     message_id=thread.message_id) }}">
 {% endblock %}
+
 {% block content %}
 <div class="container">
   <div class="row">
@@ -26,6 +28,7 @@
           owner_name=owner.canonical_name, list_name=ml.name,
           patchset_id=thread.patchset_id) }}"
         >Review patch {{icon('caret-right')}}</a>
+        <div class="clearfix"></div>
       </div>
       {% endif %}
       {% macro display_message(msg) %}

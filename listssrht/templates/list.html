@@ -1,28 +1,34 @@
 {% extends "layout.html" %}
+{% import "partials/resourcenav.html" as rnav with context %}
+
 {% block title %}
 <title>
   {{ owner.canonical_name }}/{{ ml.name }} archives &mdash; {{site}}
 </title>
 {% endblock %}
+
 {% block body %}
-<div class="header-tabbed">
-  {% block tabs_container %}
+{% set fluid = view in ["archives", "patches"] %}
+{{ rnav.project_nav(ml, projects,
+  user_url=url_for("user.index", username=owner.username),
+  fluid=fluid) }}
+<div class="header-tabbed resource-nav">
+  {% if fluid %}
+  <div class="container-fluid">
+  {% else %}
   <div class="container">
-  {% endblock %}
-    <h2>
-      <a href="{{
-        url_for('user.user_profile', username=owner.username)
-      }}">{{ owner.canonical_name }}</a>/<wbr>{{ ml.name }}
-      {% if ml.mirror_id %}
-      <small class="text-muted">(mirror)</small>
-      {% endif %}
-    </h2>
+  {% endif %}
     {% block tabs %}
     {% macro link(path, title) %}
     <a
       class="nav-link {% if view == title %}active{% endif %}"
       href="{{ path }}">{{ title }}</a>
     {% endmacro %}
+
+    {% if len(projects) == 1 and projects[0].name != ml.name %}
+    <h3>{{ml.name}}</h3>
+    {% endif %}
+
     <ul class="nav nav-tabs">
       {% if ml.visibility != Visibility.PUBLIC %}
       <li
@@ -43,16 +49,18 @@
       <li class="nav-item">
         {{link(url_for("archives.archive",
           owner_name=owner.canonical_name,
-          list_name=ml.name), "archives")}}
+          list_name=ml.name),
+          "archive" if view == "archive" else "archives")}}
       </li>
       {% if ListAccess.browse in access %}
       <li class="nav-item">
         {{link(url_for("patches.patchlist",
           owner_name=owner.canonical_name,
-          list_name=ml.name), "patches")}}
+          list_name=ml.name),
+          "patch" if view == "patch" else "patches")}}
       </li>
       {% endif %}
-      {% if not ml.mirror_id or ml.mirror.configured %}
+
       {% set posting_address = post_address(ml) %}
       {% if posting_address %}
       {% if ListAccess.post in access %}
@@ -66,7 +74,6 @@
           {% endif %}
         >new post</a>
       </li>
-      {% endif %}
       {% endif %}
       {% endif %}
       {% if current_user.id == ml.owner_id %}

@@ -12,7 +12,7 @@ from listssrht.graphql import Client, GraphQLClientError
 from listssrht.types import List, Email, Patchset, PatchsetStatus, ListAccess
 from listssrht.types import Subscription, PatchsetTool, ToolIcon
 from sqlalchemy import or_
-from srht.app import paginate_query
+from srht.app import paginate_query, get_projects
 from srht.database import db
 from srht.graphql import InternalAuth
 from srht.markdown import markdown
@@ -53,6 +53,13 @@ MODERATOR_ONLY_STATUS = [ "applied", "approved", "rejected" ]
 Feedback = namedtuple("Feedback", ["standalone_feedback", "feedback_by_line"])
 FeedbackBlock = namedtuple("FeedbackBlock", ["key", "body", "source_msg", "source_region"])
 
+def project_nav(mailing_list):
+    projects = get_projects(mailing_list.owner, mailing_list.rid)
+    return {
+        "projects": projects,
+        "owner": mailing_list.owner,
+    }
+
 @patches.context_processor
 def inject():
     return {
@@ -89,10 +96,10 @@ def patchlist(owner_name, list_name):
         subscription = (Subscription.query
                 .filter(Subscription.list_id == ml.id)
                 .filter(Subscription.user_id == current_user.id)).one_or_none()
-    return render_template("archive.html",
-            view="patches", owner=owner, ml=ml, threads=threads,
-            access=access, search=search, search_error=search_error,
-            subscription=subscription, **pagination)
+    return render_template("archive.html", view="patches",
+            ml=ml, threads=threads, access=access, search=search,
+            search_error=search_error, subscription=subscription,
+            **pagination, **project_nav(ml))
 
 def byte_to_line_index(msg, byte_index):
     b = msg.body.replace("\r\n", "\n").encode()
@@ -246,12 +253,13 @@ def patchset(owner_name, list_name, patchset_id):
             strip=True).clean(markdown(d, with_styles=False)))
 
     user_message = session.pop("message", None)
-    return render_template("patchset.html", view="patches", owner=owner,
+    return render_template("patchset.html", view="patch",
             parseaddr=parseaddr, reply_to=reply_to, ml=ml, access=access,
             thread=thread, patchset=patchset, patches=patches,
             feedback=feedback, gen_cover_letter=gen_cover_letter,
             messages=messages, nextmsg=nextmsg, max=max,
-            user_message=user_message, tools=tools, tool_details=tool_details)
+            user_message=user_message, tools=tools, tool_details=tool_details,
+            **project_nav(ml))
 
 @patches.route("/<owner_name>/<list_name>/patches/<int:patchset_id>/update",
         methods=["POST"])

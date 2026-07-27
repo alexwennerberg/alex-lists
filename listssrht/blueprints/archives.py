@@ -11,6 +11,7 @@ from srht.graphql import InternalAuth
 from srht.oauth import current_user, loginrequired, UserType
 from srht.search import search_by
 from srht.validation import Validation
+from listssrht.lists import get_access, project_nav
 from listssrht.filters import post_address
 from listssrht.graphql import Client, Visibility
 from listssrht.process import forward_thread
@@ -46,32 +47,6 @@ def get_list(owner_name, list_name, current_user=current_user):
     if access == ListAccess.none and ml.visibility == Visibility.PRIVATE:
         abort(401)
     return owner, ml, access
-
-def get_access(ml, user=None):
-    user = user or current_user
-
-    # Anonymous
-    if not user:
-        if ml.visibility == Visibility.PRIVATE:
-            return ListAccess.none
-        return ml.default_access
-
-    # Owner
-    if user.id == ml.owner_id:
-        return ListAccess.all
-
-    # Admin
-    if user.user_type == UserType.admin:
-        return ListAccess.all
-
-    # ACL entry?
-    user_access = Access.query.filter_by(list=ml, user=user).first()
-    if user_access:
-        return user_access.permissions
-
-    if ml.visibility == Visibility.PRIVATE:
-        return ListAccess.none
-    return ml.default_access
 
 def apply_search(query, search):
     if not search:
@@ -222,11 +197,12 @@ def archive(owner_name, list_name):
 
     message = session.pop("message", None)
     return render_template("archive.html",
-            view="archives", owner=owner, ml=ml, threads=threads,
+            view="archives", ml=ml, threads=threads,
             access=access, ListAccess=ListAccess,
             search=search, search_error=search_error, subscription=subscription,
             parseaddr=email.utils.parseaddr,
-            message=message, **pagination)
+            message=message, **pagination,
+            **project_nav(ml))
 
 @archives.route("/<owner_name>/<list_name>/<path:message_id>")
 def thread(owner_name, list_name, message_id):
@@ -266,13 +242,14 @@ def thread(owner_name, list_name, message_id):
             return f"mailto:{pa}?{urlencode(params, quote_via=quote)}"
 
     user_message = session.pop("message", None)
-    return render_template("thread.html", view="archives", owner=owner,
+    return render_template("thread.html", view="archive",
             access=access, ListAccess=ListAccess,
             ml=ml, thread=thread, messages=messages,
             parseaddr=email.utils.parseaddr,
             parse_auth_result=parse_auth_result,
             reply_to=reply_to,
-            user_message=user_message)
+            user_message=user_message,
+            **project_nav(ml))
 
 @archives.route("/<owner_name>/<list_name>/<path:message_id>/raw")
 def raw(owner_name, list_name, message_id):
