@@ -1,5 +1,5 @@
 from srht.app import get_projects
-from srht.oauth import current_user
+from srht.oauth import current_user, UserType
 from listssrht.graphql import Visibility
 from listssrht.types import ListAccess, Access
 
