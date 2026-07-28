@@ -9,9 +9,7 @@
 
 {% block body %}
 {% set fluid = view in ["archives", "patches"] %}
-{{ rnav.project_nav(ml, projects,
-  user_url=url_for("user.index", username=owner.username),
-  fluid=fluid) }}
+{{ rnav.project_nav(ml, projects, fluid=fluid) }}
 <div class="header-tabbed resource-nav">
   {% if fluid %}
   <div class="container-fluid">
