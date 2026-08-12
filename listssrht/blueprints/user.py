@@ -2,7 +2,8 @@ from email.mime.text import MIMEText
 from email.utils import parseaddr, formatdate, make_msgid
 from flask import current_app, Blueprint, render_template, request, redirect, url_for, abort
 from flask import session
-from srht.app import paginate_query, get_profile
+from srht.app import paginate_query
+from listssrht.auth import get_profile  # FORK: srht.app.get_profile queries meta.sr.ht
 from srht.config import cfg, cfgi
 from srht.database import db
 from srht.oauth import UserType, current_user, loginrequired
@@ -10,8 +11,8 @@ from srht.search import search_by
 from srht.validation import Validation
 from sqlalchemy import or_
 from sqlalchemy import nullslast
-from listssrht.graphql import Client, Visibility, PreferencesInput
 from listssrht.types import List, ListAccess, User, Email, Subscription, Mirror
+from listssrht.types import Visibility
 import re
 import smtplib
 
@@ -38,18 +39,15 @@ def index():
             .filter(Subscription.user_id == current_user.id)
             .order_by(nullslast(List.last_activity.desc()))).limit(10).all()]
     notice = session.pop("notice", None)
-    client = Client()
-    copy_self = client.get_preferences().preferences.copy_self
     return render_template("dashboard.html", recent=recent,
-            subs=subs, notice=notice, copy_self=copy_self)
+            subs=subs, notice=notice, copy_self=current_user.copy_self)
 
 @user.route("/", methods=["POST"])
 @loginrequired
 def index_POST():
     valid = Validation(request)
-    copy_self = valid.optional("copy-self", default=False)
-    client = Client()
-    client.update_preferences(PreferencesInput(copy_self=copy_self))
+    current_user.copy_self = bool(valid.optional("copy-self", default=False))
+    db.session.commit()
     session["prefs_updated"] = True
     return redirect(url_for("user.index"))
 
@@ -93,28 +91,33 @@ def create_list_GET():
     return render_template("create.html")
 
 @user.route("/lists/create", methods=["POST"])
+@loginrequired
 def create_list_POST():
     if (cfg("lists.sr.ht", "allow-new-lists", default="yes") != "yes"
             and current_user.user_type != UserType.admin):
         abort(401)
 
     valid = Validation(request)
-    name = valid.require("name", friendly_name="Name")
-    desc = valid.optional("description")
+    # List.__init__ validates the name and description, and rejects duplicates
+    ml = List(current_user, valid)
     visibility = valid.require("visibility", cls=Visibility)
     if not valid.ok:
         return render_template("create.html", **valid.kwargs)
+    ml.visibility = visibility
 
-    client = Client()
+    db.session.add(ml)
+    db.session.flush()
 
-    with valid:
-        mailing_list = client.create_mailing_list(name, visibility, desc).mailing_list
-    if not valid.ok:
-        return render_template("create.html", **valid.kwargs)
+    # Auto-subscribe the owner, as mutation { createMailingList } did
+    sub = Subscription()
+    sub.user_id = current_user.id
+    sub.list_id = ml.id
+    db.session.add(sub)
+    db.session.commit()
 
     return redirect(url_for("archives.archive",
-            owner_name=mailing_list.owner.canonical_name,
-            list_name=mailing_list.name))
+            owner_name=current_user.canonical_name,
+            list_name=ml.name))
 
 @user.route("/lists/create-mirror")
 @loginrequired

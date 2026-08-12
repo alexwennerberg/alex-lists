@@ -12,8 +12,6 @@ MIGRATIONDIR=$(ASSETS)/migrations/$(SERVICE)
 SASSC?=sassc
 SASSC_INCLUDE=-I$(ASSETS)/scss/
 
-ARIADNE_CODEGEN=ariadne-codegen
-
 BINARIES=\
 	$(SERVICE)-api \
 	$(SERVICE)-ingress
@@ -22,22 +20,15 @@ GO_LDFLAGS += -ldflags " \
               -X git.sr.ht/~sircmpwn/core-go/server.BuildVersion=$(shell sourcehut-buildver) \
               -X git.sr.ht/~sircmpwn/core-go/server.BuildDate=$(shell sourcehut-builddate)"
 
-all: all-bin all-share all-python
+all: all-bin all-share
 
 install: install-bin install-share
 
-clean: clean-bin clean-share clean-python
+clean: clean-bin clean-share
 
 all-bin: $(BINARIES)
 
 all-share: static/main.min.css
-
-GRAPHQL_QUERIES != echo listssrht/graphql/*.graphql
-
-listssrht/graphql/__init__.py: pyproject.toml $(GRAPHQL_QUERIES)
-	$(ARIADNE_CODEGEN)
-
-all-python: listssrht/graphql/__init__.py
 
 install-bin: all-bin
 	mkdir -p $(BINDIR)
@@ -60,12 +51,9 @@ clean-bin:
 clean-share:
 	rm -f static/main.min.css static/main.css
 
-clean-python:
-	rm -rf listssrht/graphql/*.py listssrht/graphql/__pycache__
-
-.PHONY: all all-bin all-share all-python
+.PHONY: all all-bin all-share
 .PHONY: install install-bin install-share
-.PHONY: clean clean-bin clean-share clean-python
+.PHONY: clean clean-bin clean-share
 
 static/main.css: scss/main.scss
 	mkdir -p $(@D)

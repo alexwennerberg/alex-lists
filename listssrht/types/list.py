@@ -1,8 +1,8 @@
 import re
 import sqlalchemy as sa
 from enum import Enum
-from listssrht.graphql import Visibility
 from listssrht.types.listaccess import ListAccess
+from listssrht.types.visibility import Visibility
 from sqlalchemy.dialects import postgresql
 from srht.database import Base
 from srht.flagtype import FlagType

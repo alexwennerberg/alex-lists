@@ -1,0 +1,59 @@
+{% extends "layout.html" %}
+{% block title %}
+<title>Log in &mdash; {{cfg("sr.ht", "site-name")}} lists</title>
+{% endblock %}
+{% block content %}
+<div class="row">
+  <div class="col-md-6">
+    <h3>Log in</h3>
+    <div class="alert alert-danger">
+      <strong>Authentication is disabled on this instance.</strong>
+      Any username logs in without a password, and unknown usernames are
+      created on the spot. Development use only.
+    </div>
+    {% if error %}
+    <div class="alert alert-danger">{{error}}</div>
+    {% endif %}
+    <form method="POST" action="{{url_for('auth.login_POST')}}">
+      {{csrf_token()}}
+      {% if return_to %}
+      <input type="hidden" name="return_to" value="{{return_to}}" />
+      {% endif %}
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input
+          type="text"
+          name="username"
+          id="username"
+          class="form-control"
+          autofocus
+          autocomplete="off"
+          placeholder="alex" />
+      </div>
+      <button type="submit" class="btn btn-primary">
+        Log in {{icon('caret-right')}}
+      </button>
+    </form>
+  </div>
+  <div class="col-md-6">
+    {% if users %}
+    <h3>Existing users</h3>
+    <p>Log in as one of the accounts already in the database:</p>
+    {% for u in users %}
+    <form
+      method="POST"
+      action="{{url_for('auth.login_POST')}}"
+      style="display: inline-block; margin: 0 0.25rem 0.25rem 0"
+    >
+      {{csrf_token()}}
+      <input type="hidden" name="username" value="{{u.username}}" />
+      {% if return_to %}
+      <input type="hidden" name="return_to" value="{{return_to}}" />
+      {% endif %}
+      <button type="submit" class="btn btn-default">~{{u.username}}</button>
+    </form>
+    {% endfor %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

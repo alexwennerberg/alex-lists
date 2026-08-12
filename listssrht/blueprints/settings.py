@@ -6,9 +6,8 @@ from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from listssrht.lists import get_access, project_nav
 from listssrht.blueprints.archives import get_list
-from listssrht.graphql import Client, MailingListInput, ACLInput, Visibility
-from listssrht.graphql import Upload
-from listssrht.types import Access, List, ListAccess, User
+from listssrht.process import delete_list
+from listssrht.types import Access, List, ListAccess, User, Visibility
 
 settings = Blueprint("settings", __name__)
 
@@ -34,25 +33,22 @@ def info_POST(owner_name, list_name):
     if ml.owner_id != current_user.id:
         abort(403)
 
-    client = Client()
-
     valid = Validation(request)
-    updates = MailingListInput()
-    updates.visibility = valid.require("visibility", cls=Visibility)
+    visibility = valid.require("visibility", cls=Visibility)
     desc = valid.optional("description")
-    if not desc:
-        updates.description = None
-    else:
-        updates.description = desc
-
-    with valid:
-        client.update_mailing_list(ml.id, updates)
+    valid.expect(not desc or len(desc) < 2048,
+            "Description must be fewer than 2048 characters",
+            field="description")
 
     if not valid.ok:
         return render_template("settings-info.html",
                 view="settings", subview="info",
                 ml=ml, access=ListAccess.all,
                 **project_nav(ml), **valid.kwargs)
+
+    ml.visibility = visibility
+    ml.description = desc if desc else None
+    db.session.commit()
 
     return redirect(url_for("settings.info_GET",
         owner_name=owner_name, list_name=list_name))
@@ -89,26 +85,17 @@ def access_POST(owner_name, list_name):
     if ml.owner_id != current_user.id:
         abort(403)
 
-    client = Client()
-
     valid = Validation(request)
     access = _process_access(valid, "default")
-
-    acl = ACLInput(
-        browse=(access & ListAccess.browse) != 0,
-        reply=(access & ListAccess.reply) != 0,
-        post=(access & ListAccess.post) != 0,
-        moderate=(access & ListAccess.moderate) != 0,
-    )
-
-    with valid:
-        client.update_mailing_list_access(ml.id, acl)
 
     if not valid.ok:
         return render_template("settings-access.html",
                 view="settings", subview="access",
                 ml=ml, access=ListAccess.all,
                 **project_nav(ml), **valid.kwargs)
+
+    ml.default_access = access
+    db.session.commit()
 
     return redirect(url_for("settings.access_GET",
         owner_name=owner_name, list_name=list_name))
@@ -215,21 +202,19 @@ def content_POST(owner_name, list_name):
     if ml.owner_id != current_user.id:
         abort(403)
 
-    client = Client()
-
     valid = Validation(request)
-    updates = MailingListInput()
-    updates.permit_mime = valid.require("permitMime").split(",")
-    updates.reject_mime = valid.require("rejectMime").split(",")
-
-    with valid:
-        client.update_mailing_list(ml.id, updates)
+    permit_mime = valid.require("permitMime")
+    reject_mime = valid.require("rejectMime")
 
     if not valid.ok:
         return render_template("settings-content.html",
                 view="settings", subview="content",
                 ml=ml, access=ListAccess.all,
                 **project_nav(ml), **valid.kwargs)
+
+    ml.permit_mimetypes = permit_mime
+    ml.reject_mimetypes = reject_mime
+    db.session.commit()
 
     return redirect(url_for("settings.content_GET",
         owner_name=owner_name, list_name=list_name))
@@ -243,44 +228,9 @@ def import_export_GET(owner_name, list_name):
     if ml.owner_id != current_user.id:
         abort(403)
     return render_template("settings-import-export.html",
-            view="settings", subview="import/export",
+            view="settings", subview="export",
             ml=ml, access=ListAccess.all,
             **project_nav(ml))
-
-@settings.route("/<owner_name>/<list_name>/settings/import", methods=["POST"])
-@loginrequired
-def import_POST(owner_name, list_name):
-    owner, ml, access = get_list(owner_name, list_name)
-    if not ml:
-        abort(404)
-    if ml.owner_id != current_user.id:
-        abort(403)
-    if ml.import_in_progress:
-        abort(400)
-
-    spool = request.files.get("spool")
-    valid = Validation(request)
-    valid.expect(spool is not None, "Mail spool is required", field="spool")
-
-    if not valid.ok:
-        return render_template("settings-import-export.html",
-                view="settings", subview="import/export",
-                ml=ml, access=ListAccess.all,
-                **valid.kwargs, **project_nav(ml))
-
-    client = Client()
-    spool = Upload(spool.filename, spool, "application/octet-stream")
-    with valid:
-        client.import_spool(ml.id, spool)
-
-    if not valid.ok:
-        return render_template("settings-import-export.html",
-                view="settings", subview="import/export",
-                ml=ml, access=ListAccess.all,
-                **valid.kwargs, **project_nav(ml))
-
-    return redirect(url_for("archives.archive",
-        owner_name=owner_name, list_name=list_name))
 
 @settings.route("/<owner_name>/<list_name>/settings/delete")
 @loginrequired
@@ -303,6 +253,6 @@ def delete_POST(owner_name, list_name):
         abort(404)
     if ml.owner_id != current_user.id:
         abort(403)
-    Client().delete_mailing_list(ml.id)
+    delete_list.delay(ml.id)
     session["notice"] = f"{ml.name} is being deleted. This may take a few minutes."
     return redirect(url_for("user.index"))

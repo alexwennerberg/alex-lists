@@ -1,20 +1,17 @@
 import bleach
 import email
-from collections import namedtuple
 from email import policy
 from email.utils import parseaddr
 from markupsafe import Markup
 from flask import Blueprint, render_template, abort, Response, request, redirect
-from flask import current_app, url_for, session
+from flask import url_for, session
 from listssrht.blueprints.archives import get_list, apply_search
 from listssrht.filters import post_address
-from listssrht.graphql import Client, GraphQLClientError
 from listssrht.types import List, Email, Patchset, PatchsetStatus, ListAccess
 from listssrht.types import Subscription, PatchsetTool, ToolIcon
 from sqlalchemy import or_
 from srht.app import paginate_query, get_projects
 from srht.database import db
-from srht.graphql import InternalAuth
 from srht.markdown import markdown
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
@@ -49,9 +46,6 @@ tool_icon_to_icon = {
 
 # Patch statuses that only moderators can transition patches to
 MODERATOR_ONLY_STATUS = [ "applied", "approved", "rejected" ]
-
-Feedback = namedtuple("Feedback", ["standalone_feedback", "feedback_by_line"])
-FeedbackBlock = namedtuple("FeedbackBlock", ["key", "body", "source_msg", "source_region"])
 
 def project_nav(mailing_list):
     projects = get_projects(mailing_list.owner, mailing_list.rid)
@@ -101,14 +95,6 @@ def patchlist(owner_name, list_name):
             search_error=search_error, subscription=subscription,
             **pagination, **project_nav(ml))
 
-def byte_to_line_index(msg, byte_index):
-    b = msg.body.replace("\r\n", "\n").encode()
-    return b[:byte_index].count("\n".encode())
-
-def get_byte_range(msg, start, end):
-    b = msg.body.replace("\r\n", "\n").encode()
-    return b[start:end].decode()
-
 def gen_cover_letter(patches):
     cover = ""
     authors = {}
@@ -143,18 +129,6 @@ def gen_cover_letter(patches):
     cover += f"\n {nfiles} files changed, {insertions} insertions(+), {deletions} deletions(-)\n"
     return cover
 
-def nextmsg(feedback, msg, line=-1):
-    """
-    Finds the next quoted chunk for a given message
-    """
-    for l, candidate in feedback.feedback_by_line.items():
-        if line != -1 and l <= line:
-            continue
-        for candidate in candidate:
-            if candidate.source_msg.id == msg.id:
-                return l, candidate
-    return None
-
 @patches.route("/<owner_name>/<list_name>/patches/<int:patchset_id>")
 def patchset(owner_name, list_name, patchset_id):
     owner, ml, access = get_list(owner_name, list_name)
@@ -174,60 +148,11 @@ def patchset(owner_name, list_name, patchset_id):
             .filter(or_(Email.thread_id == thread.id, Email.id == thread.id))
             .filter(Email.is_patch)
             .order_by(Email.patch_index, Email.created)).all()
-    messages = (Email.query
-            .filter(Email.thread_id == thread.id)
-            .order_by(Email.created)).all()
-
-    messages_by_id = {}
-    messages_by_id[thread.id] = thread
-    for msg in messages:
-        messages_by_id[msg.id] = msg
-
-    feedback = dict()
-    client = Client(InternalAuth(owner))
-    try:
-        blocks = (client.get_patchset_thread_blocks(patchset_id).
-            patchset.thread.blocks)
-    except GraphQLClientError:
-        # Can happen when an email in the thread is a bad apple
-        print(f"Warning: failed to parse blocks from thread {thread.id}")
-        blocks = []
-
-    for block in blocks:
-        source_email = messages_by_id[block.source.id]
-
-        parent_id = source_email.parent_id
-        if parent_id is None:
-            continue
-        parent_email = messages_by_id[parent_id]
-
-        if parent_id in feedback:
-            fb = feedback[parent_id]
-        else:
-            fb = Feedback([], {})
-            feedback[parent_id] = fb
-
-        source_range = block.source_range
-        source_region = [
-            byte_to_line_index(source_email, source_range.start),
-            byte_to_line_index(source_email, source_range.end),
-        ]
-
-        try:
-            body = get_byte_range(source_email, source_range.start, source_range.end)
-        except UnicodeDecodeError:
-            continue
-
-        fb_block = FeedbackBlock(block.key, body.strip(), source_email, source_region)
-
-        if block.parent_range is not None:
-            line = byte_to_line_index(parent_email, block.parent_range.end)
-            if line not in fb.feedback_by_line:
-                fb.feedback_by_line[line] = [fb_block]
-            else:
-                fb.feedback_by_line[line].append(fb_block)
-        else:
-            fb.standalone_feedback.append(fb_block)
+    # FORK: the thread's non-patch replies used to be rendered here as inline
+    # quote attribution, sourced from query { patchset { thread { blocks } } }
+    # and go-emailthreads in the API. Nothing parses threads on this side any
+    # more, so the patchset page shows the patches only; the discussion lives
+    # in the archive view linked from the sidebar.
 
     def reply_to(msg):
         params = {
@@ -256,8 +181,7 @@ def patchset(owner_name, list_name, patchset_id):
     return render_template("patchset.html", view="patch",
             parseaddr=parseaddr, reply_to=reply_to, ml=ml, access=access,
             thread=thread, patchset=patchset, patches=patches,
-            feedback=feedback, gen_cover_letter=gen_cover_letter,
-            messages=messages, nextmsg=nextmsg, max=max,
+            gen_cover_letter=gen_cover_letter, max=max,
             user_message=user_message, tools=tools, tool_details=tool_details,
             **project_nav(ml))
 

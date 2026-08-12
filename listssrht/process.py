@@ -9,7 +9,7 @@ from listssrht.types import Email
 import email
 import email.policy
 from celery import Celery
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 from srht.email import mail_exception
 from urllib.parse import quote
 
@@ -56,6 +56,16 @@ def _prep_mail(dest, mail):
     mail["List-ID"] = "{} <{}.{}>".format(list_name, list_name, domain)
     mail["Sender"] = "{} <{}@{}>".format(list_name, list_name, domain)
     return mail
+
+@task
+def delete_list(list_id):
+    # Deleting a busy list can take a while, so this runs out-of-band. The
+    # foreign keys in schema.sql cascade, so a bare DELETE is enough -- going
+    # through db.session.delete() would pull every email into memory first.
+    db.session.execute(
+            text("DELETE FROM list WHERE id = :list_id"),
+            {"list_id": list_id})
+    db.session.commit()
 
 @task
 def forward_thread(list_id, thread_id, recipient):

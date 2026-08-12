@@ -5,7 +5,7 @@
 </title>
 {% endblock %}
 
-{% macro msg_header(msg, showfrom=True, feedback_block=None) %}
+{% macro msg_header(msg, showfrom=True) %}
 <div class="message-header">
   {% if showfrom %}
   <div class="from">
@@ -20,63 +20,20 @@
   </div>
   {% endif %}
   <div class="date">
-    {% if feedback_block %}
-    <a href="#feedback-{{feedback_block.key}}" class="text-muted">
-    {% else %}
     <a
       id="{{ msg.message_id }}"
       href="#{{ msg.message_id }}"
       class="text-muted"
     >
-    {% endif %}
       {{ msg.created | date }}
     </a>
   </div>
 </div>
 {% endmacro %}
 
-{% macro display_msg(msg, standalone=True, feedback_block=None) %}
-{{ msg_header(msg, feedback_block=feedback_block) }}
-
-{% set feedback = feedback.get(msg.id) %}
-
-<pre class="message-body">
-  {%- for line in (feedback_block.body if feedback_block else format_body(msg, nowrap=True)).splitlines() -%}
-  {{- line + "\n" -}}
-  {%- set line_offset = feedback_block.source_region[0] if feedback_block else 0 -%}
-  {%- set line_index = loop.index + line_offset - 1 -%}
-  {%- if feedback and line_index in feedback.feedback_by_line -%}
-</pre>
-  {% for sub in feedback.feedback_by_line[line_index] %}
-  {% set child = sub.source_msg %}
-  <blockquote class="feedback" id="feedback-{{sub.key}}">
-    {{ display_msg(child, standalone=False, feedback_block=sub) }}
-    {# Generate link to next message fragment #}
-    {% set next = nextmsg(feedback, child, line_index) %}
-    {% if next %}
-    <div style="text-align: right; margin-top: -1rem; margin-bottom: 1rem">
-      <a href="#feedback-{{next[1].key}}">
-        Next {{icon("caret-right")}}
-      </a>
-    </div>
-    {% endif %}
-  </blockquote>
-  {% endfor %}
-<pre class="message-body">
-  {%- endif -%}
-{%- endfor -%}
-</pre>
-{% if any(feedback.standalone_feedback) and standalone %}
-{% for feedback in feedback.standalone_feedback %}
-{% if feedback.source_msg not in patches %}
-<blockquote>
-  {% set msg = feedback.source_msg %}
-  {{ msg_header(msg) }}
-  {{format_body(feedback.source_msg)}}
-</blockquote>
-{% endif %}
-{% endfor %}
-{% endif %}
+{% macro display_msg(msg) %}
+{{ msg_header(msg) }}
+<pre class="message-body">{{ format_body(msg, nowrap=True) }}</pre>
 {% endmacro %}
 
 {% block content %}
@@ -143,28 +100,6 @@
       </div>
       {% endif %}
 
-      {% for m in messages %}
-      {% if m.id in feedback %}
-      {% set fb = feedback[m.id] %}
-
-      {% for feedback in fb.standalone_feedback %}
-      {% set msg = feedback.source_msg %}
-        {% if not msg.is_patch %}
-          {{ display_msg(msg, standalone=False, feedback_block=feedback) }}
-          {# Generate link to next message fragment #}
-          {% set next = nextmsg(fb, msg) %}
-          {% if next %}
-          <div style="text-align: right; margin-top: -1rem; margin-bottom: 1rem">
-            <a href="#feedback-{{next[1].key}}">
-              Next {{icon("caret-right")}}
-            </a>
-          </div>
-          {% endif %}
-        {% endif %}
-      {% endfor %}
-
-      {% endif %}
-      {% endfor %}
     </div>
     <div class="col-md-4">
       <div class="event-list">

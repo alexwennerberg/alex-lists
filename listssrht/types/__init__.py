@@ -1,4 +1,5 @@
 from listssrht.types.listaccess import ListAccess
+from listssrht.types.visibility import Visibility
 from listssrht.types.access import Access
 from listssrht.types.email import Email
 from listssrht.types.list import List

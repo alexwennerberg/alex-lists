@@ -1,27 +1,26 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, render_template, abort, request, redirect, url_for
 from flask import Response, session, send_file
 from sqlalchemy import String, select, cast, or_
 from sqlalchemy.sql.functions import coalesce
 from srht.app import paginate_query
 from srht.config import cfg
-from srht.crypto import encrypt_request_authorization
 from srht.database import db
-from srht.graphql import InternalAuth
 from srht.oauth import current_user, loginrequired, UserType
 from srht.search import search_by
 from srht.validation import Validation
 from listssrht.lists import get_access, project_nav
 from listssrht.filters import post_address
-from listssrht.graphql import Client, Visibility
 from listssrht.process import forward_thread
 from listssrht.types import List, User, Email, Subscription, ListAccess, Access
-from listssrht.types import Patchset, PatchsetStatus
+from listssrht.types import Patchset, PatchsetStatus, Visibility
 from urllib.parse import quote, urlencode
 import email
 import email.policy
 import email.utils
-import requests
+import mailbox
+import os
+import tempfile
 
 archives = Blueprint("archives", __name__)
 
@@ -391,18 +390,34 @@ def export_archive(owner_name, list_name):
         abort(404)
     if ListAccess.browse not in access:
         abort(403)
-    client = Client(InternalAuth(owner))
-    archive = client.export_archive(owner.username, ml.name).user.list
-
     days = request.form.get("days")
-    if days == 30:
-        url = archive.last_30_days
-    else:
-        url = archive.archive
+    if not days:
+        abort(400)
+    try:
+        days = int(days)
+    except ValueError:
+        abort(400)
 
-    auth = encrypt_request_authorization(user=owner)
-    resp = requests.get(url, headers=auth, stream=True)
-    return send_file(resp.raw,
+    query = (Email.query
+            .filter(Email.list_id == ml.id)
+            .order_by(Email.created))
+    if days > 0:
+        query = query.filter(Email.created >
+                datetime.utcnow() - timedelta(days=days))
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        path = os.path.join(tmpdir, "export.mbox")
+        mbox = mailbox.mbox(path)
+        for message in query.all():
+            try:
+                mbox.add(message.parsed())
+            except:
+                continue # plow on forward
+        mbox.close()
+        # The open file keeps the data alive after the directory goes away.
+        f = open(path, "rb")
+
+    return send_file(f,
         mimetype="application/octet-stream",
         as_attachment=True,
         download_name=f"{owner.username}-{list_name}.mbox")
