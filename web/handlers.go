@@ -239,6 +239,10 @@ func safeReturnTo(target string) string {
 	return parsed.Path
 }
 
+func notFound(w http.ResponseWriter, r *http.Request) {
+	http.Error(w, "not found", http.StatusNotFound)
+}
+
 func serverError(w http.ResponseWriter, r *http.Request, what string, err error) {
 	log.Printf("%s %s: %s", r.Method, r.URL.Path, err)
 	http.Error(w, "internal server error", http.StatusInternalServerError)

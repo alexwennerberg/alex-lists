@@ -33,6 +33,13 @@ func conf(section, key string) string {
 	return value
 }
 
+// For settings that are legitimately absent, like the origins of sibling
+// sr.ht services this instance does not run.
+func confOpt(section, key string) string {
+	value, _ := srhtConfig.Get(section, key)
+	return value
+}
+
 func main() {
 	addr := flag.String("addr", ":5007",
 		"address to listen on; the Python app has :5006 while both exist")
@@ -57,6 +64,10 @@ func main() {
 	mux.HandleFunc("GET /login", handleLoginGET)
 	mux.HandleFunc("POST /login", handleLoginPOST)
 	mux.HandleFunc("GET /logout", handleLogout)
+	// net/http patterns cannot express "/~{username}": a wildcard has to be a
+	// whole segment. Match the segment and check the ~ in the handler.
+	mux.HandleFunc("GET /{owner}", handleProfile)
+	mux.HandleFunc("GET /lists/{owner}", handleListsForUser)
 	mux.Handle("GET /static/", http.StripPrefix("/static/",
 		http.FileServer(http.Dir(conf("sr.ht", "assets")+"/static"))))
 

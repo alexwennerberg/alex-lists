@@ -1,0 +1,83 @@
+{{define "sidebar"}}
+{{if .Content.IsSelf}}
+<a
+  href="/lists/create"
+  class="btn btn-primary btn-block"
+>Create new list {{icon "caret-right"}}</a>
+{{end}}
+{{end}}
+{{define "content"}}
+{{if or .Content.Lists .Content.Search}}
+<form>
+  <input
+    name="search"
+    type="text"
+    placeholder="Search ~{{.Content.User}}'s mailing lists"
+    class="form-control"
+    value="{{.Content.Search}}" />
+  {{/* invalid-feedback, when the search terms do not parse */}}
+</form>
+{{end}}
+
+{{if and .Content.Search (not .Content.Lists)}}
+<div class="alert alert-warning">
+  No mailing lists found for "{{.Content.Search}}".
+</div>
+{{else if not .Content.Lists}}
+<div class="alert alert-info">
+  This user does not have any mailing lists.
+</div>
+{{end}}
+
+<div class="event-list">
+  {{range .Content.Lists}}
+  <div class="event">
+    <h4>
+      <a href="/{{.FullName}}"
+      >{{.FullName}}</a>
+      {{if ne .Visibility "PUBLIC"}}
+      <small class="pull-right">
+        {{lower .Visibility}}
+      </small>
+      {{end}}
+    </h4>
+    {{if .Description}}
+    {{markdown .Description}}
+    {{end}}
+    {{if .LastActivity}}
+    <span class="text-muted">Last active {{date .LastActivity}}</span>
+    {{end}}
+  </div>
+  {{end}}
+</div>
+
+{{template "pagination" .}}
+{{end}}
+{{define "pagination"}}{{if gt .Content.TotalPages 1}}<div class="row">
+  <div class="col-4">
+  {{if ne .Content.Page 1}}
+    <a
+      class="btn btn-default"
+      href="?page={{sub .Content.Page 1}}{{searchTerms .Content.Search}}"
+    >
+      {{icon "caret-left"}}
+      prev
+    </a>
+  {{end}}
+  </div>
+  <div class="col-4 text-centered">
+    {{.Content.Page}} / {{.Content.TotalPages}}
+  </div>
+  <div class="col-4 text-right">
+  {{if ne .Content.Page .Content.TotalPages}}
+    <a
+      class="btn btn-default"
+      href="?page={{add .Content.Page 1}}{{searchTerms .Content.Search}}"
+    >
+      next
+      {{icon "caret-right"}}
+    </a>
+  {{end}}
+  </div>
+</div>
+{{end}}{{end}}

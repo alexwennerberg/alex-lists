@@ -1,0 +1,86 @@
+{{define "title"}}
+<title>~{{.Content.User}}'s mailing lists</title>
+{{end}}
+{{define "body"}}
+<div class="header-tabbed">
+  <div class="container">
+    {{/* block tabs */}}
+    {{/* macro link */}}
+    <h2>
+      ~{{.Content.User}}
+      {{/* pronouns, when meta.sr.ht provided them */}}
+    </h2>
+    <ul class="nav nav-tabs">
+      {{/* with hub */}}
+      {{if .HubOrigin}}
+      <li class="nav-item">
+        {{template "navlink" (navlink .HubOrigin "about" false)}}
+      </li>
+
+      <li class="nav-item">
+        {{template "navlink" (navlink .HubOrigin "projects" false)}}
+      </li>
+      {{end}}
+      {{/* endwith */}}
+
+      {{/* with git */}}
+      {{if .GitOrigin}}
+      <li class="nav-item">
+        {{template "navlink" (navlink .GitOrigin "git" false)}}
+      </li>
+      {{end}}
+      {{/* endwith */}}
+
+      {{/* with hg */}}
+      {{if .HgOrigin}}
+      <li class="nav-item">
+        {{template "navlink" (navlink .HgOrigin "hg" false)}}
+      </li>
+      {{end}}
+      {{/* endwith */}}
+
+      {{/* with lists */}}
+      {{if .ListsOrigin}}
+      <li class="nav-item">
+        {{template "navlink" (navlink (printf "%s/~%s" .ListsOrigin .Content.User) "lists" true)}}
+      </li>
+      {{end}}
+      {{/* endwith */}}
+
+      {{/* with todo */}}
+      {{if .TodoOrigin}}
+      <li class="nav-item">
+        {{template "navlink" (navlink .TodoOrigin "todo" false)}}
+      </li>
+      {{end}}
+      {{/* endwith */}}
+    </ul>
+  </div>
+  {{/* endblock */}}
+</div>
+
+<div class="container">
+  {{/* block profile */}}
+  <div class="row">
+    <div class="col-md-3 profile">
+      {{/* avatar, from meta.sr.ht */}}
+
+      {{/* location, from meta.sr.ht */}}
+
+      {{/* url, from meta.sr.ht */}}
+
+      {{block "sidebar" .}}{{end}}
+    </div>
+
+    <div class="col-md-9">
+      {{template "content" .}}
+    </div>
+  </div>
+  {{/* endblock */}}
+</div>
+{{end}}
+{{define "navlink"}}
+    <a
+      class="nav-link {{if .Active}}active{{end}}"
+      href="{{.Path}}">{{.Title}}</a>
+    {{end}}

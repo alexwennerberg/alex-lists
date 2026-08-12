@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 )
 
@@ -20,12 +21,21 @@ var assets embed.FS
 var pages = map[string]*template.Template{}
 
 func init() {
-	for _, name := range []string{"index", "dashboard", "login"} {
+	// Each page gets its own set: pages redefine "body"/"content", and the
+	// last definition parsed wins, so they must not share one namespace.
+	for name, extends := range map[string]string{
+		"index":         "",
+		"dashboard":     "",
+		"login":         "",
+		"profile-lists": "templates/profile.html",
+	} {
+		files := []string{"templates/layout.html", "templates/nav.html"}
+		if extends != "" {
+			files = append(files, extends)
+		}
 		page := template.New("layout.html").Funcs(funcs)
-		_, err := page.ParseFS(assets,
-			"templates/layout.html",
-			"templates/nav.html",
-			"templates/"+name+".html")
+		_, err := page.ParseFS(assets, append(files,
+			"templates/"+name+".html")...)
 		if err != nil {
 			log.Fatalf("parse %s: %s", name, err)
 		}
@@ -33,9 +43,30 @@ func init() {
 	}
 }
 
+type navlinkArgs struct {
+	Path   string
+	Title  string
+	Active bool
+}
+
 var funcs = template.FuncMap{
-	"icon": icon,
-	"cfg":  func(section, key string) string { return conf(section, key) },
+	"icon":     icon,
+	"cfg":      func(section, key string) string { return conf(section, key) },
+	"markdown": markdown,
+	"date":     dateFilter,
+	"lower":    strings.ToLower,
+	"add":      func(a, b int) int { return a + b },
+	"sub":      func(a, b int) int { return a - b },
+	"navlink": func(path, title string, active bool) navlinkArgs {
+		return navlinkArgs{path, title, active}
+	},
+	// The pagination links carry the current search along.
+	"searchTerms": func(search string) template.HTMLAttr {
+		if search == "" {
+			return ""
+		}
+		return template.HTMLAttr("&search=" + url.QueryEscape(search))
+	},
 }
 
 // Inline SVG, matching srht.app.icons.icon. The Font Awesome license comment
@@ -61,11 +92,19 @@ type page struct {
 	Environment   string
 	StaticURL     string
 	AllowNewLists bool
-	User          *User
-	LoginURL      string
-	LogoutURL     string
-	CSRF          template.HTML
-	Content       any
+
+	// Sibling services, for the profile tabs. Empty when not configured,
+	// which in this fork is all of them but lists.sr.ht itself.
+	HubOrigin   string
+	GitOrigin   string
+	HgOrigin    string
+	ListsOrigin string
+	TodoOrigin  string
+	User        *User
+	LoginURL    string
+	LogoutURL   string
+	CSRF        template.HTML
+	Content     any
 }
 
 func newPage(w http.ResponseWriter, r *http.Request, content any) *page {
@@ -81,6 +120,11 @@ func newPage(w http.ResponseWriter, r *http.Request, content any) *page {
 		Environment:   strings.ToUpper(conf("sr.ht", "environment")),
 		StaticURL:     "/static/" + service + "/main.css",
 		AllowNewLists: conf("lists.sr.ht", "allow-new-lists") == "yes",
+		HubOrigin:     confOpt("hub.sr.ht", "origin"),
+		GitOrigin:     confOpt("git.sr.ht", "origin"),
+		HgOrigin:      confOpt("hg.sr.ht", "origin"),
+		ListsOrigin:   confOpt("lists.sr.ht", "origin"),
+		TodoOrigin:    confOpt("todo.sr.ht", "origin"),
 		User:          userFor(r),
 		LoginURL:      "/login?return_to=" + returnTo,
 		LogoutURL:     "/logout",
