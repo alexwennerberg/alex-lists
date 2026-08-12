@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"git.sr.ht/~sircmpwn/core-go/email"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/db"
 )
 
@@ -428,4 +429,98 @@ func handleExportArchive(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Disposition", `attachment; filename="`+
 		list.Owner+"-"+list.Name+`.mbox"`)
 	w.Write(spool)
+}
+
+// Send a whole thread to the person asking for it. The Python app queues this
+// on celery; here it runs off the request, like list deletion.
+func handleForwardThread(w http.ResponseWriter, r *http.Request) {
+	list, user, ok := listForWrite(w, r, needBrowse)
+	if !ok {
+		return
+	}
+	messageID := r.PathValue("messageID")
+
+	var id int
+	err := db.WithReadOnlyTx(r.Context(), func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(r.Context(), `
+			SELECT id FROM email WHERE list_id = $1 AND message_id = $2;
+		`, list.ID, messageID)
+		return row.Scan(&id)
+	})
+	switch {
+	case err == sql.ErrNoRows:
+		notFound(w, r)
+		return
+	case err != nil:
+		serverError(w, r, "forward", err)
+		return
+	}
+
+	go forwardThread(pgFor(r), list, id, user.Email)
+	http.Redirect(w, r, "/"+list.FullName()+"/"+url.PathEscape(messageID),
+		http.StatusFound)
+}
+
+func forwardThread(pg *sql.DB, list *listView, threadID int, recipient string) {
+	ctx := email.Context(db.Context(context.Background(), pg), egress)
+	err := db.WithReadOnlyTx(ctx, func(tx *sql.Tx) error {
+		rows, err := tx.QueryContext(ctx, `
+			SELECT raw_message FROM email
+			WHERE list_id = $1 AND (id = $2 OR thread_id = $2)
+			ORDER BY id;
+		`, list.ID, threadID)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var raw []byte
+			if err := rows.Scan(&raw); err != nil {
+				return err
+			}
+			if err := email.EnqueueRaw(ctx,
+				append(listHeaders(list), raw...),
+				[]string{recipient}); err != nil {
+				log.Printf("forwarding to %s: %s", recipient, err)
+			}
+		}
+		return rows.Err()
+	})
+	if err != nil {
+		log.Printf("forwarding thread %d: %s", threadID, err)
+	}
+}
+
+// The list headers prepended to forwarded mail, as process._prep_mail sets
+// them. Headers already on the message are left alone; the ingress does the
+// same when it forwards to subscribers.
+func listHeaders(list *listView) []byte {
+	domain := conf("lists.sr.ht", "posting-domain")
+	name := list.FullName()
+	archive := conf("lists.sr.ht", "origin") + "/" + name
+	return []byte(strings.Join([]string{
+		"List-Unsubscribe: <mailto:" + name + "+unsubscribe@" + domain +
+			"?subject=unsubscribe>",
+		"List-Subscribe: <mailto:" + name + "+subscribe@" + domain +
+			"?subject=subscribe>",
+		"List-Archive: <" + archive + ">",
+		"List-Post: <mailto:" + name + "@" + domain + ">",
+		"List-ID: " + name + " <" + name + "." + domain + ">",
+		"Sender: " + name + " <" + name + "@" + domain + ">",
+		"", "",
+	}, "\r\n"))
+}
+
+// The two per-message forms, which share a URL shape.
+func handleMessageVerb(w http.ResponseWriter, r *http.Request) {
+	switch {
+	case r.PathValue("third") == "forward":
+		r.SetPathValue("messageID", r.PathValue("fourth"))
+		handleForwardThread(w, r)
+	case r.PathValue("fourth") == "remove":
+		r.SetPathValue("messageID", r.PathValue("third"))
+		handleRemoveMessage(w, r)
+	default:
+		notFound(w, r)
+	}
 }

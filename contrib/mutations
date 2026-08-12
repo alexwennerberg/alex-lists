@@ -201,6 +201,52 @@ CASES = [
         "reset": "SELECT 1",
         "compare_body": True,
     },
+    {
+        "name": "create-list",
+        "csrf_page": "/lists/create",
+        "as": "alex",
+        "url": "/lists/create",
+        "form": {"name": "brandnew", "description": "made by the harness",
+                 "visibility": "PUBLIC"},
+        "state": """SELECT l.name, l.description, l.visibility,
+                        l.rid IS NOT NULL,
+                        (SELECT count(*) FROM subscription s
+                         WHERE s.list_id = l.id) AS subs
+                    FROM list l WHERE l.name = 'brandnew'""",
+        "reset": "DELETE FROM list WHERE name = 'brandnew'",
+        "divergent": "the Python app cannot create a list at all -- its model "
+                     "declares list.rid NOT NULL with no default and sends an "
+                     "explicit null, so the insert violates the constraint and "
+                     "500s. The Go app omits the column and lets gen_uuidv7() "
+                     "fill it",
+    },
+    {
+        "name": "create-list-duplicate",
+        "csrf_page": "/lists/create",
+        "as": "alex",
+        "url": "/lists/create",
+        "form": {"name": "devel", "description": "clash",
+                 "visibility": "PUBLIC"},
+        "state": "SELECT count(*) FROM list WHERE name = 'devel'",
+        "reset": "SELECT 1",
+    },
+    {
+        "name": "create-list-bad-name",
+        "csrf_page": "/lists/create",
+        "as": "alex",
+        "url": "/lists/create",
+        "form": {"name": "not a valid name!", "visibility": "PUBLIC"},
+        "state": "SELECT count(*) FROM list",
+        "reset": "SELECT 1",
+    },
+    {
+        "name": "forward-thread",
+        "csrf_page": "/~alex/devel",
+        "as": "alex",
+        "url": "/~alex/devel/forward/%3Clocal-test-002%40example.com%3E",
+        "state": "SELECT count(*) FROM email WHERE list_id = 1",
+        "reset": "SELECT 1",
+    },
 ]
 
 

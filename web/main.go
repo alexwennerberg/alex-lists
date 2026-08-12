@@ -6,6 +6,7 @@
 package main
 
 import (
+	"context"
 	"database/sql"
 	"flag"
 	"log"
@@ -14,6 +15,7 @@ import (
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/crypto"
+	"git.sr.ht/~sircmpwn/core-go/email"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/db"
 	_ "github.com/lib/pq"
 	"github.com/vaughan0/go-ini"
@@ -22,6 +24,9 @@ import (
 const service = "lists.sr.ht"
 
 var srhtConfig ini.File
+
+// The outgoing mail queue, shared by everything that sends.
+var egress *email.Queue
 
 // Config values are read often enough (every page render) that a missing one
 // should be loud and immediate rather than an empty string in the markup.
@@ -58,6 +63,10 @@ func main() {
 	}
 	defer pg.Close()
 
+	// Outgoing mail, for forwarded threads. The ingress runs the same queue.
+	egress = email.NewQueue(srhtConfig)
+	go egress.Run(email.Context(context.Background(), egress))
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /{$}", handleIndex)
 	mux.HandleFunc("POST /{$}", handleIndexPOST)
@@ -70,6 +79,7 @@ func main() {
 	mux.HandleFunc("GET /", handleNotFound)
 	mux.HandleFunc("GET /{owner}", handleProfile)
 	mux.HandleFunc("GET /lists/create", handleCreateList)
+	mux.HandleFunc("POST /lists/create", handleCreateListPOST)
 	mux.HandleFunc("GET /lists/create-mirror", handleCreateMirror)
 	mux.HandleFunc("GET /lists/{owner}", handleListsForUser)
 	mux.HandleFunc("GET /{owner}/{list}", handleArchive)
@@ -79,8 +89,12 @@ func main() {
 		settingsHandler("settings-info", "info"))
 	mux.HandleFunc("POST /{owner}/{list}/subscribe", handleSubscribe)
 	mux.HandleFunc("POST /{owner}/{list}/export", handleExportArchive)
+
 	mux.HandleFunc("POST /{owner}/{list}/settings/delete", handleDeleteList)
-	mux.HandleFunc("POST /{owner}/{list}/{messageID}/remove", handleRemoveMessage)
+	// ServeMux cannot hold both "/{owner}/{list}/{messageID}/remove" and
+	// "/{owner}/{list}/forward/{messageID}": neither is more specific than
+	// the other. One pattern, dispatched on which literal is where.
+	mux.HandleFunc("POST /{owner}/{list}/{third}/{fourth}", handleMessageVerb)
 	mux.HandleFunc("POST /{owner}/{list}/unsubscribe", handleUnsubscribe)
 	mux.HandleFunc("POST /{owner}/{list}/settings/info", handleSettingsInfo)
 	mux.HandleFunc("POST /{owner}/{list}/settings/content", handleSettingsContent)
