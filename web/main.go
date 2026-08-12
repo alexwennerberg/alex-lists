@@ -78,6 +78,9 @@ func main() {
 	mux.HandleFunc("GET /{owner}/{list}/settings/info",
 		settingsHandler("settings-info", "info"))
 	mux.HandleFunc("POST /{owner}/{list}/subscribe", handleSubscribe)
+	mux.HandleFunc("POST /{owner}/{list}/export", handleExportArchive)
+	mux.HandleFunc("POST /{owner}/{list}/settings/delete", handleDeleteList)
+	mux.HandleFunc("POST /{owner}/{list}/{messageID}/remove", handleRemoveMessage)
 	mux.HandleFunc("POST /{owner}/{list}/unsubscribe", handleUnsubscribe)
 	mux.HandleFunc("POST /{owner}/{list}/settings/info", handleSettingsInfo)
 	mux.HandleFunc("POST /{owner}/{list}/settings/content", handleSettingsContent)
@@ -115,4 +118,9 @@ func withDB(pg *sql.DB, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		next.ServeHTTP(w, r.WithContext(db.Context(r.Context(), pg)))
 	})
+}
+
+// The handle behind a request's context, for work that outlives it.
+func pgFor(r *http.Request) *sql.DB {
+	return db.ForContext(r.Context())
 }

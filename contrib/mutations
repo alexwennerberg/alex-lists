@@ -19,6 +19,7 @@ import configparser
 import os
 import re
 import sys
+import time
 from urllib.parse import urlparse
 
 import psycopg2
@@ -143,7 +144,71 @@ CASES = [
         "state": """SELECT copy_self FROM "user" WHERE username = 'alex'""",
         "reset": """UPDATE "user" SET copy_self = false WHERE username = 'alex'""",
     },
+    {
+        "name": "remove-message",
+        "csrf_page": "/~alex/devel",
+        "as": "alex",
+        "url": "/~alex/devel/%3Cremovable%40example.com%3E/remove",
+        "before": """INSERT INTO email (created, updated, subject, message_id,
+                         raw_message, headers, body, list_id, is_patch,
+                         is_request_pull)
+                     SELECT NOW(), NOW(), 'removable', '<removable@example.com>',
+                         '', '{}', '', l.id, false, false
+                     FROM list l WHERE l.name = 'devel'""",
+        "state": """SELECT count(*) FROM email
+                    WHERE message_id = '<removable@example.com>'""",
+        "reset": """DELETE FROM email WHERE message_id = '<removable@example.com>'""",
+    },
+    {
+        "name": "remove-message-not-moderator",
+        "csrf_page": "/~alex/devel",
+        "as": "newperson",
+        "url": "/~alex/devel/%3Cremovable%40example.com%3E/remove",
+        "before": """INSERT INTO email (created, updated, subject, message_id,
+                         raw_message, headers, body, list_id, is_patch,
+                         is_request_pull)
+                     SELECT NOW(), NOW(), 'removable', '<removable@example.com>',
+                         '', '{}', '', l.id, false, false
+                     FROM list l WHERE l.name = 'devel'""",
+        "state": """SELECT count(*) FROM email
+                    WHERE message_id = '<removable@example.com>'""",
+        "reset": """DELETE FROM email WHERE message_id = '<removable@example.com>'""",
+    },
+    {
+        "name": "delete-list",
+        "csrf_page": "/~alex/devel",
+        "as": "alex",
+        "url": "/~alex/deleteme/settings/delete",
+        "before": """INSERT INTO list (created, updated, name, description,
+                         owner_id, visibility)
+                     SELECT NOW(), NOW(), 'deleteme', 'temp', u.id, 'PUBLIC'
+                     FROM "user" u WHERE u.username = 'alex'""",
+        "state": "SELECT count(*) FROM list WHERE name = 'deleteme'",
+        "reset": "DELETE FROM list WHERE name = 'deleteme'",
+        "settle": 1.0,
+        "divergent": "the Python app hands this to celery, which is not "
+                     "running here, so its delete never happens; the Go app "
+                     "does the work in-process, which is the point of "
+                     "dropping celery",
+    },
+    {
+        "name": "export-archive",
+        "csrf_page": "/~alex/devel",
+        "as": "alex",
+        "url": "/~alex/devel/export",
+        "form": {"days": "-1"},
+        "state": "SELECT count(*) FROM email",
+        "reset": "SELECT 1",
+        "compare_body": True,
+    },
 ]
+
+
+def scrub_mbox(body):
+    """mbox spools are stamped when generated; see contrib/golden."""
+    return re.sub(rb"(?m)^From (nobody|MAILER-DAEMON) \w{3} \w{3} [ \d]\d "
+                  rb"\d{2}:\d{2}:\d{2} \d{4}(?=\r?\n|$)",
+                  b"From MBOX DATE", body)
 
 
 def connect():
@@ -205,13 +270,18 @@ def run(case, base, conn):
         session, base, case.get("csrf_page", case["url"]))
     response = session.post(base + case["url"], data=form, timeout=60,
                             allow_redirects=False)
+    if case.get("settle"):
+        time.sleep(case["settle"])
     state = sql(conn, case["state"])
     sql(conn, case["reset"])
-    return {
+    out = {
         "status": response.status_code,
         "location": response.headers.get("location", ""),
         "state": state,
     }
+    if case.get("compare_body"):
+        out["body"] = scrub_mbox(response.content)
+    return out
 
 
 def main():
@@ -234,9 +304,15 @@ def main():
         if want == got:
             print(f"ok    {case['name']}")
             continue
+        if case.get("divergent"):
+            print(f"ok    {case['name']}  (differs on purpose: "
+                  f"{case['divergent']})")
+            continue
         failures += 1
         print(f"FAIL  {case['name']}")
-        for key in ("status", "location", "state"):
+        for key in ("status", "location", "state", "body"):
+            if key not in want and key not in got:
+                continue
             if want[key] != got[key]:
                 print(f"        {key}: python {want[key]!r}")
                 print(f"        {' ' * len(key)}  go     {got[key]!r}")

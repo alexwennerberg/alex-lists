@@ -1,8 +1,11 @@
 package main
 
 import (
+	"context"
 	"database/sql"
+	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -306,4 +309,123 @@ func listForWrite(w http.ResponseWriter, r *http.Request,
 		}
 	}
 	return list, userFor(r), true
+}
+
+// Deleting a busy list can take a while, so it happens out of band, as the
+// celery task did. The foreign keys in schema.sql cascade, so one DELETE is
+// enough and nothing has to be pulled into memory first.
+func handleDeleteList(w http.ResponseWriter, r *http.Request) {
+	list, _, ok := listForWrite(w, r, needOwner)
+	if !ok {
+		return
+	}
+	go func(listID int) {
+		ctx := db.Context(context.Background(), pgFor(r))
+		err := db.WithTx(ctx, nil, func(tx *sql.Tx) error {
+			_, err := tx.ExecContext(ctx,
+				`DELETE FROM list WHERE id = $1;`, listID)
+			return err
+		})
+		if err != nil {
+			log.Printf("deleting list %d: %s", listID, err)
+		}
+	}(list.ID)
+	http.Redirect(w, r, "/", http.StatusFound)
+}
+
+// Moderators can drop a message out of the archive. The redirect goes to the
+// thread it was in, or to the list if it was a thread root.
+func handleRemoveMessage(w http.ResponseWriter, r *http.Request) {
+	list, _, ok := listForWrite(w, r, needNothing)
+	if !ok {
+		return
+	}
+	if !list.Access.Moderate {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	var threadMsgID *string
+	err := db.WithTx(r.Context(), nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(r.Context(), `
+			SELECT e.id, root.message_id
+			FROM email e
+			LEFT JOIN email root ON root.id = e.thread_id
+			WHERE e.list_id = $1 AND e.message_id = $2;
+		`, list.ID, r.PathValue("messageID"))
+		var id int
+		if err := row.Scan(&id, &threadMsgID); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(r.Context(),
+			`DELETE FROM email WHERE id = $1;`, id)
+		return err
+	})
+	switch {
+	case err == sql.ErrNoRows:
+		notFound(w, r)
+		return
+	case err != nil:
+		serverError(w, r, "remove message", err)
+		return
+	}
+
+	target := "/" + list.FullName()
+	if threadMsgID != nil {
+		target += "/" + url.PathEscape(*threadMsgID)
+	}
+	http.Redirect(w, r, target, http.StatusFound)
+}
+
+// The whole list as an mbox, or just the last N days of it.
+func handleExportArchive(w http.ResponseWriter, r *http.Request) {
+	list, _, ok := listForWrite(w, r, needBrowse)
+	if !ok {
+		return
+	}
+	days, err := strconv.Atoi(r.PostFormValue("days"))
+	if err != nil {
+		http.Error(w, "bad request", http.StatusBadRequest)
+		return
+	}
+
+	// mailbox.mbox writes "From MAILER-DAEMON" and separates messages with a
+	// bare newline, where the per-thread export writes "From nobody" and
+	// CRLF. Both are mbox; match each where it is used.
+	var spool []byte
+	stamp := time.Now().Format("Mon Jan _2 15:04:05 2006")
+	err = db.WithReadOnlyTx(r.Context(), func(tx *sql.Tx) error {
+		query := `SELECT raw_message FROM email WHERE list_id = $1`
+		args := []any{list.ID}
+		if days > 0 {
+			query += ` AND created > $2`
+			args = append(args, time.Now().UTC().AddDate(0, 0, -days))
+		}
+		rows, err := tx.QueryContext(r.Context(), query+` ORDER BY created`,
+			args...)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+		for rows.Next() {
+			var raw []byte
+			if err := rows.Scan(&raw); err != nil {
+				return err
+			}
+			spool = append(spool,
+				[]byte("From MAILER-DAEMON "+stamp+"\n")...)
+			spool = append(spool, raw...)
+			spool = append(spool, '\n')
+		}
+		return rows.Err()
+	})
+	if err != nil {
+		serverError(w, r, "export", err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Header().Set("Content-Disposition", `attachment; filename="`+
+		list.Owner+"-"+list.Name+`.mbox"`)
+	w.Write(spool)
 }
