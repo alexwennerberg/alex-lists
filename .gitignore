@@ -16,3 +16,4 @@ overrides/
 .pgp
 build
 lists.sr.ht-ingress
+lists.sr.ht-web

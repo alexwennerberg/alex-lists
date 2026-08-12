@@ -223,10 +223,12 @@ def fetch_all(cases, base):
         for case in [c for c in cases if c["persona"] == persona]:
             response = session.get(base + case["url"], timeout=60,
                                    allow_redirects=False)
-            # A 5xx body here is the werkzeug debugger: object ids and a fresh
-            # pin every run, and not something a rewrite should reproduce. Keep
-            # the status, drop the body.
-            recorded = response.status_code < 500
+            # A 5xx body is the werkzeug debugger: object ids and a fresh pin
+            # every run. A 3xx body is boilerplate nobody reads, and differs
+            # between web frameworks; Location is what matters and is compared
+            # separately. Keep the status for both, drop the body.
+            recorded = (response.status_code < 300
+                        or 400 <= response.status_code < 500)
             body = scrub(response.content) if recorded else b""
             out.append({
                 **case,
@@ -273,7 +275,7 @@ def cmd_capture(args):
     print("  status: " + ", ".join(f"{s}: {n}"
                                    for s, n in sorted(by_status.items())))
 
-    broken = [r for r in results if not r["body_recorded"]]
+    broken = [r for r in results if r["status"] >= 500]
     if broken:
         print(f"  {len(broken)} cases return 5xx; status recorded, body not:")
         for result in broken:
@@ -294,6 +296,11 @@ def cmd_compare(args):
     with open(os.path.join(args.dir, "manifest.json")) as f:
         manifest = json.load(f)
     stored = manifest["cases"]
+    if args.filter:
+        stored = [c for c in stored
+                  if re.search(args.filter, f'{c["persona"]} {c["url"]}')]
+        if not stored:
+            sys.exit(f"no cases match {args.filter!r}")
     results = fetch_all([{"persona": c["persona"], "url": c["url"]}
                          for c in stored], args.base)
     live = {(r["persona"], r["url"]): r for r in results}
@@ -307,6 +314,11 @@ def cmd_compare(args):
             failures += 1
             print(f'FAIL {label}\n  status {case["status"]} -> '
                   f'{result["status"]}')
+            continue
+        if result["location"] != case["location"]:
+            failures += 1
+            print(f'FAIL {label}\n  location {case["location"]!r} -> '
+                  f'{result["location"]!r}')
             continue
         if result["sha256"] == case["sha256"]:
             continue
@@ -361,6 +373,8 @@ def main():
             help="messages per list (default 3)")
     parser.add_argument("--patchsets", type=int, default=2,
             help="patchsets per list (default 2)")
+    parser.add_argument("--filter", default="",
+            help="regex over '<persona> <url>'; compare only matching cases")
     parser.add_argument("--diff-lines", type=int, default=40,
             help="lines of diff to print per failing case")
     args = parser.parse_args()

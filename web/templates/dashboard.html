@@ -1,0 +1,74 @@
+{{define "body"}}
+<div class="container">
+  <div class="row">
+    <div class="col-md-4">
+      <p>
+        Welcome back, {{.User.Username}}! This is your mailing lists
+        service. Documentation for its use is
+        <a href="https://man.sr.ht/lists.sr.ht">available here</a>.
+      </p>
+      <p>
+        {{if .AllowNewLists}}
+        <a
+          href="/lists/create"
+          class="btn btn-primary btn-block"
+        >Create new list {{icon "caret-right"}}</a>
+        {{end}}
+        <a href="/~{{.User.Username}}" class="btn btn-default btn-block">
+          View your profile {{icon "caret-right"}}
+        </a>
+        <details
+          class="prefs"
+          {{/* open, when preferences were just updated */}}
+        >
+          <summary>User preferences</summary>
+          <form method="POST" action="/">
+            {{.CSRF}}
+            <label class="form-check">
+              <input
+                type="checkbox"
+                name="copy-self"
+                id="copy-self"
+                {{if .User.CopySelf}}checked{{end}} />
+              Send me a copy of my own emails
+            </label>
+            <button class="btn btn-primary" type="submit">
+              Apply {{icon "caret-right"}}
+            </button>
+          </form>
+        </details>
+      </p>
+      {{range .Content.Subs}}
+      <div style="margin-top: 1rem">
+        <h4>
+          <a href="/{{.FullName}}"
+          >{{.FullName}}</a>
+        </h4>
+        {{/* last active, when the list has any activity */}}
+      </div>
+      {{end}}
+    </div>
+    <div class="col-md-8">
+      {{/* notice, after a redirect that set one */}}
+      {{if .Content.Recent}}
+      <h3>Recent activity</h3>
+      <div class="event-list">
+        {{range .Content.Recent}}
+        <div class="event">
+          <h4>
+            <a href="/{{.List.FullName}}/{{.MessageID}}">
+              {{.Subject}}
+            </a>
+          </h4>
+        </div>
+        {{end}}
+      </div>
+      {{else}}
+      <p>
+        Nothing to report here. Try participating in some mailing lists!
+      </p>
+      {{end}}
+    </div>
+  </div>
+</div>
+{{end}}

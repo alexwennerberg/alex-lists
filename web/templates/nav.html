@@ -1,0 +1,24 @@
+{{define "nav.html"}}
+<span class="navbar-brand">
+  {{icon "circle"}}
+  <a class="navbar-brand" href="/">
+    {{.SiteName}}
+    <span class="text-danger">{{.SiteShort}}</span>
+  </a>
+</span>
+<ul class="navbar-nav">
+</ul>
+<div class="login">
+  {{if .User}}
+  <span class="navbar-text">
+    Logged in as
+    <a href="/~{{.User.Username}}">{{.User.Username}}</a>
+    &mdash;
+    <a href="{{.LogoutURL}}">Log out</a>
+  </span>
+  {{else}}
+  <span class="navbar-text">
+    <a href="{{.LoginURL}}" rel="nofollow">Log in</a>
+  </span>
+  {{end}}
+</div>{{end}}

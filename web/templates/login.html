@@ -1,0 +1,58 @@
+{{define "title"}}
+<title>Log in &mdash; {{cfg "sr.ht" "site-name"}} lists</title>
+{{end}}
+{{define "content"}}
+<div class="row">
+  <div class="col-md-6">
+    <h3>Log in</h3>
+    <div class="alert alert-danger">
+      <strong>Authentication is disabled on this instance.</strong>
+      Any username logs in without a password, and unknown usernames are
+      created on the spot. Development use only.
+    </div>
+    {{if .Content.Error}}
+    <div class="alert alert-danger">{{.Content.Error}}</div>
+    {{end}}
+    <form method="POST" action="/login">
+      {{.CSRF}}
+      {{if .Content.ReturnTo}}
+      <input type="hidden" name="return_to" value="{{.Content.ReturnTo}}" />
+      {{end}}
+      <div class="form-group">
+        <label for="username">Username</label>
+        <input
+          type="text"
+          name="username"
+          id="username"
+          class="form-control"
+          autofocus
+          autocomplete="off"
+          placeholder="alex" />
+      </div>
+      <button type="submit" class="btn btn-primary">
+        Log in {{icon "caret-right"}}
+      </button>
+    </form>
+  </div>
+  <div class="col-md-6">
+    {{if .Content.Users}}
+    <h3>Existing users</h3>
+    <p>Log in as one of the accounts already in the database:</p>
+    {{range .Content.Users}}
+    <form
+      method="POST"
+      action="/login"
+      style="display: inline-block; margin: 0 0.25rem 0.25rem 0"
+    >
+      {{$.CSRF}}
+      <input type="hidden" name="username" value="{{.}}" />
+      {{if $.Content.ReturnTo}}
+      <input type="hidden" name="return_to" value="{{$.Content.ReturnTo}}" />
+      {{end}}
+      <button type="submit" class="btn btn-default">~{{.}}</button>
+    </form>
+    {{end}}
+    {{end}}
+  </div>
+</div>
+{{end}}

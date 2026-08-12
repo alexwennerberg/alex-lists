@@ -9,7 +9,8 @@ SERVICE=lists.sr.ht
 STATICDIR=$(ASSETS)/static/$(SERVICE)
 
 BINARIES=\
-	$(SERVICE)-ingress
+	$(SERVICE)-ingress \
+	$(SERVICE)-web
 
 all: all-bin all-share
 
@@ -50,6 +51,9 @@ static/main.min.css: static/main.css
 
 $(SERVICE)-ingress:
 	go build -o $@ ./ingress
+
+$(SERVICE)-web:
+	go build -o $@ ./web
 
 # Always rebuild
 .PHONY: $(BINARIES)

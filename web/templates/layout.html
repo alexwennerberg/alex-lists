@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {{block "title" .}}
+    <title>{{.Domain}}</title>
+    {{end}}
+    {{/* block favicon */}}
+    <link rel="icon" type="image/svg+xml" href="/static/logo.svg" />
+    <link rel="icon" type="image/png" href="/static/logo.png" sizes="any" />
+    {{/* endblock favicon */}}
+    <link rel="stylesheet" href="{{.StaticURL}}">
+    {{/* rel=prev, when paginated */}}
+    {{/* rel=next, when paginated */}}
+    {{/* block head */}}
+    {{/* endblock */}}
+  </head>
+  <body>
+    {{/* block environment */}}
+    {{if ne .Environment "PRODUCTION"}}
+    <div style="
+        {{/* production is red, everything else green */}}
+        background: #228800;
+        {{/* endif */}}
+        color: white; font-weight: bold; width: 100%; text-align: center">
+      {{.Environment}} ENVIRONMENT
+    </div>
+    {{end}}
+    {{/* endblock */}}
+    {{/* block nav */}}
+    <nav class="container navbar navbar-light navbar-expand-sm">
+      {{template "nav.html" .}}
+    </nav>
+    {{/* endblock */}}
+    {{block "body" .}}
+    <div class="container">
+      {{template "content" .}}
+    </div>
+    {{end}}
+    {{/* block modal */}}
+    {{/* block scripts */}}
+  </body>
+</html>
+{{- /* Jinja drops a template's trailing newline; match it. */ -}}
