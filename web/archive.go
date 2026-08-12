@@ -231,3 +231,145 @@ func toRID(id string) string {
 func (a *archivePage) PageNumber() int     { return a.Page }
 func (a *archivePage) PageCount() int      { return a.TotalPages }
 func (a *archivePage) SearchTerms() string { return a.Search }
+
+// The raw message, exactly as it was archived.
+func handleRaw(w http.ResponseWriter, r *http.Request) {
+	list, message, ok := lookupMessage(w, r)
+	if !ok {
+		return
+	}
+	var raw []byte
+	err := db.WithReadOnlyTx(r.Context(), func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(r.Context(),
+			`SELECT raw_message FROM email WHERE id = $1;`, message)
+		return row.Scan(&raw)
+	})
+	if err != nil {
+		serverError(w, r, "raw", err)
+		return
+	}
+	_ = list
+	w.Header().Set("Content-Type", "application/octet-stream")
+	w.Write(raw)
+}
+
+// A thread as an mbox spool: every message in it, depth first, each preceded
+// by a From_ line. The Python app re-serialises the parsed message; that
+// round-trips to the archived bytes, so those are used directly.
+func handleThreadMbox(w http.ResponseWriter, r *http.Request) {
+	list, message, ok := lookupMessage(w, r)
+	if !ok {
+		return
+	}
+
+	var (
+		root     int
+		threadID *int
+		spool    []byte
+	)
+	err := db.WithReadOnlyTx(r.Context(), func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(r.Context(),
+			`SELECT thread_id FROM email WHERE id = $1;`, message)
+		if err := row.Scan(&threadID); err != nil {
+			return err
+		}
+		if threadID != nil {
+			return nil // only a thread root has an mbox
+		}
+		root = message
+
+		// Children by parent, so the spool can be walked in reply order the
+		// way format_mbox recurses.
+		rows, err := tx.QueryContext(r.Context(), `
+			SELECT id, parent_id, raw_message FROM email
+			WHERE list_id = $1 AND (id = $2 OR thread_id = $2)
+			ORDER BY created, id;
+		`, list.ID, root)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		raw := map[int][]byte{}
+		children := map[int][]int{}
+		for rows.Next() {
+			var id int
+			var parent *int
+			var body []byte
+			if err := rows.Scan(&id, &parent, &body); err != nil {
+				return err
+			}
+			raw[id] = body
+			if parent != nil {
+				children[*parent] = append(children[*parent], id)
+			}
+		}
+		if err := rows.Err(); err != nil {
+			return err
+		}
+
+		var walk func(id int)
+		stamp := time.Now().Format("Mon Jan _2 15:04:05 2006")
+		walk = func(id int) {
+			spool = append(spool, []byte("From nobody "+stamp+"\r\n")...)
+			spool = append(spool, raw[id]...)
+			spool = append(spool, '\r', '\n')
+			for _, child := range children[id] {
+				walk(child)
+			}
+		}
+		walk(root)
+		return nil
+	})
+	if err != nil {
+		serverError(w, r, "mbox", err)
+		return
+	}
+	if threadID != nil {
+		notFound(w, r)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/mbox")
+	w.Write(spool)
+}
+
+// Shared preamble of the per-message routes: resolve the list, check browse
+// access, and find the message. Writes the error response itself.
+func lookupMessage(w http.ResponseWriter, r *http.Request) (*listView, int, bool) {
+	owner, ok := strings.CutPrefix(r.PathValue("owner"), "~")
+	if !ok {
+		notFound(w, r)
+		return nil, 0, false
+	}
+	list, err := getList(r, owner, r.PathValue("list"))
+	if err != nil {
+		serverError(w, r, "message", err)
+		return nil, 0, false
+	}
+	if list == nil {
+		notFound(w, r)
+		return nil, 0, false
+	}
+	if !list.Access.Browse {
+		forbidden(w, r)
+		return nil, 0, false
+	}
+
+	var id int
+	err = db.WithReadOnlyTx(r.Context(), func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(r.Context(), `
+			SELECT id FROM email WHERE list_id = $1 AND message_id = $2;
+		`, list.ID, r.PathValue("messageID"))
+		return row.Scan(&id)
+	})
+	switch {
+	case err == sql.ErrNoRows:
+		notFound(w, r)
+		return nil, 0, false
+	case err != nil:
+		serverError(w, r, "message", err)
+		return nil, 0, false
+	}
+	return list, id, true
+}

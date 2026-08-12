@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
+	"io"
 	"log"
 	"net/http"
 	"net/url"
@@ -240,7 +241,20 @@ func safeReturnTo(target string) string {
 }
 
 func notFound(w http.ResponseWriter, r *http.Request) {
-	http.Error(w, "not found", http.StatusNotFound)
+	renderStatus(w, r, "not-found", nil, http.StatusNotFound)
+}
+
+// Werkzeug's own 403 page, which is what abort(403) produces in the Python
+// app; srht does not override it.
+func forbidden(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusForbidden)
+	io.WriteString(w, `<!doctype html>
+<html lang=en>
+<title>403 Forbidden</title>
+<h1>Forbidden</h1>
+<p>You don&#39;t have the permission to access the requested resource. It is either read-protected or not readable by the server.</p>
+`)
 }
 
 func serverError(w http.ResponseWriter, r *http.Request, what string, err error) {

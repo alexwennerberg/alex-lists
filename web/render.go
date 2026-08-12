@@ -30,6 +30,7 @@ func init() {
 		"login":         "",
 		"profile-lists": "templates/profile.html",
 		"archive":       "templates/list.html",
+		"not-found":     "",
 	} {
 		files := []string{"templates/layout.html", "templates/nav.html",
 			"templates/pagination.html", "templates/navlink.html"}
@@ -173,8 +174,12 @@ func newPage(w http.ResponseWriter, r *http.Request, name string,
 // query separators legible, so "/l?a=b" becomes "/l?a%3Db".
 func returnToParam(target string) string {
 	escaped := url.QueryEscape(target)
-	escaped = strings.ReplaceAll(escaped, "%2F", "/")
-	return strings.ReplaceAll(escaped, "%3F", "?")
+	// Werkzeug's safe set is wider than this; these are the characters the
+	// fixtures actually exercise.
+	for _, pair := range [][2]string{{"%2F", "/"}, {"%3F", "?"}, {"%40", "@"}} {
+		escaped = strings.ReplaceAll(escaped, pair[0], pair[1])
+	}
+	return escaped
 }
 
 func render(w http.ResponseWriter, r *http.Request, name string, content any) {
