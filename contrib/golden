@@ -45,8 +45,14 @@ SCRUBBERS = [
      b'main.min.HASH.css'),
     (re.compile(rb'\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d+)?( ?UTC|Z)?'),
      b'TIMESTAMP'),
-    (re.compile(rb'\b\d+ (second|minute|hour|day|week|month|year)s? ago\b'),
-     b'RELATIVE TIME'),
+    # srht renders dates as humanize.naturaltime inside a span titled with the
+    # exact timestamp: "an hour ago", "2 months ago", "1 year, 1 month ago",
+    # "now". Scrub the whole span rather than chase that vocabulary; it runs
+    # after the timestamp rule above, which has already rewritten the title.
+    (re.compile(rb'<span title="TIMESTAMP">[^<]*</span>'),
+     b'<span title="TIMESTAMP">RELATIVE TIME</span>'),
+    (re.compile(rb'<span title="\d+ seconds">[^<]*</span>'),
+     b'<span title="SECONDS">RELATIVE DELTA</span>'),
     # mbox spools are stamped when generated; the lines end CRLF, so anchor
     # with a lookahead rather than $.
     (re.compile(rb'(?m)^From nobody \w{3} \w{3} [ \d]\d '
