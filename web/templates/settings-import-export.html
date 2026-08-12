@@ -1,0 +1,23 @@
+{{define "settings"}}
+<div class="container">
+  <div class="row">
+    <div class="col-md-10">
+      <h3>Export mail spool</h3>
+      <p>
+        This tool allows you to export your mailing list in mbox format.
+      </p>
+      <form
+        method="POST"
+        action="/{{.Content.List.FullName}}/export"
+      >
+        {{.CSRF}}
+        <input type="hidden" name="days" value="-1" />
+        <button class="btn btn-primary">
+          Export mail spool {{icon "caret-right"}}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{{end}}
+

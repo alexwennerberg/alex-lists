@@ -1,0 +1,30 @@
+{{define "title"}}
+<title>
+  {{.Content.List.FullName}} settings &mdash; {{cfg "sr.ht" "site-name"}} lists
+</title>
+{{end}}
+{{define "content"}}
+<div class="header-extension">
+  <div class="container">
+    <div class="subnav">
+      <ul class="nav nav-tabs">
+        {{/* macro tab */}}
+        {{template "settingstab" (navlink (printf "/%s/settings/info" .Content.List.FullName) "info" (eq .Subview "info"))}}
+        {{template "settingstab" (navlink (printf "/%s/settings/access" .Content.List.FullName) "access" (eq .Subview "access"))}}
+        {{template "settingstab" (navlink (printf "/%s/settings/content" .Content.List.FullName) "content" (eq .Subview "content"))}}
+        {{template "settingstab" (navlink (printf "/%s/settings/import-export" .Content.List.FullName) "export" (eq .Subview "export"))}}
+        {{template "settingstab" (navlink (printf "/%s/settings/delete" .Content.List.FullName) "delete" (eq .Subview "delete"))}}
+      </div>
+    </div>
+  </div>
+</div>
+{{block "settings" .}}
+{{end}}
+{{end}}
+{{define "settingstab"}}
+        <li class="nav-item">
+          <a
+            class="nav-link {{if .Active}}active{{end}}"
+            href="{{.Path}}">{{.Title}}</a>
+        </li>
+        {{end}}

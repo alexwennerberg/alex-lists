@@ -25,14 +25,18 @@ func init() {
 	// Each page gets its own set: pages redefine "body"/"content", and the
 	// last definition parsed wins, so they must not share one namespace.
 	for name, extends := range map[string][]string{
-		"index":         nil,
-		"dashboard":     nil,
-		"login":         nil,
-		"not-found":     nil,
-		"create":        nil,
-		"create-mirror": nil,
-		"profile-lists": {"templates/profile.html"},
-		"thread":        {"templates/list.html"},
+		"index":                  nil,
+		"dashboard":              nil,
+		"login":                  nil,
+		"not-found":              nil,
+		"create":                 nil,
+		"create-mirror":          nil,
+		"settings-info":          {"templates/list.html", "templates/settings.html"},
+		"settings-content":       {"templates/list.html", "templates/settings.html"},
+		"settings-delete":        {"templates/list.html", "templates/settings.html"},
+		"settings-import-export": {"templates/list.html", "templates/settings.html"},
+		"profile-lists":          {"templates/profile.html"},
+		"thread":                 {"templates/list.html"},
 		// list-full.html overrides the nav block that list.html inherits,
 		// so it has to be parsed after it.
 		"archive": {"templates/list.html", "templates/list-full.html"},
@@ -146,15 +150,20 @@ type page struct {
 	LogoutURL   string
 	CSRF        template.HTML
 	View        string
+	Subview     string
 	Content     any
 }
 
 // What srht passes as view=, which drives the active tab and a few layout
 // choices shared with the patches pages.
 var views = map[string]string{
-	"archive":       "archives",
-	"thread":        "archive",
-	"profile-lists": "lists",
+	"archive":                "archives",
+	"thread":                 "archive",
+	"settings-info":          "settings",
+	"settings-content":       "settings",
+	"settings-delete":        "settings",
+	"settings-import-export": "settings",
+	"profile-lists":          "lists",
 }
 
 func newPage(w http.ResponseWriter, r *http.Request, name string,
@@ -181,6 +190,7 @@ func newPage(w http.ResponseWriter, r *http.Request, name string,
 		LogoutURL:     "/logout",
 		CSRF:          csrfField(csrfToken(w, r)),
 		View:          views[name],
+		Subview:       subviews[name],
 		Content:       content,
 	}
 }
@@ -198,6 +208,13 @@ func returnToParam(target string) string {
 }
 
 func render(w http.ResponseWriter, r *http.Request, name string, content any) {
+	renderStatus(w, r, name, content, http.StatusOK)
+}
+
+// The settings pages share one template and differ by which tab is active.
+func renderSubview(w http.ResponseWriter, r *http.Request, name, subview string,
+	content any) {
+
 	renderStatus(w, r, name, content, http.StatusOK)
 }
 
@@ -249,4 +266,12 @@ func searchOf(c any) string {
 
 func isFluid(view string) bool {
 	return view == "archives" || view == "patches"
+}
+
+// Which settings tab each template lights up.
+var subviews = map[string]string{
+	"settings-info":          "info",
+	"settings-content":       "content",
+	"settings-delete":        "delete",
+	"settings-import-export": "export",
 }

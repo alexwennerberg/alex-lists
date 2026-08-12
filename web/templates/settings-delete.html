@@ -1,0 +1,31 @@
+{{define "title"}}
+<title>
+  {{.Content.List.FullName}} settings &mdash; {{cfg "sr.ht" "site-name"}} lists
+</title>
+{{end}}
+{{define "settings"}}
+<div class="container">
+  <div class="row">
+    <form method="POST" class="col-md-12">
+      <p>
+        This will permanently delete your mailing list,
+        <strong>{{.Content.List.FullName}}</strong>.
+        This cannot be undone.
+      </p>
+      <div class="alert alert-info">
+        If you <a href="/{{.Content.List.FullName}}/settings/import-export">export your mail spool</a> before deleting this
+        mailing list, you may re-import it later or bring it to a different
+        service provider.
+      </div>
+      {{.CSRF}}
+      <button type="submit" class="btn btn-danger">
+        Delete {{.Content.List.Name}} {{icon "caret-right"}}
+      </button>
+      <a
+        href="/{{.Content.List.FullName}}"
+        class="btn btn-default"
+      >Nevermind</a>
+    </form>
+  </div>
+</div>
+{{end}}

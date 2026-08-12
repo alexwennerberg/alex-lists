@@ -73,6 +73,14 @@ func main() {
 	mux.HandleFunc("GET /{owner}/{list}", handleArchive)
 	// Message ids go in one path segment. The Python app routes them as
 	// <path:message_id>, so an id containing a slash reaches it and not this.
+	mux.HandleFunc("GET /{owner}/{list}/settings/info",
+		settingsHandler("settings-info", "info"))
+	mux.HandleFunc("GET /{owner}/{list}/settings/content",
+		settingsHandler("settings-content", "content"))
+	mux.HandleFunc("GET /{owner}/{list}/settings/delete",
+		settingsHandler("settings-delete", "delete"))
+	mux.HandleFunc("GET /{owner}/{list}/settings/import-export",
+		settingsHandler("settings-import-export", "export"))
 	mux.HandleFunc("GET /{owner}/{list}/{messageID}", handleThread)
 	mux.HandleFunc("GET /{owner}/{list}/{messageID}/raw", handleRaw)
 	mux.HandleFunc("GET /{owner}/{list}/{messageID}/mbox", handleThreadMbox)
