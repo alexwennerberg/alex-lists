@@ -65,8 +65,19 @@ SCRUBBERS = [
 ]
 
 
+# Differences between the Python app and the Go port that are deliberate.
+# Both sides are rewritten to the same thing so the rest of the page still
+# gets compared. Keep this short, and justify every entry.
+DIVERGENCES = [
+    # The project nav links the owner at hub.sr.ht, which this fork does not
+    # run: the Python app renders the literal "None/~alex". The Go port links
+    # the local profile instead of reproducing a dead link.
+    (re.compile(rb'href="None/~'), b'href="/~'),
+]
+
+
 def scrub(body):
-    for pattern, replacement in SCRUBBERS:
+    for pattern, replacement in SCRUBBERS + DIVERGENCES:
         body = pattern.sub(replacement, body)
     return body
 

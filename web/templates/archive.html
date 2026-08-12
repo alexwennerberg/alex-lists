@@ -1,0 +1,261 @@
+{{define "content"}}
+<div class="container-fluid">
+  <div class="row" style="margin-bottom: 1rem">
+    {{if eq .View "archives"}}
+    <div class="col-lg-3 sidebar d-flex flex-column">
+      {{if .Content.List.Description}}
+      {{markdown .Content.List.Description}}
+      {{end}}
+
+      {{if and .User (not .Content.List.MirrorID)}}
+
+      {{if .Content.List.Subscribed}}
+      <form method="POST" action="/{{.Content.List.FullName}}/unsubscribe">
+        {{.CSRF}}
+        {{if .Content.List.Access.Post}}
+        <a
+          {{mailto (.Content.List.PostAddress "")}}
+          class="btn btn-primary btn-block"
+        >New post {{icon "caret-right"}}</a>
+        {{end}}
+        <button class="btn btn-default btn-block">
+          Unsubscribe {{icon "caret-right"}}
+        </button>
+      </form>
+      {{else}}
+      <form method="POST" action="/{{.Content.List.FullName}}/subscribe">
+        {{.CSRF}}
+        {{if .Content.List.Access.Browse}}
+        <button class="btn btn-primary btn-block">
+          Subscribe {{icon "caret-right"}}
+        </button>
+        {{end}}
+        {{if .Content.List.Access.Post}}
+        <a
+          {{mailto (.Content.List.PostAddress "")}}
+          class="
+            btn btn-block
+            {{if not .Content.List.Access.Browse}}
+            btn-primary
+            {{else}}
+            btn-default
+            {{end}}
+          "
+        >New post {{icon "caret-right"}}</a>
+        {{end}}
+      </form>
+      {{end}}
+
+      {{else}}
+      {{/* set subscribe_address */}}
+      {{/* set posting_address */}}
+
+      {{if .Content.List.Access.Browse}}
+      <a
+        {{/* a mirror's subscribe address is already a mailto: */}}
+        {{mailto (.Content.List.PostAddress "+subscribe")}}
+        {{/* endif */}}
+        class="btn btn-primary btn-block"
+      >Subscribe {{icon "caret-right"}}</a>
+      {{end}}
+      {{if .Content.List.Access.Post}}
+      <a
+        {{/* likewise the posting address */}}
+        {{mailto (.Content.List.PostAddress "")}}
+        {{/* endif */}}
+        class="
+          btn btn-block
+          {{if not .Content.List.Access.Browse}}
+          btn-primary
+          {{else}}
+          btn-default
+          {{end}}
+        "
+      >New post {{icon "caret-right"}}</a>
+      {{end}}
+      {{end}}
+
+      {{if .Content.List.Access.Post}}
+      <div class="alert alert-info">
+        Please review our
+        <a href="https://man.sr.ht/lists.sr.ht/etiquette.md">
+          mailing list etiquette</a>
+        guide and ensure your email client is correctly configured before
+        posting. Thanks!
+      </div>
+      {{end}}
+      {{if .Content.List.Access.Browse}}
+      <form
+        class="mt-auto d-none d-lg-block"
+        method="POST"
+        action="/{{.Content.List.FullName}}/export"
+      >
+        {{.CSRF}}
+        <h4>Download mailing list archive</h4>
+        <button
+          type="submit"
+          name="days"
+          value="30"
+          class="btn btn-block btn-default"
+        >Last 30 days {{icon "caret-right"}}</button>
+        <button
+          type="submit"
+          name="days"
+          value="-1"
+          class="btn btn-block btn-default"
+        >Entire archive {{icon "caret-right"}}</button>
+        <small class="text-muted">
+          Mailing list archives are exported as an mbox file. Individual
+          threads can be exported from their respective pages.
+        </small>
+      </form>
+      {{end}}
+    </div>
+    <div class="col-lg-9">
+    {{else}}
+    <div class="col-lg-12">
+    {{end}}
+      {{if .Content.List.Access.Browse}}
+      {{if or .Content.Threads .Content.Search}}
+      <form>
+        <input
+          name="search"
+          type="text"
+          {{if eq .View "archives"}}
+          placeholder='Search...{{if .User}}     from:me{{end}}     is:patch     In-Reply-To:<12345@example.org>     "PATCH my-project"'
+          {{end}}
+          class="form-control"
+          value="{{.Content.Search}}" />
+        {{/* invalid-feedback, when the search terms do not parse */}}
+      </form>
+      {{end}}
+
+      {{if .Content.List.Importing}}
+      <div class="alert alert-primary">
+        An import operation is currently in progress.
+      </div>
+      {{end}}
+
+      {{if .Content.Threads}}
+      {{if eq .View "archives"}}
+      <div class="event-list" style="margin-bottom: 0">
+      {{end}}
+        {{range .Content.Threads}}
+        <div class="event archive-entry">
+          <h4>
+            {{if .PatchsetID}}
+            {{/* the patches view puts a status label here */}}
+            <a href="/{{$.Content.List.FullName}}/patches/{{.PatchsetID}}">
+              {{if .Subject}}
+                {{.Subject}}
+              {{else}}
+                <em>(no subject)</em>
+              {{end}}
+            </a>
+            {{else}}
+            <a href="/{{$.Content.List.FullName}}/{{pathescape .MessageID}}">
+              {{if .Subject}}
+                {{.Subject}}
+              {{else}}
+                <em>(no subject)</em>
+              {{end}}
+            </a>
+            {{end}}
+          </h4>
+          <small class="text-muted pull-right">
+            <span>
+              {{/* set from_hdr */}}
+              {{/* set from */}}
+              {{if .SenderName}}
+              <a href="/~{{.SenderName}}">{{.From}}</a>
+              {{else}}
+              {{.From}}
+              {{end}}
+            </span>
+            <span aria-label="Time of last update" title="Time of last update">
+              {{icon "clock"}} {{date .Updated}}
+            </span>
+            {{if gt .NReplies 0}}
+            <span aria-label="Number of replies" title="Replies">
+              {{icon "reply"}}
+              {{.NReplies}}
+            </span>
+            {{end}}
+            {{if gt .NParticipants 1}}
+            <span aria-label="Number of participants" title="Participants">
+              {{icon "user"}}
+              {{.NParticipants}}
+            </span>
+            {{end}}
+          </small>
+        </div>
+        {{end}}
+        {{/* the patches view puts its bulk update form here */}}
+      {{if eq .View "archives"}}
+      </div>
+      {{end}}
+
+      {{else}}
+      <p>
+        {{if .Content.Search}}
+        Nothing found.
+        {{else if eq .View "patches"}}
+        No patches have been posted to this list yet.
+        {{else}}
+        No one has posted to this list yet.
+        {{end}}
+      </p>
+      {{end}}
+      {{else}}
+      <div class="alert alert-warning">
+        This list has restricted browsing, you cannot view the archives.
+      </div>
+      {{end}}
+    </div>
+  </div>
+  <div class="row">
+    {{if eq .View "archives"}}
+    <div class="col-lg-3 order-md-2 order-lg-1">
+      {{if .Content.List.Access.Browse}}
+      <form
+        class="d-lg-none"
+        method="POST"
+        action="/{{.Content.List.FullName}}/export"
+      >
+        {{.CSRF}}
+        <h4>Download mailing list archive</h4>
+        <button
+          type="submit"
+          name="days"
+          value="30"
+          class="btn btn-block btn-default"
+        >Last 30 days {{icon "caret-right"}}</button>
+        <button
+          type="submit"
+          name="days"
+          value="-1"
+          class="btn btn-block btn-default"
+        >Entire archive {{icon "caret-right"}}</button>
+        <small class="text-muted">
+          Mailing list archives are exported as an mbox file. Individual
+          threads can be exported from their respective pages.
+        </small>
+      </form>
+      {{end}}
+      <footer class="text-center">
+        <small class="text-muted" title="The resource ID for this mailing list, used to identify it in the GraphQL API.">
+          List RID: {{.Content.List.ResourceID}}
+        </small>
+      </footer>
+    </div>
+    <div class="col-lg-9 order-lg-2">
+    {{else}}
+    <div class="col-lg-12">
+    {{end}}
+    {{if .Content.List.Access.Browse}}
+      {{template "pagination" .}}
+    {{end}}
+    </div>
+  </div>
+</div>
+{{end}}

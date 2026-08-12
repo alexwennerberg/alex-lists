@@ -1,0 +1,89 @@
+{{define "title"}}
+<title>
+  {{.Content.List.FullName}} archives &mdash; {{.Site}}
+</title>
+{{end}}
+{{define "nav"}}
+<nav class="navbar navbar-light navbar-expand-sm">
+  {{template "nav.html" .}}
+</nav>
+{{end}}
+{{define "body"}}
+{{/* import partials/resourcenav.html */}}
+{{/* set fluid */}}
+{{template "projectnav" .}}
+<div class="header-tabbed resource-nav">
+  {{if true}}
+  <div class="container-fluid">
+  {{end}}
+    {{/* block tabs */}}
+    {{/* macro link */}}
+
+    {{/* one project whose name differs from the list's */}}
+
+    <ul class="nav nav-tabs">
+      {{if ne .Content.List.Visibility "PUBLIC"}}
+      <li
+        class="nav-item nav-text vis-{{lower .Content.List.Visibility}}"
+        {{if eq .Content.List.Visibility "UNLISTED"}}
+        title="This tracker is only visible to those who know the URL."
+        {{else if eq .Content.List.Visibility "PRIVATE"}}
+        title="This tracker is only visible to those who were invited to view it."
+        {{end}}
+      >
+        {{if eq .Content.List.Visibility "UNLISTED"}}
+        Unlisted
+        {{else if eq .Content.List.Visibility "PRIVATE"}}
+        Private
+        {{end}}
+      </li>
+      {{end}}
+      <li class="nav-item">
+        {{template "navlink" (navlink (printf "/%s" .Content.List.FullName) (tabname .View "archive" "archives") (eq .View "archives" "archive"))}}
+      </li>
+      {{if .Content.List.Access.Browse}}
+      <li class="nav-item">
+        {{template "navlink" (navlink (printf "/%s/patches" .Content.List.FullName) (tabname .View "patch" "patches") (eq .View "patches" "patch"))}}
+      </li>
+      {{end}}
+
+      {{/* set posting_address */}}
+      {{if true}}
+      {{if .Content.List.Access.Post}}
+      <li class="nav-item">
+        <a
+          class="nav-link {{if eq .View "post"}}active{{end}}"
+          {{/* mirrors carry a mailto: address of their own */}}
+          {{mailto (.Content.List.PostAddress "")}}
+          {{/* endif */}}
+        >new post</a>
+      </li>
+      {{end}}
+      {{end}}
+      {{if .Content.List.IsOwner}}
+      <li class="nav-item">
+        {{template "navlink" (navlink (printf "/%s/settings/info" .Content.List.FullName) "settings" (eq .View "settings"))}}
+      </li>
+      {{end}}
+    </ul>
+    {{/* endblock */}}
+  </div>
+</div>
+{{template "content" .}}
+{{end}}
+{{define "projectnav"}}
+{{/* if fluid, set cls */}}
+{{/* endif */}}
+
+{{/* if one project, elif several */}}
+<div class="header-tabbed project-nav">
+  <div class="container-fluid">
+    <h2>
+      <a
+        href="/~{{.Content.List.Owner}}"
+      >~{{.Content.List.Owner}}</a>/<wbr>{{.Content.List.Name}}
+    </h2>
+  </div>
+</div>
+{{/* endif */}}
+{{end}}

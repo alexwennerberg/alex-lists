@@ -1,0 +1,28 @@
+{{define "pagination"}}{{if gt .Content.TotalPages 1}}<div class="row">
+  <div class="col-4">
+  {{if ne .Content.Page 1}}
+    <a
+      class="btn btn-default"
+      href="{{pageLink .Content -1}}"
+    >
+      {{icon "caret-left"}}
+      prev
+    </a>
+  {{end}}
+  </div>
+  <div class="col-4 text-centered">
+    {{.Content.Page}} / {{.Content.TotalPages}}
+  </div>
+  <div class="col-4 text-right">
+  {{if ne .Content.Page .Content.TotalPages}}
+    <a
+      class="btn btn-default"
+      href="{{pageLink .Content 1}}"
+    >
+      next
+      {{icon "caret-right"}}
+    </a>
+  {{end}}
+  </div>
+</div>
+{{end}}{{end}}

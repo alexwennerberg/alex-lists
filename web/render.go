@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 )
 
@@ -28,8 +29,10 @@ func init() {
 		"dashboard":     "",
 		"login":         "",
 		"profile-lists": "templates/profile.html",
+		"archive":       "templates/list.html",
 	} {
-		files := []string{"templates/layout.html", "templates/nav.html"}
+		files := []string{"templates/layout.html", "templates/nav.html",
+			"templates/pagination.html", "templates/navlink.html"}
 		if extends != "" {
 			files = append(files, extends)
 		}
@@ -57,15 +60,38 @@ var funcs = template.FuncMap{
 	"lower":    strings.ToLower,
 	"add":      func(a, b int) int { return a + b },
 	"sub":      func(a, b int) int { return a - b },
+	// The archive tab is labelled "archive" on a thread page and "archives"
+	// on the index; likewise patch/patches.
+	"tabname": func(view, singular, plural string) string {
+		if view == singular {
+			return singular
+		}
+		return plural
+	},
+	// html/template escapes + to &#43; inside an href; a mailto: is a URL,
+	// so hand it one.
+	// html/template escapes + to &#43; in an attribute value, even a URL one,
+	// so build the whole attribute rather than just its value.
+	"mailto": func(address string) template.HTMLAttr {
+		return template.HTMLAttr(`href="mailto:` + address + `"`)
+	},
+	"pathescape": url.PathEscape,
+	// Pagination state lives on the page content, which differs per page;
+	// these report zero for pages that have none, matching an undefined
+	// variable in Jinja.
+	"pageNum":   pageNumber,
+	"pageCount": pageCount,
 	"navlink": func(path, title string, active bool) navlinkArgs {
 		return navlinkArgs{path, title, active}
 	},
-	// The pagination links carry the current search along.
-	"searchTerms": func(search string) template.HTMLAttr {
-		if search == "" {
-			return ""
+	// A whole pagination href, typed as a URL so that html/template leaves
+	// its & and = alone and only HTML-escapes them, as Jinja does.
+	"pageLink": func(c any, delta int) template.URL {
+		link := "?page=" + strconv.Itoa(pageNumber(c)+delta)
+		if search := searchOf(c); search != "" {
+			link += "&search=" + url.QueryEscape(search)
 		}
-		return template.HTMLAttr("&search=" + url.QueryEscape(search))
+		return template.URL(link)
 	},
 }
 
@@ -104,10 +130,19 @@ type page struct {
 	LoginURL    string
 	LogoutURL   string
 	CSRF        template.HTML
+	View        string
 	Content     any
 }
 
-func newPage(w http.ResponseWriter, r *http.Request, content any) *page {
+// What srht passes as view=, which drives the active tab and a few layout
+// choices shared with the patches pages.
+var views = map[string]string{
+	"archive":       "archives",
+	"profile-lists": "lists",
+}
+
+func newPage(w http.ResponseWriter, r *http.Request, name string,
+	content any) *page {
 	returnTo := r.URL.Path
 	if r.URL.RawQuery != "" {
 		returnTo += "?" + r.URL.RawQuery
@@ -126,11 +161,20 @@ func newPage(w http.ResponseWriter, r *http.Request, content any) *page {
 		ListsOrigin:   confOpt("lists.sr.ht", "origin"),
 		TodoOrigin:    confOpt("todo.sr.ht", "origin"),
 		User:          userFor(r),
-		LoginURL:      "/login?return_to=" + returnTo,
+		LoginURL:      "/login?return_to=" + returnToParam(returnTo),
 		LogoutURL:     "/logout",
 		CSRF:          csrfField(csrfToken(w, r)),
+		View:          views[name],
 		Content:       content,
 	}
+}
+
+// Werkzeug's url_for escapes the return_to value but leaves the path and
+// query separators legible, so "/l?a=b" becomes "/l?a%3Db".
+func returnToParam(target string) string {
+	escaped := url.QueryEscape(target)
+	escaped = strings.ReplaceAll(escaped, "%2F", "/")
+	return strings.ReplaceAll(escaped, "%3F", "?")
 }
 
 func render(w http.ResponseWriter, r *http.Request, name string, content any) {
@@ -143,7 +187,7 @@ func renderStatus(w http.ResponseWriter, r *http.Request, name string,
 	// newPage issues the CSRF cookie, so it has to run before anything is
 	// written; and buffering means a template that fails halfway does not
 	// leave half a page on the wire behind a 200.
-	data := newPage(w, r, content)
+	data := newPage(w, r, name, content)
 	var buf strings.Builder
 	if err := pages[name].Execute(&buf, data); err != nil {
 		log.Printf("render %s: %s", name, err)
@@ -153,4 +197,32 @@ func renderStatus(w http.ResponseWriter, r *http.Request, name string,
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	io.WriteString(w, buf.String())
+}
+
+// Implemented by page content that paginates.
+type paginated interface {
+	PageNumber() int
+	PageCount() int
+	SearchTerms() string
+}
+
+func pageNumber(c any) int {
+	if p, ok := c.(paginated); ok {
+		return p.PageNumber()
+	}
+	return 0
+}
+
+func pageCount(c any) int {
+	if p, ok := c.(paginated); ok {
+		return p.PageCount()
+	}
+	return 1
+}
+
+func searchOf(c any) string {
+	if p, ok := c.(paginated); ok {
+		return p.SearchTerms()
+	}
+	return ""
 }

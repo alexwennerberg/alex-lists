@@ -11,8 +11,12 @@
     <link rel="icon" type="image/png" href="/static/logo.png" sizes="any" />
     {{/* endblock favicon */}}
     <link rel="stylesheet" href="{{.StaticURL}}">
-    {{/* rel=prev, when paginated */}}
-    {{/* rel=next, when paginated */}}
+    {{if and (pageNum .Content) (ne (pageNum .Content) 1)}}
+    <link rel="prev" href="{{pageLink .Content -1}}" />
+    {{end}}
+    {{if and (pageNum .Content) (ne (pageNum .Content) (pageCount .Content))}}
+    <link rel="next" href="{{pageLink .Content 1}}" />
+    {{end}}
     {{/* block head */}}
     {{/* endblock */}}
   </head>
@@ -28,11 +32,11 @@
     </div>
     {{end}}
     {{/* endblock */}}
-    {{/* block nav */}}
+    {{block "nav" .}}
     <nav class="container navbar navbar-light navbar-expand-sm">
       {{template "nav.html" .}}
     </nav>
-    {{/* endblock */}}
+    {{end}}
     {{block "body" .}}
     <div class="container">
       {{template "content" .}}

@@ -68,8 +68,14 @@ func main() {
 	// whole segment. Match the segment and check the ~ in the handler.
 	mux.HandleFunc("GET /{owner}", handleProfile)
 	mux.HandleFunc("GET /lists/{owner}", handleListsForUser)
-	mux.Handle("GET /static/", http.StripPrefix("/static/",
-		http.FileServer(http.Dir(conf("sr.ht", "assets")+"/static"))))
+	mux.HandleFunc("GET /{owner}/{list}", handleArchive)
+	// Registered by depth rather than as a "/static/" prefix: ServeMux will
+	// not accept that alongside "/{owner}/{list}", since neither pattern is
+	// more specific than the other. These two are.
+	static := http.StripPrefix("/static/",
+		http.FileServer(http.Dir(conf("sr.ht", "assets")+"/static")))
+	mux.Handle("GET /static/{file}", static)
+	mux.Handle("GET /static/{service}/{file}", static)
 
 	handler := withDB(pg, withUser(mux))
 

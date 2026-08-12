@@ -133,9 +133,11 @@ func pageParam(r *http.Request) int {
 	return page
 }
 
+// srht's paginate_query, quirks included: with no results at all this is 0,
+// not 1, and the layout then advertises a next page that does not exist.
 func totalPages(total int) int {
 	pages := total/perPage + 1
-	if total%perPage == 0 && total != 0 {
+	if total%perPage == 0 {
 		pages--
 	}
 	return pages
@@ -194,3 +196,7 @@ func plural(n int, unit string) string {
 	}
 	return fmt.Sprintf("%d %ss ago", n, unit)
 }
+
+func (p *profile) PageNumber() int     { return p.Page }
+func (p *profile) PageCount() int      { return p.TotalPages }
+func (p *profile) SearchTerms() string { return p.Search }
