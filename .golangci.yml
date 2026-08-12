@@ -1,5 +1,0 @@
-# TODO: handle all errcheck complaints and re-enable
-version: 2
-linters:
-  disable:
-    - errcheck
