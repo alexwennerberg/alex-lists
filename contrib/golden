@@ -1,0 +1,378 @@
+#!/usr/bin/env python3
+"""
+Golden fixture harness: record what the web app renders now, so a rewrite can
+be held to it.
+
+    contrib/golden capture              # record fixtures from the running app
+    contrib/golden compare              # re-request and diff against them
+    contrib/golden compare --base http://localhost:5007
+    contrib/golden list                 # cases, and which routes they cover
+
+`capture` builds its case list from the database (real lists, messages and
+patchsets) and from the Flask url_map, so it reports any GET route it could
+not reach. `compare` reads the case list back out of the manifest and needs
+neither, which is the point: it still works once the Python app is gone.
+
+Fixtures are only meaningful against the database they were captured from.
+Change the data, recapture. They live under .srht-local/golden, which is not
+tracked by git.
+"""
+
+import argparse
+import configparser
+import difflib
+import hashlib
+import json
+import os
+import re
+import sys
+from urllib.parse import quote, urlparse
+
+import psycopg2
+import requests
+
+DEFAULT_BASE = "http://localhost:5006"
+DEFAULT_DIR = ".srht-local/golden"
+MANIFEST_VERSION = 1
+
+# Values that change between two identical runs and say nothing about whether
+# the page is right. Applied to text responses before storing and before
+# comparing, so both sides see the same thing.
+SCRUBBERS = [
+    (re.compile(rb"name='_csrf_token'\s+value='[0-9a-f]+'"),
+     b"name='_csrf_token' value='CSRF'"),
+    (re.compile(rb'main\.min\.[0-9a-f]{6,}\.css'),
+     b'main.min.HASH.css'),
+    (re.compile(rb'\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d+)?( ?UTC|Z)?'),
+     b'TIMESTAMP'),
+    (re.compile(rb'\b\d+ (second|minute|hour|day|week|month|year)s? ago\b'),
+     b'RELATIVE TIME'),
+    # mbox spools are stamped when generated; the lines end CRLF, so anchor
+    # with a lookahead rather than $.
+    (re.compile(rb'(?m)^From nobody \w{3} \w{3} [ \d]\d '
+                rb'\d{2}:\d{2}:\d{2} \d{4}(?=\r?\n|$)'),
+     b'From nobody MBOX DATE'),
+    (re.compile(rb'(Mon|Tue|Wed|Thu|Fri|Sat|Sun), \d{1,2} '
+                rb'(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) '
+                rb'\d{4} \d{2}:\d{2}:\d{2} [-+]\d{4}'),
+     b'RFC5322 DATE'),
+]
+
+
+def scrub(body):
+    for pattern, replacement in SCRUBBERS:
+        body = pattern.sub(replacement, body)
+    return body
+
+
+def config(key, section="lists.sr.ht"):
+    path = os.environ.get("SRHT_CONFIG", "config.ini")
+    parser = configparser.ConfigParser(strict=False)
+    parser.read(path)
+    return parser[section][key]
+
+
+def slug(persona, url):
+    out = url.split("?")[0].strip("/").replace("/", "_") or "index"
+    query = url.split("?")[1] if "?" in url else ""
+    if query:
+        out += "_" + query
+    out = re.sub(r"[^A-Za-z0-9_.=-]", "-", out)
+    return f"{persona}__{out}"[:150]
+
+
+# --- case list ---------------------------------------------------------------
+
+def fixtures_from_db(limits):
+    """Real identifiers to build URLs out of, newest lists first."""
+    conn = psycopg2.connect(config("connection-string"))
+    with conn, conn.cursor() as cur:
+        cur.execute("""SELECT u.username, l.name, l.id
+                       FROM list l JOIN "user" u ON u.id = l.owner_id
+                       ORDER BY l.id LIMIT %s""", (limits["lists"],))
+        lists = cur.fetchall()
+
+        cur.execute("""SELECT username FROM "user" ORDER BY id LIMIT %s""",
+                    (limits["users"],))
+        users = [row[0] for row in cur.fetchall()]
+
+        messages, patchsets = {}, {}
+        for owner, name, list_id in lists:
+            # A thread root and its replies both matter: they render
+            # differently and exercise different queries.
+            cur.execute("""SELECT message_id FROM email WHERE list_id = %s
+                           ORDER BY id LIMIT %s""",
+                        (list_id, limits["messages"]))
+            messages[(owner, name)] = [row[0] for row in cur.fetchall()]
+
+            cur.execute("""SELECT p.id FROM patchset p
+                           JOIN email e ON e.patchset_id = p.id
+                           WHERE e.list_id = %s
+                           GROUP BY p.id ORDER BY p.id LIMIT %s""",
+                        (list_id, limits["patchsets"]))
+            patchsets[(owner, name)] = [row[0] for row in cur.fetchall()]
+    conn.close()
+    return lists, users, messages, patchsets
+
+
+def build_cases(limits):
+    lists, users, messages, patchsets = fixtures_from_db(limits)
+    urls = ["/", "/login", "/lists/create", "/lists/create-mirror"]
+
+    for username in users:
+        urls += [f"/~{username}", f"/lists/~{username}"]
+
+    for owner, name, _ in lists:
+        base = f"/~{owner}/{name}"
+        urls += [
+            base,
+            base + "?search=patch",
+            base + "/patches",
+            base + "/settings/info",
+            base + "/settings/access",
+            base + "/settings/content",
+            base + "/settings/delete",
+            base + "/settings/import-export",
+        ]
+        for message_id in messages[(owner, name)]:
+            escaped = quote(message_id, safe="")
+            urls += [f"{base}/{escaped}", f"{base}/{escaped}/mbox",
+                     f"{base}/{escaped}/raw"]
+        for patchset_id in patchsets[(owner, name)]:
+            urls += [f"{base}/patches/{patchset_id}",
+                     f"{base}/patches/{patchset_id}/mbox"]
+
+    personas = ["anon"] + users
+    return [{"persona": p, "url": u} for p in personas for u in urls], lists
+
+
+def uncovered_routes(cases):
+    """GET routes with no case. Needs the Flask app, so capture-time only.
+
+    Routes are resolved with Flask's own matcher rather than by pattern
+    guessing, so this says exactly which endpoint each case lands on.
+    """
+    try:
+        from listssrht.app import app
+    except Exception as err:              # the app is gone, or won't import
+        return None, str(err)
+
+    # /logout mutates the session; static assets are not app output.
+    skipped = {"auth.logout", "srht_static.static_asset"}
+    adapter = app.url_map.bind("localhost")
+
+    covered = set()
+    for case in cases:
+        try:
+            endpoint, _ = adapter.match(case["url"].split("?")[0],
+                                        method="GET")
+            covered.add(endpoint)
+        except Exception:
+            pass                          # no such route: reported as a 404
+
+    missing = {rule.rule for rule in app.url_map.iter_rules()
+               if "GET" in rule.methods
+               and rule.endpoint not in covered
+               and rule.endpoint not in skipped}
+    return sorted(missing), None
+
+
+# --- http --------------------------------------------------------------------
+
+def rehome_cookies(session, base):
+    """
+    The login cookie is issued with Domain=localhost, and http.cookiejar will
+    not send a dotless domain cookie back to the host that set it. A custom
+    policy does not help: requests rebuilds the jar with the default policy on
+    every request. Re-set them as host-only cookies instead, which is how the
+    same jar already stores Flask's own session cookie.
+    """
+    host = urlparse(base).hostname
+    home = host if "." in host else host + ".local"
+    for cookie in list(session.cookies):
+        if cookie.domain != home:
+            session.cookies.clear(cookie.domain, cookie.path, cookie.name)
+            session.cookies.set(cookie.name, cookie.value, domain=home,
+                                path="/")
+
+
+def session_for(persona, base):
+    session = requests.Session()
+    if persona == "anon":
+        return session
+    page = session.get(f"{base}/login", timeout=30)
+    token = re.search(r"name='_csrf_token'\s+value='([0-9a-f]+)'", page.text)
+    if not token:
+        sys.exit(f"login page has no CSRF token; is {base} the web app?")
+    session.post(f"{base}/login", timeout=30, data={
+        "username": persona,
+        "_csrf_token": token.group(1),
+    })
+    rehome_cookies(session, base)
+    whoami = session.get(f"{base}/", timeout=30)
+    if f"~{persona}" not in whoami.text:
+        sys.exit(f"could not log in as {persona}")
+    return session
+
+
+def fetch_all(cases, base):
+    """Returns cases annotated with status, content type and scrubbed body."""
+    out = []
+    for persona in dict.fromkeys(c["persona"] for c in cases):
+        session = session_for(persona, base)
+        for case in [c for c in cases if c["persona"] == persona]:
+            response = session.get(base + case["url"], timeout=60,
+                                   allow_redirects=False)
+            # A 5xx body here is the werkzeug debugger: object ids and a fresh
+            # pin every run, and not something a rewrite should reproduce. Keep
+            # the status, drop the body.
+            recorded = response.status_code < 500
+            body = scrub(response.content) if recorded else b""
+            out.append({
+                **case,
+                "status": response.status_code,
+                "body_recorded": recorded,
+                "content_type": response.headers.get("content-type", ""),
+                "location": response.headers.get("location", ""),
+                "sha256": hashlib.sha256(body).hexdigest(),
+                "file": slug(case["persona"], case["url"]),
+                "_body": body,
+            })
+            print(".", end="", flush=True)
+    print()
+    return out
+
+
+# --- commands ----------------------------------------------------------------
+
+def cmd_capture(args):
+    cases, lists = build_cases(args.limits)
+    if not lists:
+        sys.exit("no mailing lists in the database; nothing to capture")
+    results = fetch_all(cases, args.base)
+
+    pages = os.path.join(args.dir, "pages")
+    os.makedirs(pages, exist_ok=True)
+    for old in os.listdir(pages):
+        os.unlink(os.path.join(pages, old))
+    for result in results:
+        with open(os.path.join(pages, result["file"]), "wb") as f:
+            f.write(result.pop("_body"))
+
+    with open(os.path.join(args.dir, "manifest.json"), "w") as f:
+        json.dump({
+            "version": MANIFEST_VERSION,
+            "base": args.base,
+            "cases": results,
+        }, f, indent=2, sort_keys=True)
+
+    by_status = {}
+    for result in results:
+        by_status[result["status"]] = by_status.get(result["status"], 0) + 1
+    print(f"captured {len(results)} cases to {args.dir}")
+    print("  status: " + ", ".join(f"{s}: {n}"
+                                   for s, n in sorted(by_status.items())))
+
+    broken = [r for r in results if not r["body_recorded"]]
+    if broken:
+        print(f"  {len(broken)} cases return 5xx; status recorded, body not:")
+        for result in broken:
+            print(f'    {result["persona"]:10} {result["url"]}')
+
+    missing, err = uncovered_routes(cases)
+    if err:
+        print(f"  route coverage: not checked ({err})")
+    elif missing:
+        print("  GET routes with no case:")
+        for rule in missing:
+            print(f"    {rule}")
+    else:
+        print("  route coverage: every GET route has at least one case")
+
+
+def cmd_compare(args):
+    with open(os.path.join(args.dir, "manifest.json")) as f:
+        manifest = json.load(f)
+    stored = manifest["cases"]
+    results = fetch_all([{"persona": c["persona"], "url": c["url"]}
+                         for c in stored], args.base)
+    live = {(r["persona"], r["url"]): r for r in results}
+
+    failures = 0
+    for case in stored:
+        result = live[(case["persona"], case["url"])]
+        label = f'{case["persona"]} {case["url"]}'
+
+        if result["status"] != case["status"]:
+            failures += 1
+            print(f'FAIL {label}\n  status {case["status"]} -> '
+                  f'{result["status"]}')
+            continue
+        if result["sha256"] == case["sha256"]:
+            continue
+        if not case["body_recorded"]:     # 5xx: the status already matched
+            continue
+
+        failures += 1
+        print(f"FAIL {label}")
+        with open(os.path.join(args.dir, "pages", case["file"]), "rb") as f:
+            want = f.read()
+        diff = difflib.unified_diff(
+            want.decode("utf-8", "replace").splitlines(),
+            result["_body"].decode("utf-8", "replace").splitlines(),
+            "golden", "live", lineterm="", n=1)
+        for i, line in enumerate(diff):
+            if i > args.diff_lines:
+                print("  ... diff truncated")
+                break
+            print("  " + line)
+
+    print(f"\n{len(stored) - failures}/{len(stored)} cases match")
+    return 1 if failures else 0
+
+
+def cmd_list(args):
+    cases, _ = build_cases(args.limits)
+    for case in cases:
+        print(f'{case["persona"]:12} {case["url"]}')
+    print(f"\n{len(cases)} cases")
+    missing, err = uncovered_routes(cases)
+    if err:
+        print(f"\nroute coverage: not checked ({err})")
+    elif missing:
+        print("\nGET routes with no case:")
+        for rule in missing:
+            print(f"  {rule}")
+    else:
+        print("\nroute coverage: every GET route has at least one case")
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("command", choices=["capture", "compare", "list"])
+    parser.add_argument("--base", default=DEFAULT_BASE,
+            help=f"web app to request (default {DEFAULT_BASE})")
+    parser.add_argument("--dir", default=DEFAULT_DIR,
+            help=f"fixture directory (default {DEFAULT_DIR})")
+    parser.add_argument("--lists", type=int, default=10)
+    parser.add_argument("--users", type=int, default=5)
+    parser.add_argument("--messages", type=int, default=3,
+            help="messages per list (default 3)")
+    parser.add_argument("--patchsets", type=int, default=2,
+            help="patchsets per list (default 2)")
+    parser.add_argument("--diff-lines", type=int, default=40,
+            help="lines of diff to print per failing case")
+    args = parser.parse_args()
+    args.limits = {"lists": args.lists, "users": args.users,
+                   "messages": args.messages, "patchsets": args.patchsets}
+
+    return {
+        "capture": cmd_capture,
+        "compare": cmd_compare,
+        "list": cmd_list,
+    }[args.command](args) or 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
