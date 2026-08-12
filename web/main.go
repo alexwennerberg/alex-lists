@@ -77,6 +77,13 @@ func main() {
 	// <path:message_id>, so an id containing a slash reaches it and not this.
 	mux.HandleFunc("GET /{owner}/{list}/settings/info",
 		settingsHandler("settings-info", "info"))
+	mux.HandleFunc("POST /{owner}/{list}/subscribe", handleSubscribe)
+	mux.HandleFunc("POST /{owner}/{list}/unsubscribe", handleUnsubscribe)
+	mux.HandleFunc("POST /{owner}/{list}/settings/info", handleSettingsInfo)
+	mux.HandleFunc("POST /{owner}/{list}/settings/content", handleSettingsContent)
+	mux.HandleFunc("POST /{owner}/{list}/settings/access", handleSettingsAccess)
+	mux.HandleFunc("POST /{owner}/{list}/settings/acl", handleACLAdd)
+	mux.HandleFunc("POST /{owner}/{list}/settings/acl/{acl}/delete", handleACLDelete)
 	mux.HandleFunc("GET /{owner}/{list}/settings/access",
 		settingsHandler("settings-access", "access"))
 	mux.HandleFunc("GET /{owner}/{list}/settings/content",

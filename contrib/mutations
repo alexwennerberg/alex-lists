@@ -1,0 +1,249 @@
+#!/usr/bin/env python3
+"""
+Differential test for the POST handlers.
+
+    contrib/mutations                    # every case, both apps
+    contrib/mutations --filter subscribe
+
+contrib/golden compares what the two apps *render*; this compares what they
+*write*. Each case is submitted to the Python app and then, from the same
+starting state, to the Go app, and the two are held to the same response and
+the same resulting rows.
+
+Cases restore the database themselves, so the golden fixtures stay valid: a
+case that leaves anything behind will show up as the next capture drifting.
+"""
+
+import argparse
+import configparser
+import os
+import re
+import sys
+from urllib.parse import urlparse
+
+import psycopg2
+import requests
+
+PYTHON = "http://localhost:5006"
+GO = "http://localhost:5007"
+
+# Each case: who submits it, where, with what, a query describing the state it
+# is supposed to change, and SQL putting that state back.
+CASES = [
+    {
+        "name": "subscribe",
+        "csrf_page": "/~alex/devel",
+        "as": "newperson",
+        "url": "/~alex/devel/subscribe",
+        "state": """SELECT u.username FROM subscription s
+                    JOIN "user" u ON u.id = s.user_id
+                    JOIN list l ON l.id = s.list_id
+                    WHERE l.name = 'devel' ORDER BY u.username""",
+        "reset": """DELETE FROM subscription s USING "user" u, list l
+                    WHERE s.user_id = u.id AND s.list_id = l.id
+                    AND u.username = 'newperson' AND l.name = 'devel'""",
+    },
+    {
+        "name": "subscribe-twice",
+        "csrf_page": "/~alex/devel",
+        "as": "newperson",
+        "url": "/~alex/devel/subscribe",
+        "before": """INSERT INTO subscription (created, updated, user_id, list_id)
+                     SELECT NOW(), NOW(), u.id, l.id FROM "user" u, list l
+                     WHERE u.username = 'newperson' AND l.name = 'devel'""",
+        "state": """SELECT count(*) FROM subscription s
+                    JOIN "user" u ON u.id = s.user_id
+                    JOIN list l ON l.id = s.list_id
+                    WHERE u.username = 'newperson' AND l.name = 'devel'""",
+        "reset": """DELETE FROM subscription s USING "user" u, list l
+                    WHERE s.user_id = u.id AND s.list_id = l.id
+                    AND u.username = 'newperson' AND l.name = 'devel'""",
+    },
+    {
+        "name": "unsubscribe",
+        "csrf_page": "/~alex/devel",
+        "as": "newperson",
+        "url": "/~alex/devel/unsubscribe",
+        "before": """INSERT INTO subscription (created, updated, user_id, list_id)
+                     SELECT NOW(), NOW(), u.id, l.id FROM "user" u, list l
+                     WHERE u.username = 'newperson' AND l.name = 'devel'""",
+        "state": """SELECT count(*) FROM subscription s
+                    JOIN "user" u ON u.id = s.user_id
+                    JOIN list l ON l.id = s.list_id
+                    WHERE u.username = 'newperson' AND l.name = 'devel'""",
+        "reset": """DELETE FROM subscription s USING "user" u, list l
+                    WHERE s.user_id = u.id AND s.list_id = l.id
+                    AND u.username = 'newperson' AND l.name = 'devel'""",
+    },
+    {
+        "name": "subscribe-anonymous",
+        "csrf_page": "/~alex/devel",
+        "as": "anon",
+        "url": "/~alex/devel/subscribe",
+        "state": "SELECT count(*) FROM subscription",
+        "reset": "SELECT 1",
+    },
+    {
+        "name": "settings-info",
+        "as": "alex",
+        "url": "/~alex/adsf/settings/info",
+        "form": {"visibility": "PUBLIC", "description": "a new description"},
+        "state": """SELECT name, description, visibility FROM list
+                    WHERE name = 'adsf'""",
+        "reset": """UPDATE list SET description = 'asdf' WHERE name = 'adsf'""",
+    },
+    {
+        "name": "settings-info-not-owner",
+        "as": "newperson",
+        "url": "/~alex/adsf/settings/info",
+        "form": {"visibility": "PUBLIC", "description": "hijacked"},
+        "state": """SELECT name, description, visibility FROM list
+                    WHERE name = 'adsf'""",
+        "reset": """UPDATE list SET description = 'asdf' WHERE name = 'adsf'""",
+    },
+    {
+        "name": "settings-content",
+        "as": "alex",
+        "url": "/~alex/adsf/settings/content",
+        "form": {"permitMime": "text/*", "rejectMime": "text/html"},
+        "state": """SELECT permit_mimetypes, reject_mimetypes FROM list
+                    WHERE name = 'adsf'""",
+        "reset": """UPDATE list SET
+                    permit_mimetypes = 'text/*,application/pgp-signature,application/pgp-keys',
+                    reject_mimetypes = 'text/html' WHERE name = 'adsf'""",
+    },
+    {
+        "name": "settings-access",
+        "as": "alex",
+        "url": "/~alex/adsf/settings/access",
+        "form": {"perm_default_browse": "1", "perm_default_reply": "2"},
+        "state": "SELECT default_access FROM list WHERE name = 'adsf'",
+        "reset": "UPDATE list SET default_access = 7 WHERE name = 'adsf'",
+    },
+    {
+        "name": "acl-add",
+        "csrf_page": "/~alex/adsf/settings/access",
+        "as": "alex",
+        "url": "/~alex/adsf/settings/acl",
+        "form": {"user": "~newperson", "perm_acl_browse": "1"},
+        "state": """SELECT COALESCE(u.username, a.email), a.permissions
+                    FROM access a
+                    LEFT JOIN "user" u ON u.id = a.user_id
+                    JOIN list l ON l.id = a.list_id
+                    WHERE l.name = 'adsf' ORDER BY 1""",
+        "reset": """DELETE FROM access a USING list l
+                    WHERE a.list_id = l.id AND l.name = 'adsf'""",
+    },
+    {
+        "name": "copy-self",
+        "csrf_page": "/",
+        "as": "alex",
+        "url": "/",
+        "form": {"copy-self": "on"},
+        "state": """SELECT copy_self FROM "user" WHERE username = 'alex'""",
+        "reset": """UPDATE "user" SET copy_self = false WHERE username = 'alex'""",
+    },
+]
+
+
+def connect():
+    path = os.environ.get("SRHT_CONFIG", "config.ini")
+    parser = configparser.ConfigParser(strict=False)
+    parser.read(path)
+    conn = psycopg2.connect(parser["lists.sr.ht"]["connection-string"])
+    conn.autocommit = True
+    return conn
+
+
+def sql(conn, statement):
+    with conn.cursor() as cur:
+        cur.execute(statement)
+        if cur.description is None:
+            return None
+        return [tuple(row) for row in cur.fetchall()]
+
+
+def session_for(persona, base):
+    """A logged-in session, or an anonymous one. See contrib/golden."""
+    session = requests.Session()
+    if persona == "anon":
+        return session
+    page = session.get(f"{base}/login", timeout=30)
+    token = re.search(r"name='_csrf_token'\s+value='([0-9a-f]+)'", page.text)
+    if not token:
+        sys.exit(f"no CSRF token on {base}/login")
+    session.post(f"{base}/login", timeout=30, data={
+        "username": persona, "_csrf_token": token.group(1)})
+    host = urlparse(base).hostname
+    home = host if "." in host else host + ".local"
+    for cookie in list(session.cookies):
+        if cookie.domain != home:
+            session.cookies.clear(cookie.domain, cookie.path, cookie.name)
+            session.cookies.set(cookie.name, cookie.value, domain=home, path="/")
+    return session
+
+
+def csrf_from(session, base, url):
+    """The token the form on this page carries."""
+    page = session.get(base + url, timeout=30)
+    token = re.search(r"name='_csrf_token'\s+value='([0-9a-f]+)'", page.text)
+    if not token:                     # not a page: fall back to the index
+        page = session.get(base + "/", timeout=30)
+        token = re.search(r"name='_csrf_token'\s+value='([0-9a-f]+)'", page.text)
+    return token.group(1) if token else ""
+
+
+def run(case, base, conn):
+    """One submission, from a freshly reset state. Returns what to compare."""
+    sql(conn, case["reset"])
+    if case.get("before"):
+        sql(conn, case["before"])
+
+    session = session_for(case["as"], base)
+    form = dict(case.get("form") or {})
+    form["_csrf_token"] = csrf_from(
+        session, base, case.get("csrf_page", case["url"]))
+    response = session.post(base + case["url"], data=form, timeout=60,
+                            allow_redirects=False)
+    state = sql(conn, case["state"])
+    sql(conn, case["reset"])
+    return {
+        "status": response.status_code,
+        "location": response.headers.get("location", ""),
+        "state": state,
+    }
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__,
+            formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--filter", default="")
+    parser.add_argument("--python", default=PYTHON)
+    parser.add_argument("--go", default=GO)
+    args = parser.parse_args()
+
+    conn = connect()
+    cases = [c for c in CASES if args.filter in c["name"]]
+    if not cases:
+        sys.exit(f"no cases match {args.filter!r}")
+
+    failures = 0
+    for case in cases:
+        want = run(case, args.python, conn)
+        got = run(case, args.go, conn)
+        if want == got:
+            print(f"ok    {case['name']}")
+            continue
+        failures += 1
+        print(f"FAIL  {case['name']}")
+        for key in ("status", "location", "state"):
+            if want[key] != got[key]:
+                print(f"        {key}: python {want[key]!r}")
+                print(f"        {' ' * len(key)}  go     {got[key]!r}")
+
+    print(f"\n{len(cases) - failures}/{len(cases)} cases match")
+    return 1 if failures else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

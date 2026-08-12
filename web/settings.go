@@ -123,3 +123,13 @@ func permsFor(bits int, field string) []permCheckbox {
 // No ACL rows are rendered yet; the table needs the access table joined to
 // users, which comes with the ACL forms.
 func (s *settingsPage) ACLs() []struct{} { return nil }
+
+// The page data a settings form needs when it has to be re-rendered after a
+// failed submission.
+func settingsData(list *listView) *settingsPage {
+	page := settingsPage{List: list}
+	if list.Description != nil {
+		page.Description = *list.Description
+	}
+	return &page
+}
