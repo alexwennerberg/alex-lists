@@ -1,0 +1,119 @@
+{{define "title"}}
+<title>
+  {{.Content.List.FullName}} settings &mdash; {{cfg "sr.ht" "site-name"}} lists
+</title>
+{{end}}
+
+{{/* macro perm_checkbox */}}
+
+{{define "settings"}}
+<div class="container">
+  {{if true}}
+  <div class="row">
+    <div class="col-md-12">
+      <form method="POST">
+        <h3>Global permissions</h3>
+        {{.CSRF}}
+        <div class="form-group ">
+          <p>
+            These permissions allow you to control what kinds of users are able
+            to do what sorts of activities on your mailing list.
+          </p>
+          <div class="event-list">
+            <div class="event">
+              <h4>Default Permissions</h4>
+              <p>
+                These permissions are used for anyone who does not have a more
+                specific access configuration.
+              </p>
+              {{range .Content.DefaultPerms}}
+              {{template "permcheckbox" .}}
+              {{end}}
+              
+            </div>
+          </div>
+        </div>
+        <p>The list owner (you) is always granted all permissions.</p>
+        
+        <span class="pull-right">
+          <button type="submit" class="btn btn-primary">
+            Save changes {{icon "caret-right"}}
+          </button>
+        </span>
+      </form>
+    </div>
+  </div>
+  {{end}}
+  {{if true}}
+  <div class="row">
+    <div class="col-md-12">
+      <h3>User permissions</h3>
+      {{if .Content.ACLs}}
+      {{/* the granted-access table, once ACL rows exist */}}
+      {{end}}
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-12">
+      <form method="POST" action="/{{.Content.List.FullName}}/settings/acl">
+        {{.CSRF}}
+        <div class="form-group">
+          <label for="user">Username or email</label>
+          <input
+            type="text"
+            class="form-control "
+            id="user"
+            name="user"
+            placeholder="~{{.User.Username}} or {{.User.Email}}"
+            value=""
+          />
+          
+        </div>
+        <div class="event-list">
+          <div class="event">
+            <h4>Access grants</h4>
+            <p>These will override any other permissions for this user.</p>
+            {{range .Content.ACLPerms}}
+            {{template "permcheckbox" .}}
+            {{end}}
+            
+          </div>
+        </div>
+        
+        <span class="pull-right">
+          <button type="submit" class="btn btn-primary">
+            Set access {{icon "caret-right"}}
+          </button>
+        </span>
+      </form>
+    </div>
+  </div>
+  {{end}}
+</div>
+{{end}}
+{{define "permcheckbox"}}
+{{if not .Perm.Skip}}
+<div class="form-check form-check-inline">
+  <label
+    class="form-check-label"
+    title="{{.Perm.Help}}"
+  >
+    {{if false}}
+    {{else}}
+    <input
+      class="form-check-input"
+      type="checkbox"
+      {{if .Field}}
+      name="perm_{{.Field}}_{{.Perm.Name}}"
+      {{end}}
+      value="{{.Perm.Value}}"
+      {{if false}}
+      disabled
+      {{end}}
+      {{if .Checked}}checked{{end}}
+    > {{.Perm.Name}}
+    {{end}}
+  </label>
+</div>
+{{end}}
+{{end}}

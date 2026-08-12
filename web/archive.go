@@ -17,17 +17,18 @@ import (
 
 // A list as the archive pages need it, with the viewer's access resolved.
 type listView struct {
-	ID          int
-	Owner       string
-	Name        string
-	Description *string
-	Visibility  string
-	RID         string
-	MirrorID    *int
-	Importing   bool
-	Access      *model.GeneralACL
-	Subscribed  bool
-	IsOwner     bool
+	ID            int
+	Owner         string
+	Name          string
+	Description   *string
+	Visibility    string
+	RID           string
+	MirrorID      *int
+	Importing     bool
+	DefaultAccess int
+	Access        *model.GeneralACL
+	Subscribed    bool
+	IsOwner       bool
 }
 
 func (l *listView) FullName() string { return "~" + l.Owner + "/" + l.Name }
@@ -48,13 +49,14 @@ func getList(r *http.Request, owner, name string) (*listView, error) {
 	err := db.WithReadOnlyTx(r.Context(), func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(r.Context(), `
 			SELECT l.id, l.description, l.visibility, l.rid, l.mirror_id,
-				l.import_in_progress, l.owner_id
+				l.import_in_progress, l.default_access, l.owner_id
 			FROM list l JOIN "user" u ON u.id = l.owner_id
 			WHERE u.username = $1 AND l.name = $2;
 		`, owner, name)
 		var ownerID int
 		if err := row.Scan(&view.ID, &view.Description, &view.Visibility,
-			&view.RID, &view.MirrorID, &view.Importing, &ownerID); err != nil {
+			&view.RID, &view.MirrorID, &view.Importing, &view.DefaultAccess,
+			&ownerID); err != nil {
 			return err
 		}
 

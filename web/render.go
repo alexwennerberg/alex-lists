@@ -32,6 +32,7 @@ func init() {
 		"create":                 nil,
 		"create-mirror":          nil,
 		"settings-info":          {"templates/list.html", "templates/settings.html"},
+		"settings-access":        {"templates/list.html", "templates/settings.html"},
 		"settings-content":       {"templates/list.html", "templates/settings.html"},
 		"settings-delete":        {"templates/list.html", "templates/settings.html"},
 		"settings-import-export": {"templates/list.html", "templates/settings.html"},
@@ -160,6 +161,7 @@ var views = map[string]string{
 	"archive":                "archives",
 	"thread":                 "archive",
 	"settings-info":          "settings",
+	"settings-access":        "settings",
 	"settings-content":       "settings",
 	"settings-delete":        "settings",
 	"settings-import-export": "settings",
@@ -271,6 +273,7 @@ func isFluid(view string) bool {
 // Which settings tab each template lights up.
 var subviews = map[string]string{
 	"settings-info":          "info",
+	"settings-access":        "access",
 	"settings-content":       "content",
 	"settings-delete":        "delete",
 	"settings-import-export": "export",
