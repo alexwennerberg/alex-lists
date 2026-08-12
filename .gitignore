@@ -4,12 +4,14 @@ config.ini
 include/
 local/
 lib/
-static/
+# static/main.css is source now, not a build artifact; the minified and
+# content-hashed copies beside it still are.
+static/*
+!static/main.css
 *.swp
 *.rdb
 storage/
 pip-selfcheck.json
-.sass-cache/
 overrides/
 .pgp
 build

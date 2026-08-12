@@ -7,10 +7,6 @@ ASSETS=$(SHAREDIR)/sourcehut
 
 SERVICE=lists.sr.ht
 STATICDIR=$(ASSETS)/static/$(SERVICE)
-MIGRATIONDIR=$(ASSETS)/migrations/$(SERVICE)
-
-SASSC?=sassc
-SASSC_INCLUDE=-I$(ASSETS)/scss/
 
 BINARIES=\
 	$(SERVICE)-ingress
@@ -34,25 +30,20 @@ install-bin: all-bin
 
 install-share: all-share
 	mkdir -p $(STATICDIR)
-	mkdir -p $(MIGRATIONDIR)
 	install -Dm644 static/*.css $(STATICDIR)
 	install -Dm644 schema.sql $(ASSETS)/$(SERVICE).sql
-	install -Dm644 migrations/*.sql $(MIGRATIONDIR)
 
 clean-bin:
 	rm -f $(BINARIES)
 
 clean-share:
-	rm -f static/main.min.css static/main.css
+	rm -f static/main.min.css static/main.min.*.css
 
 .PHONY: all all-bin all-share
 .PHONY: install install-bin install-share
 .PHONY: clean clean-bin clean-share
 
-static/main.css: scss/main.scss
-	mkdir -p $(@D)
-	$(SASSC) $(SASSC_INCLUDE) $< $@
-
+# static/main.css is hand-written and checked in; only minification is built.
 static/main.min.css: static/main.css
 	minify -o $@ $<
 	cp $@ $(@D)/main.min.$$(sha256sum $@ | cut -c1-8).css

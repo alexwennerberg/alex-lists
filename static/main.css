@@ -1,0 +1,2044 @@
+/*
+ * lists.sr.ht stylesheet.
+ *
+ * Hand-written plain CSS. This replaces the old sassc build, which compiled
+ * scss/main.scss against core.sr.ht's scss/base.scss and a vendored Bootstrap 4
+ * submodule.
+ *
+ * The Bootstrap class names are kept as a compatibility surface: core.sr.ht
+ * still owns layout.html, profile.html, pagination.html and
+ * partials/resourcenav.html, and those emit container, row, column, navbar,
+ * nav-tabs, btn, form-control and alert markup that we render but do not own.
+ * Only the classes those templates and ours actually use are implemented here;
+ * this is not a general-purpose grid or component library.
+ *
+ * Colors are tokens on :root, overridden in one prefers-color-scheme block near
+ * the bottom. Values were taken from the last sassc output so the rendering is
+ * unchanged, including the WCAG-adjusted link and button colors that core's
+ * color_adjust_contrast_AERT() used to compute at build time.
+ */
+
+:root {
+  color-scheme: light dark;
+
+  --bg: #fff;
+  --fg: #212529;
+  --muted: #6c757d;
+  --link: #0242f2;
+  --link-hover: #0056b3;
+
+  --rule: #e9ecef;          /* h3/h4 underlines */
+  --code-fg: #000;
+  --pre-bg: #e9ecef;
+  --pre-fg: inherit;
+
+  --input-bg: #fff;
+  --input-fg: #343a40;
+  --input-border: #888;
+  --input-focus-bg: #fff;
+  --input-disabled-bg: #e9ecef;
+  --input-disabled-fg: #6c757d;
+
+  --table-bg: #fff;
+  --table-border: #ced4da;
+
+  --btn-default-bg: #dee2e6;
+  --btn-default-fg: #000;
+  --btn-default-border: #343a40;
+  --btn-default-hover-bg: #e9ecef;
+
+  --tab-bg: #ddd;
+  --tab-fg: #65686a;
+  --tab-active-fg: #000;
+  --navbar-fg: #000;
+  --navbar-link: #6c757d;
+  --navbar-link-hover: #000;
+
+  --event-bg: #f8f9fa;
+  --message-bg: #f8f9fa;
+
+  --success: #28a745;
+  --danger: #dc3545;
+  --info: #17a2b8;
+
+  --message-details-bg: #f5f5f5;
+  --feedback-border: #e9ecef;
+  --prefs-bg: #dee2e6;
+  --diff-add: #1e7e34;
+  --diff-del: #ad222f;
+  --diff-meta: #126d7b;
+}
+
+/* ------------------------------------------------------------------ base */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scrollbar-gutter: stable;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-align: initial;
+  padding-bottom: 1rem;
+  color: var(--fg);
+  background: var(--bg);
+}
+
+[hidden] {
+  display: none !important;
+}
+
+hr {
+  box-sizing: content-box;
+  height: 0;
+  overflow: visible;
+  margin: 1rem 0;
+  border: 0;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+p {
+  margin: 0 0 1rem;
+}
+
+ul,
+ol,
+dl {
+  margin-top: 0;
+  margin-bottom: 1rem;
+}
+
+dd {
+  margin-left: 0;
+}
+
+img,
+svg {
+  vertical-align: middle;
+}
+
+img {
+  border-style: none;
+  max-width: 100%;
+}
+
+section {
+  padding-bottom: 0.5rem;
+}
+
+small {
+  font-size: 80%;
+}
+
+strong,
+b {
+  font-weight: bolder;
+}
+
+sub,
+sup {
+  position: relative;
+  font-size: 75%;
+  line-height: 0;
+  vertical-align: baseline;
+}
+
+sub {
+  bottom: -0.25em;
+}
+
+sup {
+  top: -0.5em;
+}
+
+/* ------------------------------------------------------------ typography */
+
+a {
+  color: var(--link);
+  background: transparent;
+  text-decoration: underline;
+}
+
+a:hover {
+  color: var(--link-hover);
+  text-decoration: none;
+}
+
+a:not([href]) {
+  color: inherit;
+  text-decoration: none;
+}
+
+a.nav-link,
+a.navbar-brand,
+a.btn {
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-family: inherit;
+  font-weight: 500;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 2.5rem;
+}
+
+h2 {
+  font-size: 2rem;
+}
+
+h1 small,
+h2 small {
+  font-size: 1rem;
+}
+
+h3 {
+  font-size: 1.3rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.25rem;
+}
+
+h3 small {
+  font-size: 1rem;
+  margin-left: 1rem;
+}
+
+h4 {
+  font-size: 1.1rem;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 0.25rem;
+}
+
+h4 small {
+  font-size: 0.8rem;
+  margin-left: 1rem;
+}
+
+h5 {
+  font-size: 1rem;
+  font-weight: bold;
+}
+
+h6 {
+  font-size: 1rem;
+}
+
+h1 a,
+h2 a,
+h3 a,
+h4 a,
+h5 a {
+  text-decoration: none;
+}
+
+h1 a:hover,
+h2 a:hover,
+h3 a:hover,
+h4 a:hover,
+h5 a:hover {
+  text-decoration: underline;
+}
+
+blockquote {
+  margin: 0 0 1rem;
+  padding-left: 0.5rem;
+  border-left: 3px solid #aaa;
+}
+
+pre,
+code,
+kbd,
+samp {
+  font-family: monospace;
+  font-size: 1em;
+}
+
+pre {
+  display: block;
+  margin: 0 0 1rem;
+  overflow: auto;
+  padding: 0.25rem;
+  font-size: 87.5%;
+  color: var(--pre-fg);
+  background: var(--pre-bg);
+}
+
+code {
+  margin: 0;
+  font-size: 87.5%;
+  color: var(--code-fg);
+  background: transparent;
+  word-break: break-word;
+}
+
+pre code {
+  font-size: inherit;
+  color: inherit;
+  word-break: normal;
+}
+
+/* ---------------------------------------------------------------- layout */
+
+.container,
+.container-fluid {
+  width: 100%;
+  margin-right: auto;
+  margin-left: auto;
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+/*
+ * Bootstrap's sm/md container widths were overridden to 100% by core's
+ * base.scss, so only the lg and xl steps ever applied.
+ */
+@media (min-width: 992px) {
+  .container {
+    max-width: 960px;
+  }
+}
+
+@media (min-width: 1200px) {
+  .container {
+    max-width: 1140px;
+  }
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  margin-right: -15px;
+  margin-left: -15px;
+}
+
+[class^="col-"],
+[class*=" col-"] {
+  position: relative;
+  width: 100%;
+  min-height: 1px;
+  padding-right: 15px;
+  padding-left: 15px;
+}
+
+.col-4 {
+  flex: 0 0 33.333333%;
+  max-width: 33.333333%;
+}
+
+@media (min-width: 768px) {
+  .col-md-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+
+  .col-md-4 {
+    flex: 0 0 33.333333%;
+    max-width: 33.333333%;
+  }
+
+  .col-md-6 {
+    flex: 0 0 50%;
+    max-width: 50%;
+  }
+
+  .col-md-8 {
+    flex: 0 0 66.666667%;
+    max-width: 66.666667%;
+  }
+
+  .col-md-9 {
+    flex: 0 0 75%;
+    max-width: 75%;
+  }
+
+  .col-md-10 {
+    flex: 0 0 83.333333%;
+    max-width: 83.333333%;
+  }
+
+  .col-md-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .offset-md-6 {
+    margin-left: 50%;
+  }
+
+  .order-md-2 {
+    order: 2;
+  }
+}
+
+@media (min-width: 992px) {
+  .col-lg-3 {
+    flex: 0 0 25%;
+    max-width: 25%;
+  }
+
+  .col-lg-9 {
+    flex: 0 0 75%;
+    max-width: 75%;
+  }
+
+  .col-lg-12 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+
+  .order-lg-1 {
+    order: 1;
+  }
+
+  .order-lg-2 {
+    order: 2;
+  }
+}
+
+/* ------------------------------------------------------------- utilities */
+
+.d-none {
+  display: none !important;
+}
+
+.d-flex {
+  display: flex !important;
+}
+
+/* must follow .d-none: same specificity, both !important, so order decides */
+@media (min-width: 992px) {
+  .d-lg-block {
+    display: block !important;
+  }
+
+  .d-lg-none {
+    display: none !important;
+  }
+}
+
+.flex-column {
+  flex-direction: column !important;
+}
+
+.mt-auto {
+  margin-top: auto !important;
+}
+
+.text-center,
+.text-centered {
+  text-align: center;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.pull-left {
+  float: left;
+}
+
+.pull-right {
+  float: right;
+}
+
+.clearfix::after {
+  display: block;
+  clear: both;
+  content: "";
+}
+
+.text-muted,
+.tool-status .name {
+  color: var(--muted) !important;
+}
+
+.text-success {
+  color: var(--success) !important;
+}
+
+.text-danger {
+  color: var(--danger) !important;
+}
+
+.text-info {
+  color: var(--info) !important;
+}
+
+/* ---------------------------------------------------------------- tables */
+
+.table,
+.markdown table {
+  width: 100%;
+  margin-bottom: 1rem;
+  border-collapse: collapse;
+  background: var(--table-bg);
+}
+
+.table thead th,
+.markdown table thead th {
+  padding: 0.1rem 0.75rem;
+  border: none;
+  text-align: inherit;
+  vertical-align: bottom;
+}
+
+.table tbody td,
+.markdown table tbody td {
+  position: relative;
+  /*
+   * `position: relative` requires `background-clip: padding-box` to avoid the
+   * background being drawn on top of the borders on some OSes. Also,
+   * subsequently setting `background` will override `background-clip`, so make
+   * sure to use `background-color`.
+   */
+  background-clip: padding-box;
+  background-color: var(--table-bg);
+  vertical-align: middle;
+  padding: 0.1rem 0.75rem;
+  border: 1px solid var(--table-border);
+}
+
+.table tbody td label,
+.markdown table tbody td label {
+  margin-bottom: 0;
+}
+
+.table .btn-danger.btn-fill:hover {
+  background: var(--danger);
+}
+
+/* ----------------------------------------------------------------- forms */
+
+form {
+  margin-bottom: 1rem;
+}
+
+label {
+  display: inline-block;
+  margin-bottom: 0.25rem;
+}
+
+legend {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  padding: 0;
+  margin-bottom: 0;
+  font-size: 1rem;
+  line-height: inherit;
+}
+
+button,
+input,
+optgroup,
+select,
+textarea {
+  margin: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+button,
+[type="button"],
+[type="submit"] {
+  -webkit-appearance: button;
+}
+
+textarea {
+  overflow: auto;
+  resize: vertical;
+}
+
+.form-group {
+  margin-bottom: 1rem;
+}
+
+.form-control {
+  display: block;
+  width: 100%;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--input-fg);
+  background-color: var(--input-bg);
+  background-clip: padding-box;
+  border: 1px solid var(--input-border);
+  border-radius: 0.25rem;
+}
+
+/* core's base.scss squared off and tightened the controls we actually use */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="tel"],
+textarea.form-control {
+  border-radius: 0;
+  padding: 0.25rem 0.375rem;
+}
+
+select:not([multiple]).form-control {
+  border-radius: 0;
+  padding: 0 0.75rem;
+  height: 2.2rem !important;
+}
+
+.form-control::placeholder {
+  color: #6c757d;
+  opacity: 1;
+}
+
+.form-control:focus {
+  background-color: var(--input-focus-bg);
+  color: var(--input-fg);
+  outline: 0;
+}
+
+.form-control[disabled],
+.form-control[readonly] {
+  background-color: var(--input-disabled-bg);
+  color: var(--input-disabled-fg);
+  opacity: 1;
+}
+
+input[type="checkbox"] {
+  position: relative;
+  top: 2px;
+}
+
+.form-text {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 80%;
+}
+
+.form-check {
+  position: relative;
+  display: block;
+  padding-left: 1.25rem;
+}
+
+.form-check-input {
+  position: absolute;
+  margin-top: 0.3rem;
+  margin-left: -1.25rem;
+}
+
+.form-check-label {
+  margin-bottom: 0;
+}
+
+.form-check-inline {
+  display: inline-flex;
+  align-items: center;
+  padding-left: 0;
+  margin-right: 0.75rem;
+}
+
+.form-check-inline .form-check-input {
+  position: static;
+  margin-top: 0;
+  margin-right: 0.3125rem;
+  margin-left: 0;
+}
+
+/*
+ * Templates only render .invalid-feedback when there is an error to show, so
+ * unlike Bootstrap it does not need to be hidden until .is-invalid appears.
+ */
+.invalid-feedback {
+  width: 100%;
+  margin-top: 0.25rem;
+  font-size: 80%;
+  color: var(--danger);
+}
+
+.form-control.is-invalid {
+  border-color: var(--danger);
+}
+
+/* --------------------------------------------------------------- buttons */
+
+.btn {
+  display: inline-block;
+  font-weight: 400;
+  text-align: center;
+  vertical-align: middle;
+  user-select: none;
+  border: 1px solid transparent;
+  border-radius: 0;
+  padding: 0.1rem 0.75rem;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  transition: background 0.1s linear;
+  cursor: pointer;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn {
+    transition: none;
+  }
+}
+
+.btn:disabled,
+.btn.disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.btn-block {
+  display: block;
+  width: 100%;
+}
+
+.btn-block + .btn-block {
+  margin-top: 0.5rem;
+}
+
+.btn-sm {
+  font-size: 0.95rem;
+  padding: 0 0.75rem;
+}
+
+.btn-default {
+  background: var(--btn-default-bg);
+  border: var(--btn-default-border) 1px solid;
+  color: var(--btn-default-fg);
+}
+
+.btn-default:hover {
+  background: var(--btn-default-hover-bg);
+  color: var(--btn-default-fg);
+}
+
+.btn-primary {
+  background: #0062cc;
+  border: #001933 1px solid;
+  color: #fff;
+}
+
+.btn-primary:hover {
+  background: #007bff;
+  color: #fff;
+}
+
+.btn-success {
+  background: #1c7631;
+  border: #145523 1px solid;
+  color: #fff;
+}
+
+.btn-success:hover {
+  background: #1e7e34;
+  color: #fff;
+}
+
+.btn-info {
+  background: #117a8b;
+  border: #000203 1px solid;
+  color: #fff;
+}
+
+.btn-info:hover {
+  background: #17a2b8;
+  color: #fff;
+}
+
+.btn-danger {
+  background: #d32535;
+  border: #3b0a0f 1px solid;
+  color: #fff;
+}
+
+.btn-danger:hover {
+  background: #dc3545;
+  color: #fff;
+}
+
+a.btn.btn-link {
+  padding: 0;
+  font-size: 1rem;
+  margin-top: -0.1rem;
+  color: var(--link);
+  background: transparent;
+  border-color: transparent;
+  text-decoration: underline;
+}
+
+a.btn.btn-link:hover {
+  text-decoration: none;
+}
+
+/* Overlays a table cell so the whole cell becomes the click target */
+.btn-fill {
+  display: block;
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 100%;
+  border: none;
+  padding: 0;
+  line-height: 1.6;
+}
+
+/* ---------------------------------------------------------------- alerts */
+
+.alert {
+  position: relative;
+  padding: 0.5rem;
+  margin-bottom: 1rem;
+  border: 1px solid transparent;
+  border-radius: 0;
+}
+
+.form-group .alert {
+  margin-top: 1rem;
+}
+
+.alert-primary {
+  color: #004085;
+  background-color: #cce5ff;
+  border-color: #b8daff;
+}
+
+.alert-success {
+  color: #155724;
+  background-color: #d4edda;
+  border-color: #c3e6cb;
+}
+
+.alert-info {
+  color: #0c5460;
+  background-color: #d1ecf1;
+  border-color: #bee5eb;
+}
+
+.alert-warning {
+  color: #856404;
+  background-color: #fff3cd;
+  border-color: #ffeeba;
+}
+
+.alert-danger {
+  color: #721c24;
+  background-color: #f8d7da;
+  border-color: #f5c6cb;
+}
+
+/* ----------------------------------------------------------- navbar, nav */
+
+.navbar {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+}
+
+.navbar-nav {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  flex-wrap: nowrap;
+  padding-left: 0;
+  margin-bottom: 0;
+  list-style: none;
+}
+
+@media (min-width: 576px) {
+  .navbar-expand-sm {
+    flex-flow: row nowrap;
+    justify-content: flex-start;
+  }
+
+  .navbar-expand-sm .navbar-nav {
+    flex-direction: row;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .navbar .navbar-nav {
+    flex-direction: row !important;
+  }
+
+  .navbar .navbar-nav .nav-link {
+    padding: 0 0.5rem;
+  }
+
+  .navbar .navbar-nav .nav-link:first-child {
+    padding-left: 0;
+  }
+}
+
+.navbar-brand {
+  display: inline-block;
+  padding-top: 0.3125rem;
+  padding-bottom: 0.3125rem;
+  margin-right: 1rem;
+  font-size: 1.25rem;
+  line-height: inherit;
+  white-space: nowrap;
+}
+
+.navbar-light .navbar-brand,
+.navbar-light .navbar-brand a {
+  color: var(--navbar-fg);
+  text-decoration: none;
+}
+
+.navbar-light .navbar-brand a:hover {
+  color: var(--navbar-fg);
+  text-decoration: underline;
+}
+
+.navbar-light .navbar-brand .icon {
+  position: relative;
+  top: 1px;
+}
+
+.navbar-light .navbar-nav .nav-link {
+  color: var(--navbar-link);
+}
+
+.navbar-light .navbar-nav .nav-link:hover,
+.navbar-light .navbar-nav .active .nav-link {
+  color: var(--navbar-link-hover);
+}
+
+.navbar .nav-link:hover {
+  text-decoration: underline;
+}
+
+.navbar-text {
+  display: inline-block;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  color: var(--navbar-fg);
+}
+
+/* the "Log in" / "Logged in as" links take the navbar's own color, not --link */
+.navbar-light .navbar-text a,
+.navbar-light .navbar-text a:hover,
+.navbar-light .navbar-text a:focus {
+  color: var(--navbar-fg);
+}
+
+@media (max-width: 991.98px) {
+  .navbar .navbar-text {
+    padding: 0;
+  }
+}
+
+.nav {
+  display: flex;
+  flex-wrap: wrap;
+  padding-left: 0;
+  margin-bottom: 0;
+  list-style: none;
+}
+
+.nav-link {
+  display: block;
+  padding: 0.5rem 1rem;
+}
+
+.nav-tabs {
+  padding-left: 1rem;
+  margin-bottom: 0.5rem;
+  border-bottom: 3px var(--tab-bg) solid;
+}
+
+.nav-tabs .nav-link {
+  padding: 0 1rem;
+  border-radius: 0;
+  border: none;
+  color: var(--tab-fg);
+  cursor: pointer;
+}
+
+.nav-tabs .nav-link.active,
+.nav-tabs .nav-link.active:hover {
+  color: var(--tab-active-fg);
+  background: var(--tab-bg);
+}
+
+.nav-tabs .nav-link[disabled],
+.nav-tabs .nav-link[disabled]:hover {
+  color: #343a40;
+  cursor: not-allowed;
+  background: transparent;
+}
+
+/* ---------------------------------------------------- tabbed page header */
+
+.header-tabbed {
+  border-bottom: 3px solid var(--tab-bg);
+  margin-bottom: 1rem;
+}
+
+.header-tabbed .container,
+.header-tabbed .container-fluid {
+  display: flex;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 767.98px) {
+  .header-tabbed .container,
+  .header-tabbed .container-fluid {
+    flex-direction: column;
+  }
+}
+
+.header-tabbed h2 {
+  display: inline;
+  margin: 0;
+  padding-right: 1rem;
+}
+
+.header-tabbed .nav {
+  border: none;
+  margin: 0;
+  flex-grow: 1;
+  display: inline-flex;
+  flex-wrap: nowrap;
+  padding: 0;
+}
+
+.header-tabbed .nav li {
+  align-self: flex-end;
+}
+
+.header-tabbed .nav .nav-item {
+  margin-bottom: 0;
+}
+
+.header-tabbed .nav .nav-item:hover {
+  background: var(--tab-bg);
+}
+
+.header-tabbed .nav .nav-item:hover a {
+  color: var(--tab-active-fg);
+}
+
+.header-tabbed .nav .nav-text {
+  padding: 0 1rem;
+  margin-right: 1rem;
+}
+
+.header-tabbed .nav .nav-text:hover {
+  background: transparent;
+}
+
+.header-tabbed .nav .nav-text.vis-private {
+  border-bottom: 3px solid var(--danger);
+  margin-bottom: -3px;
+}
+
+.header-tabbed .nav .nav-text.vis-unlisted {
+  border-bottom: 3px solid var(--info);
+  margin-bottom: -3px;
+}
+
+.header-tabbed form {
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.header-tabbed button.nav-link {
+  background: inherit;
+  border: none;
+}
+
+@media (max-width: 767.98px) {
+  .header-tabbed .nav .nav-text {
+    display: none;
+  }
+
+  .header-tabbed .nav {
+    flex-wrap: wrap;
+  }
+
+  .header-tabbed .nav li {
+    align-self: flex-start;
+    margin: 0 -1rem;
+    width: 100vw;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .header-tabbed .nav-tabs {
+    padding-left: 0;
+  }
+}
+
+.header-extension {
+  margin-top: -1rem;
+  margin-bottom: 1rem;
+  background: var(--tab-bg);
+}
+
+.project-nav {
+  margin-bottom: 0;
+}
+
+.project-nav + .resource-nav {
+  background: var(--tab-bg);
+  border-bottom: none;
+}
+
+.project-nav + .resource-nav .nav-item .active,
+.project-nav + .resource-nav .nav-item .nav-link:hover {
+  background: var(--bg) !important;
+}
+
+.project-nav + .resource-nav h3 {
+  border: none;
+  padding: 0;
+  margin: 0 1rem 0 0;
+}
+
+.project-nav ~ .header-extension {
+  background: transparent;
+  border-bottom: 2px solid var(--tab-bg);
+}
+
+.project-nav ~ .header-extension .nav-item .nav-link {
+  border-top: 2px solid transparent;
+  margin-bottom: -2px;
+}
+
+.project-nav ~ .header-extension .nav-item .active,
+.project-nav ~ .header-extension .nav-item .nav-link:hover {
+  border-bottom: 2px solid #6c757d !important;
+  margin-bottom: -2px;
+}
+
+@media (max-width: 991.98px) {
+  .nav-project-back {
+    margin-left: -12px;
+  }
+}
+
+.subnav {
+  display: inline-block;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.subnav .nav-item:hover {
+  background: var(--bg);
+}
+
+.subnav .nav-tabs {
+  padding: 0;
+  margin-bottom: -3px;
+  border-bottom: 3px transparent solid;
+}
+
+.subnav .nav-tabs .nav-link {
+  padding: 0 1rem;
+}
+
+.subnav .nav-tabs .nav-link:hover {
+  color: var(--tab-active-fg);
+}
+
+.subnav .nav-tabs .nav-link.active {
+  border-bottom: 3px var(--bg) solid;
+  background: var(--bg);
+}
+
+/* ----------------------------------------------------------------- icons */
+
+.icon {
+  display: inline-block;
+  line-height: 0.75em;
+  width: 1.1em;
+  vertical-align: -0.2em;
+}
+
+.icon svg {
+  display: block;
+}
+
+.icon path {
+  fill: currentColor;
+}
+
+.btn .icon {
+  vertical-align: -0.3em;
+}
+
+.icon.sm {
+  width: 0.9em;
+  vertical-align: -0.2em;
+}
+
+.icon-caret-left,
+.icon-caret-right {
+  width: 0.5em;
+  vertical-align: -0.35em;
+}
+
+.icon-caret-left.sm,
+.icon-caret-right.sm {
+  width: 0.4em;
+}
+
+.btn .icon-caret-left,
+.btn .icon-caret-right {
+  margin-left: 0.2rem;
+}
+
+.icon-times {
+  width: 0.8em;
+  vertical-align: -0.25em;
+}
+
+.icon-spin {
+  animation: icon-spin 2s infinite linear;
+}
+
+@keyframes icon-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(1turn);
+  }
+}
+
+/* ---------------------------------------------------------------- events */
+
+.event-list {
+  margin-bottom: 1rem;
+}
+
+.event {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  background: var(--event-bg);
+}
+
+/*
+ * Contrast-adjusted against the event background. Buttons are excluded: core's
+ * SCSS relied on `a.btn-primary` being emitted after `.event a` to win the tie,
+ * which is too fragile to reproduce by hand.
+ */
+.event a:not(.btn) {
+  color: #0640e0;
+}
+
+.event a:not(.btn):hover {
+  color: var(--link-hover);
+}
+
+/*
+ * core's SCSS also contrast-adjusted .event .text-muted to #626363, but
+ * Bootstrap marks .text-muted !important, so that never actually applied.
+ * Reproducing the dead rule here would change the rendering, so it is omitted.
+ */
+
+.event:first-child {
+  margin-top: 0;
+}
+
+.event:last-child,
+.event *:last-child {
+  margin-bottom: 0;
+}
+
+.event h4 {
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  margin-bottom: 0;
+  padding: 0;
+}
+
+.event blockquote {
+  margin-bottom: 0.5rem;
+}
+
+.event blockquote *:last-child {
+  margin-bottom: 0;
+}
+
+/* -------------------------------------------------------------- markdown */
+
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4,
+.markdown h5,
+.markdown h6 {
+  position: relative;
+  margin-top: 1em;
+}
+
+.markdown h1:first-child,
+.markdown h2:first-child,
+.markdown h3:first-child,
+.markdown h4:first-child,
+.markdown h5:first-child,
+.markdown h6:first-child {
+  margin-top: 0;
+}
+
+/* the anchor-link markdown inserts ahead of each heading */
+.markdown h1 > a:first-child,
+.markdown h2 > a:first-child,
+.markdown h3 > a:first-child,
+.markdown h4 > a:first-child,
+.markdown h5 > a:first-child,
+.markdown h6 > a:first-child {
+  transition: opacity 0.15s linear;
+  opacity: 0;
+  position: absolute;
+  font-size: inherit;
+  left: -0.7em;
+}
+
+.markdown h1:hover > a:first-child,
+.markdown h2:hover > a:first-child,
+.markdown h3:hover > a:first-child,
+.markdown h4:hover > a:first-child,
+.markdown h5:hover > a:first-child,
+.markdown h6:hover > a:first-child {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion) {
+  .markdown h1 > a:first-child,
+  .markdown h2 > a:first-child,
+  .markdown h3 > a:first-child,
+  .markdown h4 > a:first-child,
+  .markdown h5 > a:first-child,
+  .markdown h6 > a:first-child {
+    transition: none;
+  }
+}
+
+.markdown h1 img,
+.markdown h2 img,
+.markdown h3 img,
+.markdown h4 img,
+.markdown h5 img,
+.markdown h6 img {
+  margin: 0 0.2rem;
+  max-width: 100%;
+}
+
+/* --------------------------------------------------------------- profile */
+
+.profile .avatar {
+  display: block;
+  border-radius: 5px;
+  max-width: 100%;
+  margin: 0 auto 1rem;
+}
+
+@media (max-width: 767.98px) {
+  .profile .avatar {
+    max-width: 50%;
+  }
+}
+
+@media (max-width: 575.98px) {
+  .profile .avatar {
+    max-width: 70%;
+  }
+}
+
+/* ------------------------------------------------------- lists.sr.ht own */
+
+a[href^="mailto:"],
+.from a {
+  text-decoration: none;
+}
+
+a[href^="mailto:"]:hover,
+.from a:hover {
+  text-decoration: underline;
+}
+
+.archive-entry {
+  line-height: 2;
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.archive-entry h4 {
+  border: none;
+  white-space: normal;
+}
+
+.archive-entry small {
+  float: none;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.archive-entry small > span {
+  margin-left: 0.25rem;
+}
+
+.message-header {
+  display: grid;
+  margin-bottom: 0.5rem;
+  grid-template-columns: 5fr auto auto;
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "from details-collapsed date"
+    "details details details"
+    "info info info";
+}
+
+.message-header .from {
+  grid-area: from;
+}
+
+.message-header .date {
+  grid-area: date;
+}
+
+.message-header .msg-info {
+  grid-area: info;
+}
+
+.message-header .msg-info .info:not(:first-child) {
+  padding-left: 1rem;
+}
+
+.message-header details {
+  margin-right: 0.5rem;
+  display: inline;
+  grid-area: details-collapsed;
+}
+
+/* not --muted: core's $text-muted was a fixed gray here, in both themes */
+.message-header details summary {
+  color: #6c757d;
+}
+
+.message-header details[open] {
+  grid-area: details;
+  margin-right: 0;
+}
+
+.message-header details[open] summary {
+  color: inherit;
+}
+
+.message-header details[open] > div {
+  padding-left: 0.5rem;
+  background: var(--message-details-bg);
+}
+
+.message-header details[open] form {
+  margin-bottom: 0;
+  padding-bottom: 1rem;
+}
+
+.message-header details[open] dl {
+  margin: 0;
+}
+
+.message-header details[open] dt::after {
+  content: ": ";
+}
+
+.message-header details[open] dt,
+.message-header details[open] dd {
+  display: inline;
+}
+
+.message-body {
+  background: var(--message-bg);
+}
+
+.message-body.flowed {
+  background: var(--message-bg);
+  padding: 0.25rem;
+  margin-bottom: 1rem;
+  font-family: monospace;
+  font-size: 87.5%;
+}
+
+.message-body.flowed p {
+  max-width: 72ch;
+}
+
+.message-body.flowed p:last-child,
+.message-body.flowed blockquote:last-child {
+  margin-bottom: 0;
+}
+
+.message-body.flowed blockquote {
+  padding-left: calc(2ch - 3px);
+}
+
+.message-body .lineno {
+  text-decoration: none;
+}
+
+/* diff colors are contrast-adjusted against the message background */
+.message-body .text-success {
+  color: var(--diff-add) !important;
+}
+
+.message-body .text-danger {
+  color: var(--diff-del) !important;
+}
+
+.message-body .text-info {
+  color: var(--diff-meta) !important;
+}
+
+.feedback {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  margin-top: -1rem;
+  margin-bottom: -1rem;
+  border-width: 1rem;
+  border-color: var(--feedback-border);
+}
+
+input.patch-select {
+  margin-right: 1rem;
+}
+
+label.status {
+  margin-left: 0;
+  display: inline-block;
+  width: 11rem;
+  font-size: 0.9rem;
+  font-weight: bold;
+}
+
+.sidebar .markdown {
+  margin-bottom: 1rem;
+}
+
+.prefs {
+  margin: -0.5rem 0 0.5rem 0;
+  padding: 0 1rem;
+}
+
+.prefs summary {
+  background: var(--prefs-bg);
+  padding: 0 1rem;
+  margin: 0 -1rem;
+}
+
+.prefs[open] {
+  border-left: 4px solid var(--prefs-bg);
+}
+
+.prefs[open] summary {
+  margin: 0 -1rem 0 calc(-1rem - 4px);
+}
+
+.prefs .form-check {
+  padding-left: 0;
+}
+
+/* ------------------------------------------------- syntax highlighting */
+
+.highlight {
+  background: #f8f8f8;
+}
+
+.highlight .hll {
+  background-color: #ffffcc;
+}
+
+.highlight .c,
+.highlight .c1,
+.highlight .ch,
+.highlight .cm,
+.highlight .cpf,
+.highlight .cs {
+  color: #408080;
+  font-style: italic;
+}
+
+.highlight .cp {
+  color: #a36900;
+}
+
+.highlight .err {
+  border: 1px solid #ff0000;
+}
+
+.highlight .k,
+.highlight .kc,
+.highlight .kd,
+.highlight .kn,
+.highlight .kr,
+.highlight .nt {
+  color: #008000;
+  font-weight: bold;
+}
+
+.highlight .bp,
+.highlight .kp,
+.highlight .nb,
+.highlight .sx {
+  color: #008000;
+}
+
+.highlight .kt {
+  color: #b00040;
+}
+
+.highlight .dl,
+.highlight .ld,
+.highlight .s,
+.highlight .s1,
+.highlight .s2,
+.highlight .sa,
+.highlight .sb,
+.highlight .sc,
+.highlight .sh {
+  color: #ba2121;
+}
+
+.highlight .sd {
+  color: #ba2121;
+  font-style: italic;
+}
+
+.highlight .se {
+  color: #bb6622;
+  font-weight: bold;
+}
+
+.highlight .si {
+  color: #bb6688;
+  font-weight: bold;
+}
+
+.highlight .sr {
+  color: #bb6688;
+}
+
+.highlight .il,
+.highlight .m,
+.highlight .mb,
+.highlight .mf,
+.highlight .mh,
+.highlight .mi,
+.highlight .mo,
+.highlight .o {
+  color: #666666;
+}
+
+.highlight .ow {
+  color: #aa22ff;
+  font-weight: bold;
+}
+
+.highlight .nd {
+  color: #aa22ff;
+}
+
+.highlight .l {
+  color: #800080;
+}
+
+.highlight .fm,
+.highlight .nf {
+  color: #0000ff;
+}
+
+.highlight .nc,
+.highlight .nn {
+  color: #0000ff;
+  font-weight: bold;
+}
+
+.highlight .na {
+  color: #7d9029;
+}
+
+.highlight .ne {
+  color: #d2413a;
+  font-weight: bold;
+}
+
+.highlight .ni {
+  color: #212529;
+  font-weight: bold;
+}
+
+.highlight .nl {
+  color: #6d6d00;
+}
+
+.highlight .no {
+  color: #880000;
+}
+
+.highlight .nv,
+.highlight .nx,
+.highlight .p,
+.highlight .py,
+.highlight .ss,
+.highlight .vc,
+.highlight .vg,
+.highlight .vi,
+.highlight .vm {
+  color: #19177c;
+}
+
+.highlight .w {
+  color: #bbbbbb;
+}
+
+.highlight .gd {
+  color: #a00000;
+}
+
+.highlight .gi {
+  color: #00a000;
+}
+
+.highlight .ge {
+  font-style: italic;
+}
+
+.highlight .gs {
+  font-weight: bold;
+}
+
+.highlight .gh,
+.highlight .gp {
+  color: #000080;
+  font-weight: bold;
+}
+
+.highlight .gu {
+  color: #800080;
+  font-weight: bold;
+}
+
+.highlight .go {
+  color: #212529;
+}
+
+.highlight .gr {
+  color: #ff0000;
+}
+
+.highlight .gt {
+  color: #0044dd;
+}
+
+/* ------------------------------------------------------------------- dark */
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #212529;
+    --fg: #f8f9fa;
+    --muted: #ced4da;
+    --link: #3395ff;
+    --link-hover: #3395ff;
+
+    --rule: #495057;
+    --code-fg: #fff;
+    --pre-bg: #131618;
+    --pre-fg: #fff;
+
+    --input-bg: #131618;
+    --input-fg: #fff;
+    --input-border: #495057;
+    --input-focus-bg: #212529;
+    --input-disabled-bg: #212529;
+    --input-disabled-fg: #ced4da;
+
+    --table-bg: #343a40;
+    --table-border: #212529;
+
+    --btn-default-bg: #212529;
+    --btn-default-fg: #fff;
+    --btn-default-border: #495057;
+    --btn-default-hover-bg: #131618;
+
+    --tab-bg: #131618;
+    --tab-fg: #ced4da;
+    --tab-active-fg: #fff;
+    --navbar-fg: #fff;
+    --navbar-link: #78828a;
+    --navbar-link-hover: #fff;
+
+    --event-bg: #131618;
+    --message-bg: #131618;
+
+    --success: #2bb34b;
+    --danger: #ff3e3e;
+
+    --message-details-bg: #343a40;
+    --feedback-border: #131618;
+    --prefs-bg: #343a40;
+    --diff-add: #2bb34b;
+    --diff-del: #ff3e3e;
+    --diff-meta: #17a2b8;
+  }
+
+  /* must match the light rule's specificity to override it */
+  .event a:not(.btn) {
+    color: var(--link);
+  }
+
+  .btn.btn-primary,
+  .btn.btn-success,
+  .btn.btn-danger {
+    border-color: #131618;
+  }
+
+  .alert-info {
+    background-color: #83ccd9;
+    border-color: #97d5df;
+    color: #000;
+  }
+
+  .alert-info a:not(.btn),
+  .alert-info a.btn.btn-link {
+    color: #004a99;
+  }
+
+  .alert-success {
+    background-color: #8ccf9c;
+    border-color: #9fd7ac;
+    color: #000;
+  }
+
+  .alert-success a:not(.btn),
+  .alert-success a.btn.btn-link {
+    color: #004a99;
+  }
+
+  .alert-danger {
+    background-color: #efa3aa;
+    border-color: #ed9ba3;
+    color: #000;
+  }
+
+  .alert-danger a:not(.btn),
+  .alert-danger a.btn.btn-link {
+    color: #003e80;
+  }
+
+  .alert-warning {
+    background-color: #ffe9a4;
+    border-color: #ffe187;
+    color: #000;
+  }
+
+  .alert-warning a:not(.btn),
+  .alert-warning a.btn.btn-link {
+    color: #0056b3;
+  }
+
+  .header-tabbed .nav .nav-item .nav-link.active,
+  .header-tabbed .nav .nav-item .nav-link:hover {
+    color: #fff;
+    background: var(--tab-bg);
+    border-color: var(--tab-bg);
+  }
+
+  .header-tabbed .nav .nav-item .nav-link[disabled] {
+    color: gray;
+  }
+
+  .header-tabbed .nav .nav-link {
+    color: #ced4da;
+  }
+
+  .project-nav + .resource-nav .nav-item .active,
+  .project-nav + .resource-nav .nav-item .nav-link:hover {
+    background: #212529 !important;
+  }
+
+  .project-nav ~ .header-extension .nav-item .active,
+  .project-nav ~ .header-extension .nav-item .nav-link:hover {
+    color: #fff;
+    border-bottom: 2px solid #adb5bd !important;
+  }
+
+  .subnav .nav-item:hover {
+    background: inherit;
+  }
+
+  .subnav .nav-tabs .nav-link {
+    color: #ced4da;
+  }
+
+  .subnav .nav-tabs .nav-link.active,
+  .subnav .nav-tabs .nav-link:hover {
+    border-bottom: 3px #212529 solid;
+    background: #212529;
+    color: #fff;
+  }
+
+  /* syntax highlighting: monokai */
+  .highlight {
+    background: #272822;
+    color: #f8f8f2 !important;
+  }
+
+  .highlight .hll {
+    background-color: #49483e !important;
+  }
+
+  .highlight .bp,
+  .highlight .nb,
+  .highlight .ni,
+  .highlight .nl,
+  .highlight .nn,
+  .highlight .nv,
+  .highlight .p,
+  .highlight .py,
+  .highlight .vc,
+  .highlight .vg,
+  .highlight .vi,
+  .highlight .vm,
+  .highlight .w {
+    color: #f8f8f2 !important;
+  }
+
+  .highlight .c,
+  .highlight .c1,
+  .highlight .ch,
+  .highlight .cm,
+  .highlight .cp,
+  .highlight .cpf,
+  .highlight .cs {
+    color: #a6a087 !important;
+  }
+
+  .highlight .dl,
+  .highlight .ld,
+  .highlight .s,
+  .highlight .s1,
+  .highlight .s2,
+  .highlight .sa,
+  .highlight .sb,
+  .highlight .sc,
+  .highlight .sd,
+  .highlight .sh,
+  .highlight .si,
+  .highlight .sr,
+  .highlight .ss,
+  .highlight .sx {
+    color: #e6db74 !important;
+  }
+
+  .highlight .err {
+    color: #960050;
+    background-color: #1e0010 !important;
+  }
+
+  .highlight .fm {
+    color: #3299ff !important;
+  }
+
+  .highlight .gd,
+  .highlight .kn,
+  .highlight .nt,
+  .highlight .o,
+  .highlight .ow {
+    color: #f92672 !important;
+  }
+
+  .highlight .k,
+  .highlight .kc,
+  .highlight .kd,
+  .highlight .kp,
+  .highlight .kr,
+  .highlight .kt,
+  .highlight .no {
+    color: #66d9ef !important;
+  }
+
+  .highlight .na,
+  .highlight .nc,
+  .highlight .nd,
+  .highlight .ne,
+  .highlight .nf {
+    color: #a6e22e !important;
+  }
+
+  .highlight .nx {
+    color: #fefefe !important;
+  }
+
+  .highlight .gu,
+  .highlight .il,
+  .highlight .l,
+  .highlight .m,
+  .highlight .mb,
+  .highlight .mf,
+  .highlight .mh,
+  .highlight .mi,
+  .highlight .mo,
+  .highlight .se {
+    color: #ae81ff !important;
+  }
+
+  .highlight .ge {
+    font-style: italic !important;
+  }
+
+  .highlight .gs {
+    font-weight: bold !important;
+  }
+
+  .highlight .gh,
+  .highlight .gp {
+    color: #619fef !important;
+  }
+
+  .highlight .gi {
+    color: #00a000 !important;
+  }
+
+  .highlight .go {
+    color: #888888 !important;
+  }
+
+  .highlight .gr {
+    color: #960050 !important;
+  }
+
+  .highlight .gt {
+    color: #0044dd !important;
+  }
+}
