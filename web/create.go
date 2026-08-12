@@ -18,13 +18,6 @@ func handleCreateList(w http.ResponseWriter, r *http.Request) {
 	render(w, r, "create", nil)
 }
 
-func handleCreateMirror(w http.ResponseWriter, r *http.Request) {
-	if !requireLogin(w, r) {
-		return
-	}
-	render(w, r, "create-mirror", nil)
-}
-
 // srht's loginrequired sends anonymous visitors to app.login_url, which this
 // fork overrides to carry a return_to.
 func requireLogin(w http.ResponseWriter, r *http.Request) bool {

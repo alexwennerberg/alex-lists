@@ -80,7 +80,6 @@ func main() {
 	mux.HandleFunc("GET /{owner}", handleProfile)
 	mux.HandleFunc("GET /lists/create", handleCreateList)
 	mux.HandleFunc("POST /lists/create", handleCreateListPOST)
-	mux.HandleFunc("GET /lists/create-mirror", handleCreateMirror)
 	mux.HandleFunc("GET /lists/{owner}", handleListsForUser)
 	mux.HandleFunc("GET /{owner}/{list}", handleArchive)
 	// Message ids go in one path segment. The Python app routes them as

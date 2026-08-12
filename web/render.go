@@ -30,7 +30,6 @@ func init() {
 		"login":                  nil,
 		"not-found":              nil,
 		"create":                 nil,
-		"create-mirror":          nil,
 		"settings-info":          {"templates/list.html", "templates/settings.html"},
 		"settings-access":        {"templates/list.html", "templates/settings.html"},
 		"settings-content":       {"templates/list.html", "templates/settings.html"},
