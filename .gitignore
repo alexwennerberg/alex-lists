@@ -13,7 +13,4 @@ pip-selfcheck.json
 overrides/
 .pgp
 build
-lists.sr.ht-api
 lists.sr.ht-ingress
-api/graph/api/generated.go
-*_gen.go

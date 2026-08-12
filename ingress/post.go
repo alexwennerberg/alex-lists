@@ -5,6 +5,7 @@ package main
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"net/url"
@@ -12,7 +13,6 @@ import (
 	"strings"
 
 	"git.sr.ht/~sircmpwn/core-go/email"
-	"git.sr.ht/~sircmpwn/core-go/errors"
 	apierr "git.sr.ht/~sircmpwn/lists.sr.ht/api/errors"
 	"github.com/emersion/go-message"
 	"github.com/emersion/go-message/mail"

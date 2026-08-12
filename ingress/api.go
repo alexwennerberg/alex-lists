@@ -11,10 +11,10 @@ import (
 	"encoding/base64"
 	"strings"
 
-	"git.sr.ht/~sircmpwn/core-go/database"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/db"
 	apierr "git.sr.ht/~sircmpwn/lists.sr.ht/api/errors"
-	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/lists.sr.ht/api/lists"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/model"
 	"github.com/emersion/go-message"
 	"github.com/emersion/go-message/mail"
 )
@@ -91,7 +91,7 @@ func LookupEmailDetails(
 	// It looks the list up unconditionally and resolves the sender's access
 	// itself; the queries this replaces ran as the list owner and were
 	// likewise unfiltered.
-	err = database.WithReadOnlyTx(ctx, func(tx *sql.Tx) error {
+	err = db.WithReadOnlyTx(ctx, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			SELECT l.id, l.permit_mimetypes, l.reject_mimetypes
 			FROM list l
@@ -159,7 +159,7 @@ func RequestSubscription(
 ) (string, error) {
 	var confirmToken string
 
-	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+	if err := db.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			SELECT count(*)
 			FROM subscription s
@@ -200,7 +200,7 @@ func RequestSubscription(
 }
 
 func ConfirmSubscription(ctx context.Context, sender *Sender, token string) error {
-	return database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+	return db.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			DELETE FROM subscription_request
 			WHERE email = $1 AND confirmation_hash = $2
@@ -251,7 +251,7 @@ func RequestUnsubscription(
 ) (string, error) {
 	var confirmToken string
 
-	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+	if err := db.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			SELECT count(*)
 			FROM subscription s
@@ -296,7 +296,7 @@ func RequestUnsubscription(
 }
 
 func ConfirmUnsubscription(ctx context.Context, sender *Sender, token string) error {
-	return database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+	return db.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			DELETE FROM subscription_request
 			WHERE email = $1 AND confirmation_hash = $2
@@ -351,7 +351,7 @@ func ArchiveMessage(ctx context.Context, data []byte, list *MailingList) error {
 func LookupSubscribers(ctx context.Context, list *MailingList) ([]string, error) {
 	var emails []string
 
-	if err := database.WithReadOnlyTx(ctx, func(tx *sql.Tx) error {
+	if err := db.WithReadOnlyTx(ctx, func(tx *sql.Tx) error {
 		rows, err := tx.QueryContext(ctx, `
 			SELECT COALESCE(s.email, u.email)
 			FROM subscription s
@@ -381,7 +381,7 @@ func LookupSubscribers(ctx context.Context, list *MailingList) ([]string, error)
 func CopySelf(ctx context.Context, address string) bool {
 	var copySelf bool
 
-	if err := database.WithReadOnlyTx(ctx, func(tx *sql.Tx) error {
+	if err := db.WithReadOnlyTx(ctx, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			SELECT copy_self FROM "user" WHERE email = $1;
 		`, address)

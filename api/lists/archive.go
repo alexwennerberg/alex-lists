@@ -12,9 +12,9 @@ import (
 	"strings"
 	"time"
 
-	"git.sr.ht/~sircmpwn/core-go/database"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/db"
 	apiErr "git.sr.ht/~sircmpwn/lists.sr.ht/api/errors"
-	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/model"
 	"github.com/emersion/go-mbox"
 	"github.com/emersion/go-message"
 	"github.com/emersion/go-message/mail"
@@ -95,7 +95,7 @@ func (ar *Archiver) ArchiveMessage(r io.Reader) (int, error) {
 		emailID int
 		err_    error
 	)
-	err := database.WithTx(ar.ctx, nil, func(tx *sql.Tx) error {
+	err := db.WithTx(ar.ctx, nil, func(tx *sql.Tx) error {
 		emailID, err_ = ar.archiveMessage(tx, r)
 		return err_
 	})

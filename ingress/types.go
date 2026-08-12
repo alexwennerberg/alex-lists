@@ -6,7 +6,7 @@ package main
 import (
 	"fmt"
 
-	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/model"
 )
 
 type Command string

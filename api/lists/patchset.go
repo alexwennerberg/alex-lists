@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/model"
 	"github.com/bluekeyes/go-gitdiff/gitdiff"
 	"github.com/emersion/go-message/mail"
 	"github.com/lib/pq"

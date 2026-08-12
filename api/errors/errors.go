@@ -1,30 +1,14 @@
 package errors
 
-import (
-	"github.com/vektah/gqlparser/v2/gqlerror"
-)
+import "errors"
 
-func newGqlError(message, code string) *gqlerror.Error {
-	return &gqlerror.Error{
-		Message:    message,
-		Extensions: map[string]any{"code": code},
-	}
-}
-
+// Outcomes the ingress switches on. These were GraphQL errors carrying a code
+// extension, matched with core-go/errors.Is over the wire; the ingress calls
+// this package directly now, so they are plain sentinels for errors.Is.
 var (
-	ErrNotSubscribed = newGqlError(
-		"Not subscribed to this mailing list.",
-		"ERR_NOT_SUBSCRIBED")
-	ErrAlreadySubscribed = newGqlError(
-		"Already subscribed to this mailing list.",
-		"ERR_ALREADY_SUBSCRIBED")
-	ErrSubscriptionNotFound = newGqlError(
-		"Subscription not found.",
-		"ERR_SUBSCRIPTION_NOT_FOUND")
-	ErrInvalidToken = newGqlError(
-		"Invalid subscription token.",
-		"ERR_INVALID_TOKEN")
-	ErrDuplicateEmail = newGqlError(
-		"Message already archived in this list.",
-		"ERR_DUPLICATE_EMAIL")
+	ErrNotSubscribed        = errors.New("not subscribed to this mailing list")
+	ErrAlreadySubscribed    = errors.New("already subscribed to this mailing list")
+	ErrSubscriptionNotFound = errors.New("subscription not found")
+	ErrInvalidToken         = errors.New("invalid subscription token")
+	ErrDuplicateEmail       = errors.New("message already archived in this list")
 )
