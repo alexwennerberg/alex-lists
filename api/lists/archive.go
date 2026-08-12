@@ -122,7 +122,10 @@ func (ar *Archiver) archiveMessage(tx *sql.Tx, r io.Reader) (int, error) {
 	// TODO: Store Message-ID without "<>" in database
 	messageID := mr.Header.Get("Message-ID")
 	date, err := mr.Header.Date()
-	if err != nil {
+	if err != nil || date.IsZero() {
+		// A missing Date header parses without error and yields the zero
+		// time, which lands in the database as year 1 and then breaks
+		// anything that converts it to a unix timestamp.
 		log.Printf("Error reading Date in message %q: %v", messageID, err)
 		// fallback on using the current time
 		date = time.Now()

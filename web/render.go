@@ -24,19 +24,20 @@ var pages = map[string]*template.Template{}
 func init() {
 	// Each page gets its own set: pages redefine "body"/"content", and the
 	// last definition parsed wins, so they must not share one namespace.
-	for name, extends := range map[string]string{
-		"index":         "",
-		"dashboard":     "",
-		"login":         "",
-		"profile-lists": "templates/profile.html",
-		"archive":       "templates/list.html",
-		"not-found":     "",
+	for name, extends := range map[string][]string{
+		"index":         nil,
+		"dashboard":     nil,
+		"login":         nil,
+		"not-found":     nil,
+		"profile-lists": {"templates/profile.html"},
+		"thread":        {"templates/list.html"},
+		// list-full.html overrides the nav block that list.html inherits,
+		// so it has to be parsed after it.
+		"archive": {"templates/list.html", "templates/list-full.html"},
 	} {
 		files := []string{"templates/layout.html", "templates/nav.html",
 			"templates/pagination.html", "templates/navlink.html"}
-		if extends != "" {
-			files = append(files, extends)
-		}
+		files = append(files, extends...)
 		page := template.New("layout.html").Funcs(funcs)
 		_, err := page.ParseFS(assets, append(files,
 			"templates/"+name+".html")...)
@@ -77,6 +78,17 @@ var funcs = template.FuncMap{
 		return template.HTMLAttr(`href="mailto:` + address + `"`)
 	},
 	"pathescape": url.PathEscape,
+	// srht widens the archive and patches pages but not a single thread.
+	"fluid": isFluid,
+	"cls": func(view string) string {
+		if isFluid(view) {
+			return "container-fluid"
+		}
+		return "container"
+	},
+	"message": func(p *page, msg *threadMessage, isThread bool) messageContext {
+		return messageContext{p, msg, isThread}
+	},
 	// Pagination state lives on the page content, which differs per page;
 	// these report zero for pages that have none, matching an undefined
 	// variable in Jinja.
@@ -139,6 +151,7 @@ type page struct {
 // choices shared with the patches pages.
 var views = map[string]string{
 	"archive":       "archives",
+	"thread":        "archive",
 	"profile-lists": "lists",
 }
 
@@ -230,4 +243,8 @@ func searchOf(c any) string {
 		return p.SearchTerms()
 	}
 	return ""
+}
+
+func isFluid(view string) bool {
+	return view == "archives" || view == "patches"
 }

@@ -71,6 +71,7 @@ func main() {
 	mux.HandleFunc("GET /{owner}/{list}", handleArchive)
 	// Message ids go in one path segment. The Python app routes them as
 	// <path:message_id>, so an id containing a slash reaches it and not this.
+	mux.HandleFunc("GET /{owner}/{list}/{messageID}", handleThread)
 	mux.HandleFunc("GET /{owner}/{list}/{messageID}/raw", handleRaw)
 	mux.HandleFunc("GET /{owner}/{list}/{messageID}/mbox", handleThreadMbox)
 	// Registered by depth rather than as a "/static/" prefix: ServeMux will

@@ -1,0 +1,149 @@
+{{define "title"}}
+<title>
+  {{.Content.Thread.Subject}} &mdash; {{cfg "sr.ht" "site-name"}} lists
+</title>
+{{end}}
+{{define "head"}}
+<link rel="alternate" type="application/mbox" href="/{{.Content.List.FullName}}/{{pathescape .Content.Thread.MessageID}}/mbox">
+{{end}}
+{{define "content"}}
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      {{/* a message set by a redirect */}}
+      {{if .Content.Thread.PatchsetID}}
+      <div class="alert alert-info">
+        This thread contains a patchset. You're looking at the original emails,
+        but you may wish to use the patch review UI.
+        <a class="btn btn-primary pull-right" href="/{{.Content.List.FullName}}/patches/{{.Content.Thread.PatchsetID}}"
+        >Review patch {{icon "caret-right"}}</a>
+        <div class="clearfix"></div>
+      </div>
+      {{end}}
+      {{/* macro display_message */}}
+
+      {{template "message" (message . .Content.Thread true)}}
+      {{range .Content.Messages}}
+      {{template "message" (message $ . false)}}
+      {{end}}
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-md-6 offset-md-6">
+      <div class="form-group">
+        <a class="btn btn-primary btn-block"
+          href="{{.Content.ReplyTarget.ReplyTo}}"
+        >Reply to thread {{icon "caret-right"}}</a>
+        <a class="btn btn-default btn-block" href="/{{.Content.List.FullName}}/{{pathescape .Content.Thread.MessageID}}/mbox"
+        >Export thread (mbox) {{icon "caret-right"}}</a>
+        <form
+          style="margin-top: 0.5rem"
+          action="/{{.Content.List.FullName}}/forward/{{pathescape .Content.Thread.MessageID}}"
+          method="POST"
+        >
+          {{.CSRF}}
+          <button
+            class="btn btn-default btn-block"
+          >Forward this thread to me {{icon "caret-right"}}</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{{end}}
+{{define "message"}}
+      {{/* set stripped_subject */}}
+      {{if .IsThread}}
+      <small class="text-muted pull-right" style="line-height: 2">
+        {{if gt .Msg.NReplies 0}}
+        <span>{{icon "reply"}} {{.Msg.NReplies}}</span>
+        {{end}}
+        {{if gt .Msg.NParticipants 1}}
+        <span>{{icon "user"}} {{.Msg.NParticipants}}</span>
+        {{end}}
+      </small>
+      <h3>
+        {{.Msg.Subject}}
+      </h3>
+      {{else if .StrippedDiffers}}
+      <h3>{{.Msg.Subject}}</h3>
+      {{end}}
+      <div>
+        <div class="message-header">
+          <div class="from">
+            {{/* set from_hdr */}}
+            {{/* set from */}}
+            {{if .Msg.SenderName}}
+            <a href="/~{{.Msg.SenderName}}">{{.Msg.FromName}}</a>
+            {{else}}
+            {{.Msg.FromName}}
+            {{end}}
+            <a href="{{.Msg.ReplyTo}}">&lt;{{.Msg.FromAddress}}&gt;</a>
+          </div>
+          {{/* set dkim_status, dkim_explain */}}
+          <details>
+            <summary>Details</summary>
+            <div>
+              <dl>
+                <div>
+                  <dt>Message ID</dt>
+                  <dd><code>{{.Msg.MessageID}}</code></dd>
+                </div>
+                {{if .Msg.ParentID}}
+                <div>
+                  <dt>In-Reply-To</dt>
+                  <dd>
+                    <code>
+                      {{.Msg.ParentMsgID}}
+                    </code>
+                    <a {{.Msg.ParentAnchor}}>(view parent)</a>
+                  </dd>
+                </div>
+                {{end}}
+                {{if .Msg.MessageDate}}
+                <div>
+                  <dt>Sender timestamp</dt>
+                  <dd>{{.Msg.SenderTimestamp}}</dd>
+                </div>
+                {{end}}
+                <div>
+                  <dt>DKIM signature</dt>
+                  <dd>
+                    {{if true}}
+                    missing
+                    {{end}}
+                  </dd>
+                </div>
+              </dl>
+              <a href="/{{.Page.Content.List.FullName}}/{{pathescape .Msg.MessageID}}/raw" target="_blank">Download raw message</a>
+              {{if .Page.Content.List.Access.Moderate}}
+              <h4 style="margin-top: 1rem">Moderation tools</h4>
+              <form
+                method="POST"
+                action="/{{.Page.Content.List.FullName}}/{{pathescape .Msg.MessageID}}/remove"
+              >
+                {{.Page.CSRF}}
+                <button class="btn btn-danger">
+                  Remove message from the archives
+                  {{icon "caret-right"}}
+                </button>
+              </form>
+              {{end}}
+            </div>
+          </details>
+          <div class="date">
+            <a
+              id="{{.Msg.MessageID}}"
+              {{.Msg.Anchor}}
+              class="text-muted"
+            >{{date .Msg.CreatedPtr}}</a>
+          </div>
+          <div class="msg-info">
+            {{/* patch diffstat, once the patch renderer is ported */}}
+            {{/* note about permerror being unreliable */}}
+            {{/* dkim warning, when a signature failed */}}
+          </div>
+        </div>
+        {{.Msg.FormatBody}}
+      </div>
+      {{end}}

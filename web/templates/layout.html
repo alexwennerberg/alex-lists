@@ -17,8 +17,8 @@
     {{if and (pageNum .Content) (ne (pageNum .Content) (pageCount .Content))}}
     <link rel="next" href="{{pageLink .Content 1}}" />
     {{end}}
-    {{/* block head */}}
-    {{/* endblock */}}
+    {{block "head" .}}
+    {{end}}
   </head>
   <body>
     {{/* block environment */}}
