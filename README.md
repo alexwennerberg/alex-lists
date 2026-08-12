@@ -1,5 +1,4 @@
-This repository contains the code for the sr.ht mailing list service. For
-instructions on deploying or contributing to this project, visit the manual
-here:
+This is a hard personal fork of lists.sr.ht
 
-https://man.sr.ht/lists.sr.ht/installation.md
+sorry Drew
+
