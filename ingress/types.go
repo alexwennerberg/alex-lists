@@ -5,14 +5,9 @@ package main
 
 import (
 	"fmt"
-)
 
-type Access struct {
-	Browse   bool `json:"browse"`
-	Reply    bool `json:"reply"`
-	Post     bool `json:"post"`
-	Moderate bool `json:"moderate"`
-}
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
+)
 
 type Command string
 
@@ -49,16 +44,5 @@ func (d *MailingList) PlusAddress(cmd Command) string {
 type Sender struct {
 	Name  string
 	Email string
-	ACL   Access
-}
-
-type Patchset struct {
-	ID     int    `json:"id"`
-	Status string `json:"status"`
-}
-
-type Email struct {
-	ID        int       `json:"id"`
-	MessageId string    `json:"-"`
-	Patchset  *Patchset `json:"patchset"`
+	ACL   *model.GeneralACL
 }

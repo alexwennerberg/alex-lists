@@ -23,7 +23,7 @@ func (b *Backend) Subscribe(sender *Sender, msg *message.Entity, list *MailingLi
 	}
 
 	log.Printf("Subscribing %s to %s", sender.Email, list.FullName())
-	token, err := RequestSubscription(sender, list)
+	token, err := RequestSubscription(b.ctx, sender, list)
 
 	switch {
 	case err == nil:
@@ -102,7 +102,7 @@ func (b *Backend) ConfirmSubscribe(
 
 	log.Printf("Confirming subscription to %s for %s",
 		list.FullName(), sender.Email)
-	err := ConfirmSubscription(sender, list, token)
+	err := ConfirmSubscription(b.ctx, sender, token)
 	switch {
 	case err == nil:
 		break

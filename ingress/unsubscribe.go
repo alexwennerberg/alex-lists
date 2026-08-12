@@ -23,7 +23,7 @@ func (b *Backend) Unsubscribe(sender *Sender, msg *message.Entity, list *Mailing
 	}
 
 	log.Printf("Unsubscribing %s from %s", sender.Email, list.FullName())
-	token, err := RequestUnsubscription(sender, list)
+	token, err := RequestUnsubscription(b.ctx, sender, list)
 
 	switch {
 	case err == nil:
@@ -102,7 +102,7 @@ func (b *Backend) ConfirmUnsubscribe(
 
 	log.Printf("Confirming unsubscription from %s for %s",
 		list.FullName(), sender.Email)
-	err := ConfirmUnsubscription(sender, list, token)
+	err := ConfirmUnsubscription(b.ctx, sender, token)
 	switch {
 	case err == nil:
 		break

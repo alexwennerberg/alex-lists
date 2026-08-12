@@ -30,7 +30,7 @@ func (b *Backend) Post(sender *Sender, data []byte, msg *message.Entity, list *M
 	msgID := msg.Header.Get("Message-ID")
 
 	// Validate() consumed the message.Entity body, directly archive raw data
-	err := ArchiveMessage(data, list)
+	err := ArchiveMessage(b.ctx, data, list)
 
 	switch {
 	case err == nil:
@@ -51,7 +51,7 @@ func (b *Backend) ForwardMessage(data []byte, list *MailingList) error {
 	alreadyCopied := make(map[string]bool)
 
 	// fetch subscriber emails from database
-	subscribers, err := LookupSubscribers(list)
+	subscribers, err := LookupSubscribers(b.ctx, list)
 	if err != nil {
 		return err
 	}
@@ -79,7 +79,7 @@ func (b *Backend) ForwardMessage(data []byte, list *MailingList) error {
 			recipients = append(recipients, email)
 		}
 	}
-	if !senderIsCopied && CopySelf(from) {
+	if !senderIsCopied && CopySelf(b.ctx, from) {
 		recipients = append(recipients, from)
 	}
 

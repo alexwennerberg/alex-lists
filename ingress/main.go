@@ -11,6 +11,7 @@ import (
 	"syscall"
 
 	"git.sr.ht/~sircmpwn/core-go/config"
+	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/core-go/email"
 )
 
@@ -29,6 +30,13 @@ func main() {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	ctx := config.Context(context.Background(), SrhtConfig, "ingress")
+
+	db, err := OpenDB()
+	if err != nil {
+		log.Fatalf("database: %s", err)
+	}
+	defer db.Close()
+	ctx = database.Context(ctx, db)
 
 	egress := email.NewQueue(SrhtConfig)
 

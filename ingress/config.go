@@ -4,12 +4,14 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"net/mail"
 	"strconv"
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/crypto"
+	_ "github.com/lib/pq"
 	"github.com/vaughan0/go-ini"
 )
 
@@ -74,4 +76,14 @@ func LoadConfig() error {
 	SrhtConfig = c
 
 	return nil
+}
+
+// Connect to the database the API server writes to. The ingress archives mail
+// and manages subscriptions there directly, it does not go through the API.
+func OpenDB() (*sql.DB, error) {
+	pgcs, ok := SrhtConfig.Get(LISTS_SERVICE, "connection-string")
+	if !ok {
+		return nil, fmt.Errorf("no connection-string in [%s]", LISTS_SERVICE)
+	}
+	return sql.Open("postgres", pgcs)
 }

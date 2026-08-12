@@ -6,11 +6,15 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"database/sql"
+	"encoding/base64"
 	"strings"
 
-	"git.sr.ht/~sircmpwn/core-go/client"
-	"git.sr.ht/~sircmpwn/core-go/config"
-	"github.com/99designs/gqlgen/graphql"
+	"git.sr.ht/~sircmpwn/core-go/database"
+	apierr "git.sr.ht/~sircmpwn/lists.sr.ht/api/errors"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/lists.sr.ht/api/lists"
 	"github.com/emersion/go-message"
 	"github.com/emersion/go-message/mail"
 )
@@ -18,17 +22,6 @@ import (
 const (
 	LISTS_SERVICE = "lists.sr.ht"
 )
-
-func GqlQueryUser(
-	username string, query string, variables map[string]any, result any,
-) error {
-	ctx := config.Context(context.TODO(), SrhtConfig, LISTS_SERVICE)
-	return client.Do(
-		ctx, username, LISTS_SERVICE,
-		client.GraphQLQuery{Query: query, Variables: variables},
-		result,
-	)
-}
 
 func parseListAddr(addr string) (owner, name string, cmd Command, err error) {
 	cmd = CMD_POST
@@ -66,7 +59,16 @@ func parseListAddr(addr string) (owner, name string, cmd Command, err error) {
 	return
 }
 
-func LookupEmailDetails(msg *message.Entity, listAddr string) (*Sender, *MailingList, error) {
+// Generate a random confirmation token encoded in base64.
+func newConfirmationToken() string {
+	buf := make([]byte, 18)
+	rand.Read(buf)
+	return base64.URLEncoding.EncodeToString(buf)
+}
+
+func LookupEmailDetails(
+	ctx context.Context, msg *message.Entity, listAddr string,
+) (*Sender, *MailingList, error) {
 	fromAddr := msg.Header.Get("From")
 	inReplyTo := msg.Header.Get("In-Reply-To")
 
@@ -74,75 +76,74 @@ func LookupEmailDetails(msg *message.Entity, listAddr string) (*Sender, *Mailing
 	if err != nil {
 		return nil, nil, err
 	}
-	owner, list, cmd, err := parseListAddr(listAddr)
+	owner, name, cmd, err := parseListAddr(listAddr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	var result struct {
-		User *struct {
-			List *struct {
-				ID         int      `json:"id"`
-				PermitMime []string `json:"permitMime"`
-				RejectMime []string `json:"rejectMime"`
-				ACL        Access   `json:"userACL"`
-				ParentMsg  *struct {
-					ID int `json:"id"`
-				} `json:"message"`
-			} `json:"list"`
-		} `json:"user"`
-	}
-
-	err = GqlQueryUser(
-		owner,
-		`query($owner: String!, $list: String!, $from: String!, $msg: String!) {
-			user(username: $owner) {
-				list(name: $list) {
-					id
-					permitMime
-					rejectMime
-					userACL(email: $from) {
-						browse
-						reply
-						post
-						moderate
-					}
-					message(messageID: $msg) {
-						id
-					}
-				}
-			}
-		}`,
-		map[string]any{
-			"owner": owner,
-			"list":  list,
-			"from":  from.Address,
-			"msg":   inReplyTo,
-		},
-		&result,
+	var (
+		list    model.MailingList
+		acl     *model.GeneralACL
+		isReply bool
 	)
+
+	// Unlike a client of the API, the ingress has no user to act on behalf of.
+	// It looks the list up unconditionally and resolves the sender's access
+	// itself; the queries this replaces ran as the list owner and were
+	// likewise unfiltered.
+	err = database.WithReadOnlyTx(ctx, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			SELECT l.id, l.permit_mimetypes, l.reject_mimetypes
+			FROM list l
+			JOIN "user" u ON u.id = l.owner_id
+			WHERE u.username = $1 AND l.name = $2;
+		`, owner, name)
+		switch err := row.Scan(
+			&list.ID, &list.RawPermitMime, &list.RawRejectMime,
+		); err {
+		case nil:
+		case sql.ErrNoRows:
+			return &UnknownListError{listAddr}
+		default:
+			return err
+		}
+
+		var err error
+		acl, err = model.UserACL(ctx, tx, list.ID, from.Address)
+		if err != nil {
+			return err
+		}
+
+		if inReplyTo == "" {
+			return nil
+		}
+		// Message-ID is stored with the angle brackets it has in the header.
+		row = tx.QueryRowContext(ctx, `
+			SELECT EXISTS(
+				SELECT 1 FROM email
+				WHERE list_id = $1 AND message_id = $2
+			);
+		`, list.ID, inReplyTo)
+		return row.Scan(&isReply)
+	})
 	if err != nil {
 		return nil, nil, err
-	}
-
-	if result.User == nil || result.User.List == nil {
-		return nil, nil, &UnknownListError{listAddr}
 	}
 
 	sender := &Sender{
 		Name:  from.Name,
 		Email: from.Address,
-		ACL:   result.User.List.ACL,
+		ACL:   acl,
 	}
 
 	mailingList := &MailingList{
 		Owner:           owner,
-		Name:            list,
+		Name:            name,
 		Command:         cmd,
-		ID:              result.User.List.ID,
-		PermitMimetypes: result.User.List.PermitMime,
-		RejectMimetypes: result.User.List.RejectMime,
-		IsReply:         result.User.List.ParentMsg != nil,
+		ID:              list.ID,
+		PermitMimetypes: list.PermitMime(),
+		RejectMimetypes: list.RejectMime(),
+		IsReply:         isReply,
 	}
 
 	switch cmd {
@@ -153,146 +154,244 @@ func LookupEmailDetails(msg *message.Entity, listAddr string) (*Sender, *Mailing
 	}
 }
 
-func RequestSubscription(sender *Sender, list *MailingList) (string, error) {
-	var result struct {
-		Token string `json:"requestSubscription"`
-	}
-	err := GqlQueryUser(
-		list.Owner,
-		`mutation($list: Int!, $email: String!) {
-			requestSubscription(listID: $list, email: $email)
-		}`,
-		map[string]any{"list": list.ID, "email": sender.Email},
-		&result,
-	)
-	if err != nil {
+func RequestSubscription(
+	ctx context.Context, sender *Sender, list *MailingList,
+) (string, error) {
+	var confirmToken string
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			SELECT count(*)
+			FROM subscription s
+			LEFT OUTER JOIN "user" u ON u.id = s.user_id
+			WHERE s.list_id = $1
+			AND (s.email = $2 OR u.email = $2);
+		`, list.ID, sender.Email)
+
+		var count int
+		if err := row.Scan(&count); err != nil {
+			return err
+		} else if count != 0 {
+			return apierr.ErrAlreadySubscribed
+		}
+
+		confirmToken = newConfirmationToken()
+
+		// Must use 'ON CONFLICT DO UPDATE' resetting the same email
+		// address, otherwise the query returns nothing and there is no
+		// way to get the previous confirmation hash.
+		row = tx.QueryRowContext(ctx, `
+			INSERT INTO subscription_request (
+				list_id, email, confirmation_hash
+			) VALUES ($1, $2, $3)
+			ON CONFLICT ON CONSTRAINT sr_list_id_email_unique
+			DO UPDATE SET email = $2
+			RETURNING confirmation_hash;
+		`, list.ID, sender.Email, confirmToken)
+
+		// If a subscription request already exists. The token present
+		// in the database will be returned.
+		return row.Scan(&confirmToken)
+	}); err != nil {
 		return "", err
 	}
-	return result.Token, nil
+
+	return confirmToken, nil
 }
 
-func ConfirmSubscription(sender *Sender, list *MailingList, token string) error {
-	return GqlQueryUser(
-		list.Owner,
-		`mutation($token: ConfirmationToken!, $email: String!) {
-			confirmSubscription(token: $token, email: $email) {
-				id
-			}
-		}`,
-		map[string]any{"token": token, "email": sender.Email},
-		nil,
-	)
+func ConfirmSubscription(ctx context.Context, sender *Sender, token string) error {
+	return database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM subscription_request
+			WHERE email = $1 AND confirmation_hash = $2
+			RETURNING list_id;
+		`, sender.Email, token)
+
+		var listID int
+		switch err := row.Scan(&listID); err {
+		case nil:
+		case sql.ErrNoRows:
+			return apierr.ErrInvalidToken
+		default:
+			return err
+		}
+
+		var (
+			optEmail *string
+			optUser  *int
+			userID   int
+		)
+		row = tx.QueryRowContext(
+			ctx, `SELECT id FROM "user" WHERE email = $1;`, sender.Email,
+		)
+		switch err := row.Scan(&userID); err {
+		case nil:
+			optUser = &userID
+		case sql.ErrNoRows:
+			optEmail = &sender.Email
+		default:
+			return err
+		}
+
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO subscription (
+				created, updated, email, user_id, list_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, $2, $3
+			);
+		`, optEmail, optUser, listID)
+		return err
+	})
 }
 
-func RequestUnsubscription(sender *Sender, list *MailingList) (string, error) {
-	var result struct {
-		Token string `json:"requestUnsubscription"`
-	}
-	err := GqlQueryUser(
-		list.Owner,
-		`mutation($list: Int!, $email: String!) {
-			requestUnsubscription(listID: $list, email: $email)
-		}`,
-		map[string]any{"list": list.ID, "email": sender.Email},
-		&result,
-	)
-	if err != nil {
+func RequestUnsubscription(
+	ctx context.Context, sender *Sender, list *MailingList,
+) (string, error) {
+	var confirmToken string
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			SELECT count(*)
+			FROM subscription s
+			LEFT OUTER JOIN "user" u ON u.id = s.user_id
+			WHERE s.list_id = $1
+			AND (s.email = $2 OR u.email = $2);
+		`, list.ID, sender.Email)
+
+		var count int
+		if err := row.Scan(&count); err != nil {
+			return err
+		} else if count == 0 {
+			return apierr.ErrNotSubscribed
+		}
+
+		row = tx.QueryRowContext(ctx, `
+			SELECT confirmation_hash
+			FROM subscription_request
+			WHERE list_id = $1 AND email = $2;
+		`, list.ID, sender.Email)
+		err := row.Scan(&confirmToken)
+		if err == nil {
+			// Unsubscription request already exists. Return the token again.
+			return nil
+		} else if err != sql.ErrNoRows {
+			return err
+		}
+
+		confirmToken = newConfirmationToken()
+
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO subscription_request (
+				list_id, email, confirmation_hash
+			) VALUES ($1, $2, $3);
+		`, list.ID, sender.Email, confirmToken)
+		return err
+	}); err != nil {
 		return "", err
 	}
-	return result.Token, nil
+
+	return confirmToken, nil
 }
 
-func ConfirmUnsubscription(sender *Sender, list *MailingList, token string) error {
-	return GqlQueryUser(
-		list.Owner,
-		`mutation($token: ConfirmationToken!, $email: String!) {
-			confirmUnsubscription(token: $token, email: $email) {
-				id
+func ConfirmUnsubscription(ctx context.Context, sender *Sender, token string) error {
+	return database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM subscription_request
+			WHERE email = $1 AND confirmation_hash = $2
+			RETURNING list_id;
+		`, sender.Email, token)
+
+		var listID int
+		switch err := row.Scan(&listID); err {
+		case nil:
+		case sql.ErrNoRows:
+			return apierr.ErrInvalidToken
+		default:
+			return err
+		}
+
+		row = tx.QueryRowContext(ctx, `
+			DELETE FROM subscription s
+			WHERE s.list_id = $1 AND (
+				s.email = $2 OR s.user_id IN (
+					SELECT u.id FROM "user" u
+					WHERE u.email = $2
+				)
+			)
+			RETURNING s.id;
+		`, listID, sender.Email)
+
+		var subID int
+		switch err := row.Scan(&subID); err {
+		case nil:
+			return nil
+		case sql.ErrNoRows:
+			return apierr.ErrSubscriptionNotFound
+		default:
+			return err
+		}
+	})
+}
+
+// Archive a message into a mailing list.
+//
+// This does not deliver the emailReceived and patchsetReceived webhooks that
+// the API's archiveMessage mutation triggers: their delivery evaluates each
+// subscriber's GraphQL query against the executable schema, which is only
+// available in the API server. See mutation { triggerListEmailWebhooks }.
+func ArchiveMessage(ctx context.Context, data []byte, list *MailingList) error {
+	// The archiver opens its own transaction, it takes none here.
+	_, err := lists.NewArchiver(ctx, nil, list.ID).
+		ArchiveMessage(bytes.NewReader(data))
+	return err
+}
+
+func LookupSubscribers(ctx context.Context, list *MailingList) ([]string, error) {
+	var emails []string
+
+	if err := database.WithReadOnlyTx(ctx, func(tx *sql.Tx) error {
+		rows, err := tx.QueryContext(ctx, `
+			SELECT COALESCE(s.email, u.email)
+			FROM subscription s
+			LEFT OUTER JOIN "user" u ON u.id = s.user_id
+			WHERE s.list_id = $1;
+		`, list.ID)
+		if err != nil {
+			return err
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var email string
+			if err := rows.Scan(&email); err != nil {
+				return err
 			}
-		}`,
-		map[string]any{"token": token, "email": sender.Email},
-		nil,
-	)
-}
-
-func ArchiveMessage(data []byte, list *MailingList) error {
-	ctx := config.Context(context.TODO(), SrhtConfig, LISTS_SERVICE)
-	return client.Do(
-		ctx, list.Owner, LISTS_SERVICE,
-		client.GraphQLQuery{
-			Query: `mutation($list: Int!, $msg: Upload!) {
-				archiveMessage(listID: $list, message: $msg)
-			}`,
-			Variables: map[string]any{"list": list.ID},
-			Uploads: map[string]graphql.Upload{
-				"msg": {
-					Filename:    "archive",
-					File:        bytes.NewReader(data),
-					ContentType: "message/rfc822",
-				},
-			},
-		},
-		nil,
-	)
-}
-
-func LookupSubscribers(list *MailingList) ([]string, error) {
-	var result struct {
-		User struct {
-			List struct {
-				Subscriptions []struct {
-					Subscriber struct {
-						Email string `json:"email"`
-					} `json:"subscriber"`
-				} `json:"subscriptions"`
-			} `json:"list"`
-		} `json:"user"`
-	}
-	err := GqlQueryUser(
-		list.Owner,
-		`query($owner: String!, $list: String!) {
-			user(username: $owner) {
-				list(name: $list) {
-					subscriptions {
-						subscriber {
-							... on Mailbox {
-								email: address
-							}
-							... on User {
-								email
-							}
-						}
-					}
-				}
-			}
-		}`,
-		map[string]any{"owner": list.Owner, "list": list.Name},
-		&result,
-	)
-	if err != nil {
+			emails = append(emails, email)
+		}
+		return rows.Err()
+	}); err != nil {
 		return nil, err
 	}
-	emails := make([]string, 0, len(result.User.List.Subscriptions))
-	for _, s := range result.User.List.Subscriptions {
-		emails = append(emails, s.Subscriber.Email)
-	}
+
 	return emails, nil
 }
 
-func CopySelf(address string) bool {
-	var result struct {
-		CopySelf bool `json:"copySelf"`
-	}
-	err := GqlQueryUser(
-		"",
-		`query($email: String!) {
-			copySelf(email: $email)
-		}`,
-		map[string]any{"email": address},
-		&result,
-	)
-	if err != nil {
+func CopySelf(ctx context.Context, address string) bool {
+	var copySelf bool
+
+	if err := database.WithReadOnlyTx(ctx, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			SELECT copy_self FROM "user" WHERE email = $1;
+		`, address)
+		if err := row.Scan(&copySelf); err != nil && err != sql.ErrNoRows {
+			return err
+		}
+		return nil
+	}); err != nil {
 		return false
 	}
-	return result.CopySelf
+
+	return copySelf
 }

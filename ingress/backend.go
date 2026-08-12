@@ -173,7 +173,7 @@ func (b *Backend) ProcessMessage(
 	email, _ = message.Read(bytes.NewReader(data))
 
 	for _, to := range recipients {
-		sender, list, err = LookupEmailDetails(email, to)
+		sender, list, err = LookupEmailDetails(b.ctx, email, to)
 		if err != nil {
 			goto next
 		}
