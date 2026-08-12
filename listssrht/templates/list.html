@@ -50,14 +50,6 @@
           list_name=ml.name),
           "archive" if view == "archive" else "archives")}}
       </li>
-      {% if ListAccess.browse in access %}
-      <li class="nav-item">
-        {{link(url_for("patches.patchlist",
-          owner_name=owner.canonical_name,
-          list_name=ml.name),
-          "patch" if view == "patch" else "patches")}}
-      </li>
-      {% endif %}
 
       {% set posting_address = post_address(ml) %}
       {% if posting_address %}

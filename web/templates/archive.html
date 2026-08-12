@@ -143,16 +143,6 @@
         {{range .Content.Threads}}
         <div class="event archive-entry">
           <h4>
-            {{if .PatchsetID}}
-            {{/* the patches view puts a status label here */}}
-            <a href="/{{$.Content.List.FullName}}/patches/{{.PatchsetID}}">
-              {{if .Subject}}
-                {{.Subject}}
-              {{else}}
-                <em>(no subject)</em>
-              {{end}}
-            </a>
-            {{else}}
             <a href="/{{$.Content.List.FullName}}/{{pathescape .MessageID}}">
               {{if .Subject}}
                 {{.Subject}}
@@ -160,7 +150,6 @@
                 <em>(no subject)</em>
               {{end}}
             </a>
-            {{end}}
           </h4>
           <small class="text-muted pull-right">
             <span>

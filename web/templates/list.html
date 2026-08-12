@@ -38,11 +38,6 @@
       <li class="nav-item">
         {{template "navlink" (navlink (printf "/%s" .Content.List.FullName) (tabname .View "archive" "archives") (eq .View "archives" "archive"))}}
       </li>
-      {{if .Content.List.Access.Browse}}
-      <li class="nav-item">
-        {{template "navlink" (navlink (printf "/%s/patches" .Content.List.FullName) (tabname .View "patch" "patches") (eq .View "patches" "patch"))}}
-      </li>
-      {{end}}
 
       {{/* set posting_address */}}
       {{if true}}

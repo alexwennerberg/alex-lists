@@ -163,35 +163,6 @@
         {% for message in threads %}
         <div class="event archive-entry">
           <h4>
-            {% if message.patchset_id %}
-            {% if view == "patches" %}
-            <label for="select-{{message.patchset_id}}"
-              class="status {{status_to_color[message.patchset.status]}}"
-            >
-              {% if ListAccess.moderate in access and view == "patches" %}
-              <input
-                type="checkbox"
-                class="patch-select"
-                name="select-{{message.patchset_id}}"
-                id="select-{{message.patchset_id}}"
-              ></input>
-              {% endif %}
-              {{message.patchset.status.value.replace("_", " ").upper()}}
-            </label>
-            {% endif %}
-            <a href="{{
-              url_for('patches.patchset',
-                owner_name=owner.canonical_name,
-                list_name=ml.name,
-                patchset_id=message.patchset_id)
-            }}">
-              {% if message.subject %}
-                {{ message.subject }}
-              {% else %}
-                <em>(no subject)</em>
-              {% endif %}
-            </a>
-            {% else %}
             <a href="{{
               url_for('archives.thread',
                 owner_name=owner.canonical_name,
@@ -204,7 +175,6 @@
                 <em>(no subject)</em>
               {% endif %}
             </a>
-            {% endif %}
           </h4>
           <small class="text-muted pull-right">
             <span>

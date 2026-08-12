@@ -11,15 +11,6 @@
   <div class="row">
     <div class="col-md-12">
       {{/* a message set by a redirect */}}
-      {{if .Content.Thread.PatchsetID}}
-      <div class="alert alert-info">
-        This thread contains a patchset. You're looking at the original emails,
-        but you may wish to use the patch review UI.
-        <a class="btn btn-primary pull-right" href="/{{.Content.List.FullName}}/patches/{{.Content.Thread.PatchsetID}}"
-        >Review patch {{icon "caret-right"}}</a>
-        <div class="clearfix"></div>
-      </div>
-      {{end}}
       {{/* macro display_message */}}
 
       {{template "message" (message . .Content.Thread true)}}

@@ -20,17 +20,6 @@
         {{user_message}}
       </div>
       {% endif %}
-      {% if thread.patchset_id %}
-      <div class="alert alert-info">
-        This thread contains a patchset. You're looking at the original emails,
-        but you may wish to use the patch review UI.
-        <a class="btn btn-primary pull-right" href="{{ url_for('patches.patchset',
-          owner_name=owner.canonical_name, list_name=ml.name,
-          patchset_id=thread.patchset_id) }}"
-        >Review patch {{icon('caret-right')}}</a>
-        <div class="clearfix"></div>
-      </div>
-      {% endif %}
       {% macro display_message(msg) %}
       {% set stripped_subject =
         msg.subject[4:] if (msg.subject

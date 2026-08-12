@@ -35,13 +35,11 @@ class ListsApp(Flask):
 
         from listssrht.blueprints.archives import archives
         from listssrht.blueprints.auth import auth
-        from listssrht.blueprints.patches import patches
         from listssrht.blueprints.settings import settings
         from listssrht.blueprints.user import user
 
         self.register_blueprint(archives)
         self.register_blueprint(auth)
-        self.register_blueprint(patches)
         self.register_blueprint(settings)
         self.register_blueprint(user)
 

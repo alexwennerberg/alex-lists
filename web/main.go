@@ -66,6 +66,8 @@ func main() {
 	mux.HandleFunc("GET /logout", handleLogout)
 	// net/http patterns cannot express "/~{username}": a wildcard has to be a
 	// whole segment. Match the segment and check the ~ in the handler.
+	// Anything unmatched gets srht's 404 page rather than net/http's.
+	mux.HandleFunc("GET /", handleNotFound)
 	mux.HandleFunc("GET /{owner}", handleProfile)
 	mux.HandleFunc("GET /lists/create", handleCreateList)
 	mux.HandleFunc("GET /lists/create-mirror", handleCreateMirror)

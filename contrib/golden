@@ -45,6 +45,7 @@ SCRUBBERS = [
      b'main.min.HASH.css'),
     (re.compile(rb'\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(\.\d+)?( ?UTC|Z)?'),
      b'TIMESTAMP'),
+    (re.compile(rb'<!--\s+Font Awesome Free[^>]*?-->', re.S), b''),
     # srht renders dates as humanize.naturaltime inside a span titled with the
     # exact timestamp: "an hour ago", "2 months ago", "1 year, 1 month ago",
     # "now". Scrub the whole span rather than chase that vocabulary; it runs

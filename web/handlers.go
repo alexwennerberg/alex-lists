@@ -261,3 +261,7 @@ func serverError(w http.ResponseWriter, r *http.Request, what string, err error)
 	log.Printf("%s %s: %s", r.Method, r.URL.Path, err)
 	http.Error(w, "internal server error", http.StatusInternalServerError)
 }
+
+func handleNotFound(w http.ResponseWriter, r *http.Request) {
+	notFound(w, r)
+}
