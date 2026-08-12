@@ -1,0 +1,59 @@
+{{define "body"}}
+<div class="container">
+  <div class="row">
+    <div class="col-md-6">
+      <h3>Create new mirror</h3>
+      <p>
+        Mirrored lists receive emails from an externally managed mailing list
+        and shows them in the {{cfg "sr.ht" "site-name"}} archive.
+      </p>
+      <form method="POST" action="/lists/create-mirror">
+        {{.CSRF}}
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input
+            type="text"
+            name="name"
+            id="name"
+            class="form-control "
+            value="" />
+          
+        </div>
+        <div class="form-group">
+          <label for="description">Description</label>
+          <textarea
+            name="description"
+            id="description"
+            class="form-control "
+            value=""
+            placeholder="Markdown supported"
+            rows="5"
+            aria-describedby="description-help"
+          ></textarea>
+          
+        </div>
+        <div class="form-group">
+          <label for="address">Subscription address or URL</label>
+          <input
+            type="text"
+            name="address"
+            id="address"
+            aria-describedby="address-help"
+            class="form-control "
+            value="" />
+          
+          {{if false}}
+          <input type="hidden" name="weird-email-okay" value="yes" />
+          {{end}}
+        </div>
+        <p id="address-help" class="form-text text-muted">
+          Take care to use the subscription address - not the posting address.
+        </p>
+        <button type="submit" class="btn btn-primary">
+          Create {{icon "caret-right"}}
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{{end}}

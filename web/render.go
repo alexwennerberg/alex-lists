@@ -29,6 +29,8 @@ func init() {
 		"dashboard":     nil,
 		"login":         nil,
 		"not-found":     nil,
+		"create":        nil,
+		"create-mirror": nil,
 		"profile-lists": {"templates/profile.html"},
 		"thread":        {"templates/list.html"},
 		// list-full.html overrides the nav block that list.html inherits,

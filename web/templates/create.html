@@ -1,0 +1,96 @@
+{{define "body"}}
+<div class="container">
+  <form class="row" method="POST" action="/lists/create">
+    <div class="col-md-12">
+      <h3>Create new mailing list</h3>
+    </div>
+    <div class="col-md-6">
+      {{.CSRF}}
+      <div class="form-group">
+        <label for="name">Name</label>
+        <input
+          type="text"
+          name="name"
+          id="name"
+          class="form-control "
+          value=""
+          required />
+        
+      </div>
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea
+          name="description"
+          id="description"
+          class="form-control "
+          value=""
+          placeholder="Markdown supported"
+          rows="5"
+          aria-describedby="description-help"
+        ></textarea>
+        
+      </div>
+      
+      <button type="submit" class="btn btn-primary">
+        Create {{icon "caret-right"}}
+      </button>
+    </div>
+    <div class="col-md-6 d-flex flex-column">
+      <fieldset class="form-group">
+        <legend>Mailing List Visibility</legend>
+        <div class="form-check">
+          <label class="form-check-label">
+            <input
+              class="form-check-input"
+              type="radio"
+              name="visibility"
+              value="PUBLIC"
+              {{if true}}
+              checked
+              {{end}}> Public
+            <small id="visibility-public-help" class="form-text text-muted">
+              Shown on your profile page
+            </small>
+          </label>
+        </div>
+        <div class="form-check">
+          <label
+              class="form-check-label"
+              title="Visible to anyone with the link, but not shown on your profile"
+            >
+            <input
+              class="form-check-input"
+              type="radio"
+              name="visibility"
+              value="UNLISTED"
+              {{if false}}
+              checked
+              {{end}}> Unlisted
+            <small id="visibility-unlisted-help" class="form-text text-muted">
+              Visible to anyone who knows the URL, but not shown on your profile
+            </small>
+          </label>
+        </div>
+        <div class="form-check">
+          <label
+            class="form-check-label"
+            title="Only visible to you and your collaborators"
+          >
+            <input
+              class="form-check-input"
+              type="radio"
+              name="visibility"
+              value="PRIVATE"
+              {{if false}}
+              checked
+              {{end}}> Private
+            <small id="visibility-unlisted-help" class="form-text text-muted">
+              Only visible to you and your collaborators
+            </small>
+          </label>
+        </div>
+      </fieldset>
+    </div>
+  </form>
+</div>
+{{end}}

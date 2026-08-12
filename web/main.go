@@ -67,6 +67,8 @@ func main() {
 	// net/http patterns cannot express "/~{username}": a wildcard has to be a
 	// whole segment. Match the segment and check the ~ in the handler.
 	mux.HandleFunc("GET /{owner}", handleProfile)
+	mux.HandleFunc("GET /lists/create", handleCreateList)
+	mux.HandleFunc("GET /lists/create-mirror", handleCreateMirror)
 	mux.HandleFunc("GET /lists/{owner}", handleListsForUser)
 	mux.HandleFunc("GET /{owner}/{list}", handleArchive)
 	// Message ids go in one path segment. The Python app routes them as
